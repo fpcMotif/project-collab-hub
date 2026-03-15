@@ -27,3 +27,12 @@ export {
   BaseBinding,
 } from "./schemas/bindings.js";
 export { AuditEvent } from "./schemas/audit.js";
+export {
+  BoardColumn,
+  BoardColumnId,
+  BOARD_COLUMNS,
+  STAGE_TRANSITIONS,
+  DEPARTMENT_TRACK_STATUSES,
+  BLOCKING_STATUSES,
+  canAdvanceStage,
+} from "./schemas/board.js";
