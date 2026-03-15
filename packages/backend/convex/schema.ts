@@ -232,6 +232,55 @@ export default defineSchema({
     .index("by_recipient", ["recipientId"])
     .index("by_status", ["status"]),
 
+  // ── Configuration ──────────────────────────────────────────────────────
+
+  projectTemplates: defineTable({
+    name: v.string(),
+    description: v.string(),
+    version: v.number(),
+    isActive: v.boolean(),
+    departments: v.array(
+      v.object({
+        departmentId: v.string(),
+        departmentName: v.string(),
+        isRequired: v.boolean(),
+        defaultOwnerId: v.optional(v.string()),
+      }),
+    ),
+    approvalGates: v.array(
+      v.object({
+        triggerStage: v.string(),
+        approvalCode: v.string(),
+        title: v.string(),
+        isRequired: v.boolean(),
+      }),
+    ),
+    notificationRules: v.array(
+      v.object({
+        event: v.string(),
+        channel: v.string(),
+        enabled: v.boolean(),
+        recipientStrategy: v.string(),
+      }),
+    ),
+    chatPolicy: v.object({
+      autoCreateChat: v.boolean(),
+      addBotAsManager: v.boolean(),
+      pinProjectCard: v.boolean(),
+      chatNameTemplate: v.optional(v.string()),
+    }),
+    defaultPriority: v.union(
+      v.literal("low"),
+      v.literal("medium"),
+      v.literal("high"),
+      v.literal("urgent"),
+    ),
+    createdBy: v.string(),
+    updatedAt: v.number(),
+  })
+    .index("by_active", ["isActive"])
+    .index("by_name", ["name"]),
+
   // ── Audit & Events ────────────────────────────────────────────────────
 
   auditEvents: defineTable({

@@ -28,6 +28,14 @@ export {
 } from "./schemas/bindings.js";
 export { AuditEvent } from "./schemas/audit.js";
 export {
+  ProjectTemplate,
+  ApprovalGateConfig,
+  DepartmentTrackConfig,
+  NotificationRule,
+  ChatPolicy,
+  DEFAULT_TEMPLATE_CONFIG,
+} from "./schemas/template.js";
+export {
   BoardColumn,
   BoardColumnId,
   BOARD_COLUMNS,
