@@ -11,12 +11,6 @@ export function useStageTransition() {
       targetStatus: string,
       trackStatuses: readonly string[],
       pendingRequiredApprovalCount = 0,
-    ) =>
-      canAdvanceStage(
-        currentStatus,
-        targetStatus,
-        trackStatuses,
-        pendingRequiredApprovalCount,
-      ),
+    ) => canAdvanceStage(currentStatus, targetStatus, trackStatuses, pendingRequiredApprovalCount),
   } as const;
 }

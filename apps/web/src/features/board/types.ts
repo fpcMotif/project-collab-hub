@@ -58,9 +58,15 @@ export interface BoardProjectCard extends BoardProjectRecord {
 export interface BoardColumnViewModel {
   id: BoardColumnId;
   name: string;
+  projectStatus: ProjectStatus;
   entryCriteria: string;
   exitCriteria: string;
   cards: BoardProjectCard[];
+}
+
+export interface BoardMoveResult {
+  ok: boolean;
+  message?: string;
 }
 
 export interface BoardFilterState {

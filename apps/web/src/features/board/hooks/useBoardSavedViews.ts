@@ -78,24 +78,27 @@ function subscribe(callback: () => void) {
 export function useBoardSavedViews() {
   const savedViews = useSyncExternalStore(subscribe, readSavedViews, () => []);
 
-  const saveView = useCallback((name: string, filters: BoardFilterState) => {
-    const trimmedName = name.trim();
-    if (!trimmedName) {
-      return false;
-    }
+  const saveView = useCallback(
+    (name: string, filters: BoardFilterState) => {
+      const trimmedName = name.trim();
+      if (!trimmedName) {
+        return false;
+      }
 
-    const next = [
-      ...savedViews,
-      {
-        id: createViewId(),
-        name: trimmedName,
-        filters,
-      },
-    ];
+      const next = [
+        ...savedViews,
+        {
+          id: createViewId(),
+          name: trimmedName,
+          filters,
+        },
+      ];
 
-    persistSavedViews(next);
-    return true;
-  }, [savedViews]);
+      persistSavedViews(next);
+      return true;
+    },
+    [savedViews],
+  );
 
   const deleteView = useCallback(
     (id: string) => {

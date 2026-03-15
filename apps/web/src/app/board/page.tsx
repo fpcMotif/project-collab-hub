@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Suspense } from "react";
 import { Board } from "@/features/board/components/Board";
 
@@ -11,6 +12,12 @@ export default function BoardPage() {
       {/* Top bar */}
       <header className="flex shrink-0 items-center justify-between border-b border-gray-200 bg-white px-6 py-3">
         <h1 className="text-lg font-bold text-gray-900">项目看板</h1>
+        <Link
+          href="/projects/new"
+          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+        >
+          新建项目
+        </Link>
       </header>
 
       {/* Board area */}

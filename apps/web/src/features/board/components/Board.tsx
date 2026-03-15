@@ -1,27 +1,32 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
+import { useConvexEnabled } from "@/providers/ConvexClientProvider";
 import { useBoardFilters } from "../hooks/useBoardFilters";
-import { useBoardData } from "../hooks/useBoardData";
 import { useBoardSavedViews } from "../hooks/useBoardSavedViews";
-import { BoardColumn } from "./BoardColumn";
-import { FilterBar } from "./filters/FilterBar";
-import { SavedViewsBar } from "./filters/SavedViewsBar";
+import { useConvexBoardData } from "../hooks/useConvexBoardData";
+import { useMockBoardData } from "../hooks/useMockBoardData";
+import { BoardWorkspace } from "./BoardWorkspace";
 
 export function Board() {
-  const { filters, replaceFilters, setFilter, clearFilter, clearAll } = useBoardFilters();
-  const {
-    columns,
-    ownerOptions,
-    customerOptions,
-    departmentOptions,
-    templateTypeOptions,
-    totalProjectCount,
-    visibleProjectCount,
-  } = useBoardData(filters);
-  const { savedViews, saveView, deleteView } = useBoardSavedViews();
+  const convexEnabled = useConvexEnabled();
+  const boardState = useBoardFilters();
+  const savedViewsState = useBoardSavedViews();
 
-  const [mobileColumnIdx, setMobileColumnIdx] = useState(0);
+  if (convexEnabled) {
+    return <ConnectedBoard boardState={boardState} savedViewsState={savedViewsState} />;
+  }
+
+  return <MockBoard boardState={boardState} savedViewsState={savedViewsState} />;
+}
+
+interface SharedBoardState {
+  boardState: ReturnType<typeof useBoardFilters>;
+  savedViewsState: ReturnType<typeof useBoardSavedViews>;
+}
+
+function ConnectedBoard({ boardState, savedViewsState }: SharedBoardState) {
+  const data = useConvexBoardData(boardState.filters);
 
   const handleSaveCurrentView = useCallback(() => {
     const name = window.prompt("请输入视图名称", "我的筛选视图");
@@ -29,57 +34,49 @@ export function Board() {
       return;
     }
 
-    saveView(name, filters);
-  }, [filters, saveView]);
+    savedViewsState.saveView(name, boardState.filters);
+  }, [boardState.filters, savedViewsState]);
 
   return (
-    <div className="flex h-full flex-col gap-4">
-      <div className="flex flex-col gap-2">
-        <FilterBar
-          filters={filters}
-          ownerOptions={ownerOptions}
-          customerOptions={customerOptions}
-          departmentOptions={departmentOptions}
-          templateTypeOptions={templateTypeOptions}
-          onFilterChange={setFilter}
-          onClearFilter={clearFilter}
-          onClearAll={clearAll}
-        />
-        <SavedViewsBar
-          savedViews={savedViews}
-          activeFilters={filters}
-          onApplyView={replaceFilters}
-          onSaveCurrentView={handleSaveCurrentView}
-          onDeleteView={deleteView}
-        />
-        <p className="text-xs text-gray-500">
-          当前显示 {visibleProjectCount} / {totalProjectCount} 个项目
-        </p>
-      </div>
+    <BoardWorkspace
+      {...data}
+      filters={boardState.filters}
+      savedViews={savedViewsState.savedViews}
+      onFilterChange={boardState.setFilter}
+      onApplyView={boardState.replaceFilters}
+      onClearFilter={boardState.clearFilter}
+      onClearAll={boardState.clearAll}
+      onSaveCurrentView={handleSaveCurrentView}
+      onDeleteView={savedViewsState.deleteView}
+      onMoveProject={data.moveProject}
+    />
+  );
+}
 
-      <div className="md:hidden">
-        <select
-          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700"
-          value={mobileColumnIdx}
-          onChange={(event) => setMobileColumnIdx(Number(event.target.value))}
-        >
-          {columns.map((column, idx) => (
-            <option key={column.id} value={idx}>
-              {column.name} ({column.cards.length})
-            </option>
-          ))}
-        </select>
-      </div>
+function MockBoard({ boardState, savedViewsState }: SharedBoardState) {
+  const data = useMockBoardData(boardState.filters);
 
-      <div className="hidden flex-1 gap-3 overflow-x-auto pb-2 md:flex">
-        {columns.map((column) => (
-          <BoardColumn key={column.id} column={column} />
-        ))}
-      </div>
+  const handleSaveCurrentView = useCallback(() => {
+    const name = window.prompt("请输入视图名称", "我的筛选视图");
+    if (!name) {
+      return;
+    }
 
-      <div className="flex-1 md:hidden">
-        {columns[mobileColumnIdx] && <BoardColumn column={columns[mobileColumnIdx]} />}
-      </div>
-    </div>
+    savedViewsState.saveView(name, boardState.filters);
+  }, [boardState.filters, savedViewsState]);
+
+  return (
+    <BoardWorkspace
+      {...data}
+      filters={boardState.filters}
+      savedViews={savedViewsState.savedViews}
+      onFilterChange={boardState.setFilter}
+      onApplyView={boardState.replaceFilters}
+      onClearFilter={boardState.clearFilter}
+      onClearAll={boardState.clearAll}
+      onSaveCurrentView={handleSaveCurrentView}
+      onDeleteView={savedViewsState.deleteView}
+      onMoveProject={data.moveProject}
+    />
   );
 }

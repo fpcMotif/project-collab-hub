@@ -37,12 +37,28 @@ export const create = mutation({
     if (mentionedUserIds && mentionedUserIds.length > 0) {
       const uniqueUserIds = [...new Set(mentionedUserIds)];
       for (const userId of uniqueUserIds) {
+        const notificationDeliveryId = await ctx.db.insert("notificationDeliveries", {
+          projectId: args.projectId,
+          recipientId: userId,
+          channel: "private_chat",
+          messageType: "mention",
+          status: "pending",
+          retryCount: 0,
+          payload: JSON.stringify({
+            commentId,
+            authorId: args.authorId,
+            commentPreview: args.body.slice(0, 120),
+            targetScope: args.targetScope,
+          }),
+        });
+
         await ctx.db.insert("mentions", {
           commentId,
           projectId: args.projectId,
           mentionedUserId: userId,
           mentionedByUserId: args.authorId,
           notificationSent: false,
+          notificationDeliveryId,
         });
       }
     }
