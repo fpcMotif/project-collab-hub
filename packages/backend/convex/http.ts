@@ -41,7 +41,7 @@ http.route({
         break;
       default:
         // Log unhandled event types for observability
-        console.log(`Unhandled Feishu event type: ${eventType}`);
+        console.error(`Unhandled Feishu event type: ${eventType}`);
     }
 
     return new Response(JSON.stringify({ ok: true }), {
@@ -98,7 +98,7 @@ http.route({
         break;
       }
       default:
-        console.log(`Unhandled card action: ${actionTag}`);
+        console.error(`Unhandled card action: ${actionTag}`);
     }
 
     // Return empty body to acknowledge (Feishu expects 200)
@@ -225,7 +225,7 @@ async function handleTaskEvent(
 
   // TODO: Look up feishuTaskBindings by taskGuid, then update workItem status.
   // This requires a query on feishuTaskBindings.by_feishu_task index.
-  console.log(`Task event received for task: ${taskGuid}`);
+  console.info(`Task event received for task: ${taskGuid}`);
 }
 
 export default http;
