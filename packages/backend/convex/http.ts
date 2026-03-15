@@ -37,7 +37,7 @@ http.route({
         break;
       case "task.updated":
       case "task.completed":
-        await handleTaskEvent(ctx, body, eventId);
+        await handleTaskEvent(ctx, body, eventId, eventType);
         break;
       default:
         // Log unhandled event types for observability
@@ -215,7 +215,8 @@ async function handleApprovalEvent(
 async function handleTaskEvent(
   ctx: { runQuery: typeof Function.prototype; runMutation: typeof Function.prototype },
   body: Record<string, unknown>,
-  _eventId: string,
+  eventId: string,
+  eventType: string,
 ) {
   const event = body.event as Record<string, unknown> | undefined;
   if (!event) return;
@@ -223,8 +224,19 @@ async function handleTaskEvent(
   const taskGuid = event.task_id as string | undefined;
   if (!taskGuid) return;
 
-  // TODO: Look up feishuTaskBindings by taskGuid, then update workItem status.
-  // This requires a query on feishuTaskBindings.by_feishu_task index.
+  const binding = await (ctx.runQuery as Function)(
+    api.feishuTaskBindings.getByTaskGuid,
+    { taskGuid }
+  );
+  if (!binding) return;
+
+  const newStatus = eventType === "task.completed" ? "done" : "in_progress";
+
+  await (ctx.runMutation as Function)(api.workItems.updateStatus, {
+    id: binding.workItemId,
+    status: newStatus,
+    actorId: "system",
+  });
   console.log(`Task event received for task: ${taskGuid}`);
 }
 
