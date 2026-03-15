@@ -36,6 +36,9 @@ export const FeishuAuthServiceLive = (config: FeishuAuthConfig) =>
               }),
             },
           );
+          if (!resp.ok) {
+            throw new Error(`HTTP error! status: ${resp.status}`);
+          }
           const data = (await resp.json()) as {
             tenant_access_token: string;
             code: number;
