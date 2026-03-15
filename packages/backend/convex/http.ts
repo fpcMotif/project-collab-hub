@@ -1,6 +1,6 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 
 const http = httpRouter();
 
@@ -37,7 +37,7 @@ http.route({
         break;
       case "task.updated":
       case "task.completed":
-        await handleTaskEvent(ctx, body, eventId);
+        await handleTaskEvent(ctx, body, eventId, eventType);
         break;
       default:
         // Log unhandled event types for observability
@@ -216,6 +216,7 @@ async function handleTaskEvent(
   ctx: { runQuery: typeof Function.prototype; runMutation: typeof Function.prototype },
   body: Record<string, unknown>,
   _eventId: string,
+  eventType: string,
 ) {
   const event = body.event as Record<string, unknown> | undefined;
   if (!event) return;
@@ -223,9 +224,39 @@ async function handleTaskEvent(
   const taskGuid = event.task_id as string | undefined;
   if (!taskGuid) return;
 
-  // TODO: Look up feishuTaskBindings by taskGuid, then update workItem status.
-  // This requires a query on feishuTaskBindings.by_feishu_task index.
-  console.log(`Task event received for task: ${taskGuid}`);
+  const binding = await (ctx.runQuery as Function)(
+    internal.workItems.getBindingByFeishuTask,
+    { feishuTaskGuid: taskGuid },
+  );
+
+  if (!binding) {
+    console.log(`No binding found for Feishu task: ${taskGuid}`);
+    return;
+  }
+
+  // Map Feishu task status to workItem status
+  let mappedStatus: "todo" | "in_progress" | "in_review" | "done" | null = null;
+
+  if (eventType === "task.completed") {
+    mappedStatus = "done";
+  } else if (eventType === "task.updated") {
+    // Attempt to parse status from event if it's there
+    const status = event.status || (event.task as any)?.status;
+    if (status === "todo" || status === "in_progress" || status === "in_review" || status === "done") {
+      mappedStatus = status as any;
+    }
+  }
+
+  if (mappedStatus) {
+    await (ctx.runMutation as Function)(api.workItems.updateStatus, {
+      id: binding.workItemId,
+      status: mappedStatus,
+      actorId: "system",
+    });
+    console.log(`Updated workItem ${binding.workItemId} to ${mappedStatus} based on Feishu task ${taskGuid}`);
+  } else {
+    console.log(`Unhandled task event type/status for task: ${taskGuid}`);
+  }
 }
 
 export default http;

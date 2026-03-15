@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 
 export const listByProject = query({
@@ -90,5 +90,17 @@ export const updateStatus = mutation({
       objectId: args.id,
       changeSummary: `"${item.title}" status changed from ${item.status} to ${args.status}`,
     });
+  },
+});
+
+export const getBindingByFeishuTask = internalQuery({
+  args: { feishuTaskGuid: v.string() },
+  handler: async (ctx, args) => {
+    return ctx.db
+      .query("feishuTaskBindings")
+      .withIndex("by_feishu_task", (q) =>
+        q.eq("feishuTaskGuid", args.feishuTaskGuid)
+      )
+      .first();
   },
 });
