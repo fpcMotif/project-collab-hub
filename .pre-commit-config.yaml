@@ -1,0 +1,39 @@
+repos:
+  - repo: builtin
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-json
+      - id: check-toml
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=500"]
+      - id: detect-private-key
+      - id: no-commit-to-branch
+        args: ["--branch", "main"]
+
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint
+        entry: bunx eslint --max-warnings=0
+        language: system
+        files: "apps/web/.*\\.(ts|tsx)$"
+        stages: [pre-commit]
+
+      - id: typecheck-web
+        name: typecheck-web
+        entry: bash -c 'cd apps/web && bunx tsc --noEmit'
+        language: system
+        files: "apps/web/.*\\.(ts|tsx)$"
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: typecheck-shared
+        name: typecheck-shared
+        entry: bash -c 'cd packages/shared && bunx tsc --noEmit'
+        language: system
+        files: "packages/shared/.*\\.(ts|tsx)$"
+        pass_filenames: false
+        stages: [pre-push]
