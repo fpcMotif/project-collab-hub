@@ -9,7 +9,8 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@larksuiteoapi/node-sdk": "^1",
@@ -17,6 +18,9 @@
     "@effect/platform": "^0.77"
   },
   "devDependencies": {
-    "typescript": "^5"
+    "@types/node": "^25.5.0",
+    "@vitest/coverage-v8": "^4.1.0",
+    "typescript": "^5",
+    "vitest": "^4.1.0"
   }
 }

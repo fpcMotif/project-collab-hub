@@ -10,7 +10,10 @@
     "check-types": "turbo run check-types"
   },
   "devDependencies": {
+    "@types/node": "^25.5.0",
+    "@vitest/coverage-v8": "^4.1.0",
     "turbo": "^2",
-    "typescript": "^5.9"
+    "typescript": "^5.9",
+    "vitest": "^4.1.0"
   }
 }
