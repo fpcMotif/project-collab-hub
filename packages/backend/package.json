@@ -1,0 +1,17 @@
+{
+  "name": "@collab-hub/backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bunx convex dev",
+    "check-types": "[ -d convex/_generated ] && tsc --noEmit || echo 'Skipping: run bunx convex dev first to generate types'"
+  },
+  "dependencies": {
+    "convex": "^1",
+    "effect": "^3"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  }
+}
