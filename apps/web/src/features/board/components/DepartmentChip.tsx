@@ -1,0 +1,25 @@
+import { cn } from "@/lib/cn";
+import { DEPT_STATUS_STYLES, DEPT_STATUS_LABELS } from "../constants";
+import type { DepartmentTrackSummary } from "../types";
+
+interface DepartmentChipProps {
+  track: DepartmentTrackSummary;
+}
+
+export function DepartmentChip({ track }: DepartmentChipProps) {
+  const style = DEPT_STATUS_STYLES[track.status];
+  const label = DEPT_STATUS_LABELS[track.status];
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+        style.bg,
+        style.text,
+      )}
+      title={`${track.departmentName}: ${label}`}
+    >
+      {track.departmentName}
+    </span>
+  );
+}

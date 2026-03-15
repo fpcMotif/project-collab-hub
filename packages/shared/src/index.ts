@@ -1,32 +1,32 @@
-export { Project, ProjectStatus, SourceEntry } from "./schemas/project.js";
+export { Project, ProjectStatus, SourceEntry } from "./schemas/project";
 export {
   WorkItem,
   WorkItemStatus,
   WorkItemPriority,
-} from "./schemas/task.js";
+} from "./schemas/task";
 export {
   DepartmentTrack,
   DepartmentTrackStatus,
-} from "./schemas/departmentTrack.js";
-export { ApprovalGate, ApprovalStatus } from "./schemas/approval.js";
+} from "./schemas/departmentTrack";
+export { ApprovalGate, ApprovalStatus } from "./schemas/approval";
 export {
   Comment,
   Mention,
   CommentTargetScope,
-} from "./schemas/comment.js";
+} from "./schemas/comment";
 export {
   NotificationDelivery,
   NotificationChannel,
   NotificationMessageType,
   NotificationStatus,
-} from "./schemas/notification.js";
+} from "./schemas/notification";
 export {
   FeishuTaskBinding,
   ChatBinding,
   DocBinding,
   BaseBinding,
-} from "./schemas/bindings.js";
-export { AuditEvent } from "./schemas/audit.js";
+} from "./schemas/bindings";
+export { AuditEvent } from "./schemas/audit";
 export {
   ProjectTemplate,
   ApprovalGateConfig,
@@ -34,7 +34,7 @@ export {
   NotificationRule,
   ChatPolicy,
   DEFAULT_TEMPLATE_CONFIG,
-} from "./schemas/template.js";
+} from "./schemas/template";
 export {
   BoardColumn,
   BoardColumnId,
@@ -43,4 +43,4 @@ export {
   DEPARTMENT_TRACK_STATUSES,
   BLOCKING_STATUSES,
   canAdvanceStage,
-} from "./schemas/board.js";
+} from "./schemas/board";
