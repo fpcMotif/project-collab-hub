@@ -1,6 +1,11 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { api } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
+
+function isValidId<TableName extends string>(id: string): id is Id<TableName> {
+  return typeof id === "string" && id.trim().length > 0;
+}
 
 const http = httpRouter();
 
@@ -79,9 +84,9 @@ http.route({
     switch (actionTag) {
       case "claim_work_item": {
         const { workItemId, userId } = actionValue;
-        if (workItemId && userId) {
+        if (workItemId && userId && isValidId<"workItems">(workItemId)) {
           await ctx.runMutation(api.workItems.updateStatus, {
-            id: workItemId as never,
+            id: workItemId,
             status: "in_progress",
             actorId: userId,
           });
