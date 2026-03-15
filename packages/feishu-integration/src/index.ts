@@ -28,3 +28,4 @@ export {
   type ChatResult,
 } from "./services/FeishuChatService.js";
 export { FeishuLive } from "./layers/FeishuLayer.js";
+export { FeishuError } from "./errors/FeishuError.js";

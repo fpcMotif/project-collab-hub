@@ -1,5 +1,6 @@
 import { Context, Effect, Layer } from "effect";
 import * as lark from "@larksuiteoapi/node-sdk";
+import { FeishuError } from "../errors/FeishuError.js";
 
 export interface FeishuAuthConfig {
   readonly appId: string;
@@ -10,7 +11,7 @@ export class FeishuAuthService extends Context.Tag("FeishuAuthService")<
   FeishuAuthService,
   {
     readonly client: lark.Client;
-    readonly getTenantAccessToken: () => Effect.Effect<string, Error>;
+    readonly getTenantAccessToken: () => Effect.Effect<string, FeishuError>;
   }
 >() {}
 
@@ -42,13 +43,11 @@ export const FeishuAuthServiceLive = (config: FeishuAuthConfig) =>
             msg: string;
           };
           if (data.code !== 0) {
-            throw new Error(`Feishu auth failed: ${data.msg}`);
+            throw new FeishuError({ message: `Feishu auth failed: ${data.msg}` });
           }
           return data.tenant_access_token;
         },
         catch: (error) =>
-          new Error(
-            `Failed to get tenant access token: ${error instanceof Error ? error.message : String(error)}`,
-          ),
+          new FeishuError({ message: `Failed to get tenant access token: ${error instanceof Error ? error.message : String(error)}` }),
       }),
   });

@@ -1,5 +1,6 @@
 import { Context, Effect, Layer } from "effect";
 import { FeishuAuthService } from "./FeishuAuthService.js";
+import { FeishuError } from "../errors/FeishuError.js";
 
 export interface CreateChatParams {
   readonly name: string;
@@ -17,11 +18,11 @@ export class FeishuChatService extends Context.Tag("FeishuChatService")<
   {
     readonly createChat: (
       params: CreateChatParams,
-    ) => Effect.Effect<ChatResult, Error>;
-    readonly addBotToChat: (chatId: string) => Effect.Effect<void, Error>;
+    ) => Effect.Effect<ChatResult, FeishuError>;
+    readonly addBotToChat: (chatId: string) => Effect.Effect<void, FeishuError>;
     readonly pinMessage: (
       messageId: string,
-    ) => Effect.Effect<void, Error>;
+    ) => Effect.Effect<void, FeishuError>;
   }
 >() {}
 
@@ -42,14 +43,12 @@ export const FeishuChatServiceLive = Layer.effect(
           });
           const chatId = (resp?.data as { chat_id?: string })?.chat_id;
           if (!chatId) {
-            throw new Error("No chat_id in response");
+            throw new FeishuError({ message: "No chat_id in response" });
           }
           return { chatId };
         },
         catch: (error) =>
-          new Error(
-            `Failed to create chat: ${error instanceof Error ? error.message : String(error)}`,
-          ),
+          new FeishuError({ message: `Failed to create chat: ${error instanceof Error ? error.message : String(error)}` }),
       }),
 
     addBotToChat: (chatId: string) =>
@@ -60,9 +59,7 @@ export const FeishuChatServiceLive = Layer.effect(
             data: { id_list: [] },
           }),
         catch: (error) =>
-          new Error(
-            `Failed to add bot to chat: ${error instanceof Error ? error.message : String(error)}`,
-          ),
+          new FeishuError({ message: `Failed to add bot to chat: ${error instanceof Error ? error.message : String(error)}` }),
       }).pipe(Effect.asVoid),
 
     pinMessage: (messageId: string) =>
@@ -72,9 +69,7 @@ export const FeishuChatServiceLive = Layer.effect(
             data: { message_id: messageId },
           }),
         catch: (error) =>
-          new Error(
-            `Failed to pin message: ${error instanceof Error ? error.message : String(error)}`,
-          ),
+          new FeishuError({ message: `Failed to pin message: ${error instanceof Error ? error.message : String(error)}` }),
       }).pipe(Effect.asVoid),
   })),
 );

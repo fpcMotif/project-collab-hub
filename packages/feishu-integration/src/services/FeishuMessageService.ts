@@ -1,5 +1,6 @@
 import { Context, Effect, Layer } from "effect";
 import { FeishuAuthService } from "./FeishuAuthService.js";
+import { FeishuError } from "../errors/FeishuError.js";
 
 export interface SendTextMessageParams {
   readonly chatId: string;
@@ -16,10 +17,10 @@ export class FeishuMessageService extends Context.Tag("FeishuMessageService")<
   {
     readonly sendText: (
       params: SendTextMessageParams,
-    ) => Effect.Effect<void, Error>;
+    ) => Effect.Effect<void, FeishuError>;
     readonly sendCard: (
       params: SendCardMessageParams,
-    ) => Effect.Effect<void, Error>;
+    ) => Effect.Effect<void, FeishuError>;
   }
 >() {}
 
@@ -38,9 +39,7 @@ export const FeishuMessageServiceLive = Layer.effect(
             },
           }),
         catch: (error) =>
-          new Error(
-            `Failed to send text message: ${error instanceof Error ? error.message : String(error)}`,
-          ),
+          new FeishuError({ message: `Failed to send text message: ${error instanceof Error ? error.message : String(error)}` }),
       }).pipe(Effect.asVoid),
 
     sendCard: (params: SendCardMessageParams) =>
@@ -55,9 +54,7 @@ export const FeishuMessageServiceLive = Layer.effect(
             },
           }),
         catch: (error) =>
-          new Error(
-            `Failed to send card message: ${error instanceof Error ? error.message : String(error)}`,
-          ),
+          new FeishuError({ message: `Failed to send card message: ${error instanceof Error ? error.message : String(error)}` }),
       }).pipe(Effect.asVoid),
   })),
 );

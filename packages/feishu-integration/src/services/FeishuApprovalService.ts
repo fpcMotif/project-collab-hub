@@ -1,5 +1,6 @@
 import { Context, Effect, Layer } from "effect";
 import { FeishuAuthService } from "./FeishuAuthService.js";
+import { FeishuError } from "../errors/FeishuError.js";
 
 export interface CreateApprovalInstanceParams {
   readonly approvalCode: string;
@@ -18,10 +19,10 @@ export class FeishuApprovalService extends Context.Tag(
   {
     readonly createInstance: (
       params: CreateApprovalInstanceParams,
-    ) => Effect.Effect<ApprovalInstanceResult, Error>;
+    ) => Effect.Effect<ApprovalInstanceResult, FeishuError>;
     readonly getInstance: (
       instanceCode: string,
-    ) => Effect.Effect<Record<string, unknown>, Error>;
+    ) => Effect.Effect<Record<string, unknown>, FeishuError>;
   }
 >() {}
 
@@ -42,14 +43,12 @@ export const FeishuApprovalServiceLive = Layer.effect(
             resp?.data as { instance_code?: string } | undefined
           )?.instance_code;
           if (!instanceCode) {
-            throw new Error("No instance_code in response");
+            throw new FeishuError({ message: "No instance_code in response" });
           }
           return { instanceCode };
         },
         catch: (error) =>
-          new Error(
-            `Failed to create approval instance: ${error instanceof Error ? error.message : String(error)}`,
-          ),
+          new FeishuError({ message: `Failed to create approval instance: ${error instanceof Error ? error.message : String(error)}` }),
       }),
 
     getInstance: (instanceCode: string) =>
@@ -61,9 +60,7 @@ export const FeishuApprovalServiceLive = Layer.effect(
           return (resp?.data as Record<string, unknown>) ?? {};
         },
         catch: (error) =>
-          new Error(
-            `Failed to get approval instance: ${error instanceof Error ? error.message : String(error)}`,
-          ),
+          new FeishuError({ message: `Failed to get approval instance: ${error instanceof Error ? error.message : String(error)}` }),
       }),
   })),
 );

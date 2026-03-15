@@ -1,5 +1,6 @@
 import { Context, Effect, Layer } from "effect";
 import { FeishuAuthService } from "./FeishuAuthService.js";
+import { FeishuError } from "../errors/FeishuError.js";
 
 export interface CreateFeishuTaskParams {
   readonly summary: string;
@@ -19,13 +20,13 @@ export class FeishuTaskService extends Context.Tag("FeishuTaskService")<
   {
     readonly createTask: (
       params: CreateFeishuTaskParams,
-    ) => Effect.Effect<FeishuTaskResult, Error>;
+    ) => Effect.Effect<FeishuTaskResult, FeishuError>;
     readonly completeTask: (
       taskGuid: string,
-    ) => Effect.Effect<void, Error>;
+    ) => Effect.Effect<void, FeishuError>;
     readonly getTask: (
       taskGuid: string,
-    ) => Effect.Effect<Record<string, unknown>, Error>;
+    ) => Effect.Effect<Record<string, unknown>, FeishuError>;
   }
 >() {}
 
@@ -57,14 +58,12 @@ export const FeishuTaskServiceLive = Layer.effect(
           const taskGuid = (resp?.data as { task?: { guid?: string } })?.task
             ?.guid;
           if (!taskGuid) {
-            throw new Error("No task guid in response");
+            throw new FeishuError({ message: "No task guid in response" });
           }
           return { taskGuid };
         },
         catch: (error) =>
-          new Error(
-            `Failed to create Feishu task: ${error instanceof Error ? error.message : String(error)}`,
-          ),
+          new FeishuError({ message: `Failed to create Feishu task: ${error instanceof Error ? error.message : String(error)}` }),
       }),
 
     completeTask: (taskGuid: string) =>
@@ -78,9 +77,7 @@ export const FeishuTaskServiceLive = Layer.effect(
             },
           }),
         catch: (error) =>
-          new Error(
-            `Failed to complete Feishu task: ${error instanceof Error ? error.message : String(error)}`,
-          ),
+          new FeishuError({ message: `Failed to complete Feishu task: ${error instanceof Error ? error.message : String(error)}` }),
       }).pipe(Effect.asVoid),
 
     getTask: (taskGuid: string) =>
@@ -92,9 +89,7 @@ export const FeishuTaskServiceLive = Layer.effect(
           return (resp?.data as Record<string, unknown>) ?? {};
         },
         catch: (error) =>
-          new Error(
-            `Failed to get Feishu task: ${error instanceof Error ? error.message : String(error)}`,
-          ),
+          new FeishuError({ message: `Failed to get Feishu task: ${error instanceof Error ? error.message : String(error)}` }),
       }),
   })),
 );
