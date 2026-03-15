@@ -9,6 +9,9 @@ interface DepartmentChipProps {
 export function DepartmentChip({ track }: DepartmentChipProps) {
   const style = DEPT_STATUS_STYLES[track.status];
   const label = DEPT_STATUS_LABELS[track.status];
+  const title = track.blockReason
+    ? `${track.departmentName}: ${label} · ${track.blockReason}`
+    : `${track.departmentName}: ${label}`;
 
   return (
     <span
@@ -17,7 +20,7 @@ export function DepartmentChip({ track }: DepartmentChipProps) {
         style.bg,
         style.text,
       )}
-      title={`${track.departmentName}: ${label}`}
+      title={title}
     >
       {track.departmentName}
     </span>

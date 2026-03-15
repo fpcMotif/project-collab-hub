@@ -1,16 +1,80 @@
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useCallback, useMemo } from "react";
-import type { BoardFilterState } from "../types";
+import type {
+  ApprovalStatusFilter,
+  BoardFilterState,
+  OverdueStatusFilter,
+  Priority,
+  SlaRisk,
+} from "../types";
 
-const FILTER_KEYS: (keyof BoardFilterState)[] = ["priority", "slaRisk", "owner", "customer"];
+const FILTER_KEYS: (keyof BoardFilterState)[] = [
+  "priority",
+  "slaRisk",
+  "owner",
+  "customer",
+  "department",
+  "approvalStatus",
+  "overdueStatus",
+  "templateType",
+];
+const PRIORITY_VALUES = new Set<Priority>(["urgent", "high", "medium", "low"]);
+const SLA_RISK_VALUES = new Set<SlaRisk>(["on_time", "at_risk", "overdue"]);
+const APPROVAL_STATUS_VALUES = new Set<ApprovalStatusFilter>(["pending", "clear"]);
+const OVERDUE_STATUS_VALUES = new Set<OverdueStatusFilter>(["overdue", "normal"]);
+
+function parsePriority(value: string | null): Priority | null {
+  if (!value || !PRIORITY_VALUES.has(value as Priority)) {
+    return null;
+  }
+
+  return value as Priority;
+}
+
+function parseSlaRisk(value: string | null): SlaRisk | null {
+  if (!value || !SLA_RISK_VALUES.has(value as SlaRisk)) {
+    return null;
+  }
+
+  return value as SlaRisk;
+}
+
+function parseApprovalStatus(value: string | null): ApprovalStatusFilter | null {
+  if (!value || !APPROVAL_STATUS_VALUES.has(value as ApprovalStatusFilter)) {
+    return null;
+  }
+
+  return value as ApprovalStatusFilter;
+}
+
+function parseOverdueStatus(value: string | null): OverdueStatusFilter | null {
+  if (!value || !OVERDUE_STATUS_VALUES.has(value as OverdueStatusFilter)) {
+    return null;
+  }
+
+  return value as OverdueStatusFilter;
+}
+
+function parseTextFilter(value: string | null): string | null {
+  return value && value.trim().length > 0 ? value : null;
+}
 
 function parseFilters(params: URLSearchParams): BoardFilterState {
   return {
-    priority: (params.get("priority") as BoardFilterState["priority"]) ?? null,
-    slaRisk: (params.get("slaRisk") as BoardFilterState["slaRisk"]) ?? null,
-    owner: params.get("owner") ?? null,
-    customer: params.get("customer") ?? null,
+    priority: parsePriority(params.get("priority")),
+    slaRisk: parseSlaRisk(params.get("slaRisk")),
+    owner: parseTextFilter(params.get("owner")),
+    customer: parseTextFilter(params.get("customer")),
+    department: parseTextFilter(params.get("department")),
+    approvalStatus: parseApprovalStatus(params.get("approvalStatus")),
+    overdueStatus: parseOverdueStatus(params.get("overdueStatus")),
+    templateType: parseTextFilter(params.get("templateType")),
   };
+}
+
+function buildUrl(pathname: string, params: URLSearchParams): string {
+  const queryString = params.toString();
+  return queryString ? `${pathname}?${queryString}` : pathname;
 }
 
 export function useBoardFilters() {
@@ -20,6 +84,22 @@ export function useBoardFilters() {
 
   const filters = useMemo(() => parseFilters(searchParams), [searchParams]);
 
+  const replaceFilters = useCallback(
+    (nextFilters: BoardFilterState) => {
+      const params = new URLSearchParams();
+
+      for (const key of FILTER_KEYS) {
+        const value = nextFilters[key];
+        if (value !== null) {
+          params.set(key, value);
+        }
+      }
+
+      router.replace(buildUrl(pathname, params), { scroll: false });
+    },
+    [router, pathname],
+  );
+
   const setFilter = useCallback(
     <K extends keyof BoardFilterState>(key: K, value: BoardFilterState[K]) => {
       const params = new URLSearchParams(searchParams.toString());
@@ -28,7 +108,7 @@ export function useBoardFilters() {
       } else {
         params.set(key, value);
       }
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+      router.replace(buildUrl(pathname, params), { scroll: false });
     },
     [searchParams, router, pathname],
   );
@@ -37,7 +117,7 @@ export function useBoardFilters() {
     (key: keyof BoardFilterState) => {
       const params = new URLSearchParams(searchParams.toString());
       params.delete(key);
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+      router.replace(buildUrl(pathname, params), { scroll: false });
     },
     [searchParams, router, pathname],
   );
@@ -47,8 +127,8 @@ export function useBoardFilters() {
     for (const key of FILTER_KEYS) {
       params.delete(key);
     }
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    router.replace(buildUrl(pathname, params), { scroll: false });
   }, [searchParams, router, pathname]);
 
-  return { filters, setFilter, clearFilter, clearAll } as const;
+  return { filters, replaceFilters, setFilter, clearFilter, clearAll } as const;
 }

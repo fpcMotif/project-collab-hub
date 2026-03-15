@@ -1,10 +1,10 @@
-import type { BoardProjectCard } from "./types";
+import type { BoardProjectRecord } from "./types";
 
 /**
  * ~15 mock projects spread across all 8 board columns.
  * Keyed by ProjectStatus so useBoardData can group into columns trivially.
  */
-export const MOCK_PROJECTS: BoardProjectCard[] = [
+export const MOCK_PROJECTS: BoardProjectRecord[] = [
   // ── COL-NEW (新建/待分诊) ────────────────────────────────────────
   {
     id: "P-001",
@@ -14,6 +14,7 @@ export const MOCK_PROJECTS: BoardProjectCard[] = [
     status: "new",
     priority: "urgent",
     slaRisk: "at_risk",
+    templateType: "制造业交付",
     departmentTracks: [
       { departmentName: "技术部", status: "not_started" },
       { departmentName: "商务部", status: "not_started" },
@@ -29,9 +30,8 @@ export const MOCK_PROJECTS: BoardProjectCard[] = [
     status: "new",
     priority: "medium",
     slaRisk: "on_time",
-    departmentTracks: [
-      { departmentName: "技术部", status: "not_started" },
-    ],
+    templateType: "供应链交付",
+    departmentTracks: [{ departmentName: "技术部", status: "not_started" }],
     pendingApprovalCount: 0,
     overdueTaskCount: 0,
   },
@@ -45,6 +45,7 @@ export const MOCK_PROJECTS: BoardProjectCard[] = [
     status: "assessment",
     priority: "high",
     slaRisk: "on_time",
+    templateType: "产品定制",
     departmentTracks: [
       { departmentName: "技术部", status: "in_progress" },
       { departmentName: "设计部", status: "not_started" },
@@ -61,6 +62,7 @@ export const MOCK_PROJECTS: BoardProjectCard[] = [
     status: "assessment",
     priority: "medium",
     slaRisk: "on_time",
+    templateType: "SaaS 实施",
     departmentTracks: [
       { departmentName: "技术部", status: "in_progress" },
       { departmentName: "商务部", status: "in_progress" },
@@ -78,6 +80,7 @@ export const MOCK_PROJECTS: BoardProjectCard[] = [
     status: "solution",
     priority: "high",
     slaRisk: "at_risk",
+    templateType: "制造业交付",
     departmentTracks: [
       { departmentName: "技术部", status: "done" },
       { departmentName: "商务部", status: "waiting_approval" },
@@ -96,6 +99,7 @@ export const MOCK_PROJECTS: BoardProjectCard[] = [
     status: "ready",
     priority: "medium",
     slaRisk: "on_time",
+    templateType: "园区数字化",
     departmentTracks: [
       { departmentName: "技术部", status: "done" },
       { departmentName: "采购部", status: "done" },
@@ -112,10 +116,15 @@ export const MOCK_PROJECTS: BoardProjectCard[] = [
     status: "ready",
     priority: "urgent",
     slaRisk: "overdue",
+    templateType: "供应链交付",
     departmentTracks: [
       { departmentName: "技术部", status: "done" },
       { departmentName: "商务部", status: "done" },
-      { departmentName: "采购部", status: "blocked" },
+      {
+        departmentName: "采购部",
+        status: "blocked",
+        blockReason: "核心设备交期未确认",
+      },
     ],
     pendingApprovalCount: 2,
     overdueTaskCount: 3,
@@ -130,6 +139,7 @@ export const MOCK_PROJECTS: BoardProjectCard[] = [
     status: "executing",
     priority: "high",
     slaRisk: "on_time",
+    templateType: "制造业交付",
     departmentTracks: [
       { departmentName: "技术部", status: "in_progress" },
       { departmentName: "采购部", status: "done" },
@@ -146,9 +156,14 @@ export const MOCK_PROJECTS: BoardProjectCard[] = [
     status: "executing",
     priority: "medium",
     slaRisk: "at_risk",
+    templateType: "平台迁移",
     departmentTracks: [
       { departmentName: "技术部", status: "in_progress" },
-      { departmentName: "运维部", status: "blocked" },
+      {
+        departmentName: "运维部",
+        status: "blocked",
+        blockReason: "生产环境变更窗口尚未审批",
+      },
     ],
     pendingApprovalCount: 1,
     overdueTaskCount: 4,
@@ -161,6 +176,7 @@ export const MOCK_PROJECTS: BoardProjectCard[] = [
     status: "executing",
     priority: "low",
     slaRisk: "on_time",
+    templateType: "SaaS 实施",
     departmentTracks: [
       { departmentName: "技术部", status: "in_progress" },
       { departmentName: "设计部", status: "done" },
@@ -178,6 +194,7 @@ export const MOCK_PROJECTS: BoardProjectCard[] = [
     status: "delivering",
     priority: "high",
     slaRisk: "on_time",
+    templateType: "流程优化",
     departmentTracks: [
       { departmentName: "技术部", status: "done" },
       { departmentName: "商务部", status: "waiting_approval" },
@@ -193,6 +210,7 @@ export const MOCK_PROJECTS: BoardProjectCard[] = [
     status: "delivering",
     priority: "medium",
     slaRisk: "overdue",
+    templateType: "制造业交付",
     departmentTracks: [
       { departmentName: "技术部", status: "done" },
       { departmentName: "物流部", status: "done" },
@@ -211,6 +229,7 @@ export const MOCK_PROJECTS: BoardProjectCard[] = [
     status: "done",
     priority: "low",
     slaRisk: "on_time",
+    templateType: "SaaS 实施",
     departmentTracks: [
       { departmentName: "技术部", status: "done" },
       { departmentName: "商务部", status: "done" },
@@ -228,9 +247,8 @@ export const MOCK_PROJECTS: BoardProjectCard[] = [
     status: "cancelled",
     priority: "low",
     slaRisk: "on_time",
-    departmentTracks: [
-      { departmentName: "技术部", status: "not_started" },
-    ],
+    templateType: "平台探索",
+    departmentTracks: [{ departmentName: "技术部", status: "not_started" }],
     pendingApprovalCount: 0,
     overdueTaskCount: 0,
   },
@@ -242,6 +260,7 @@ export const MOCK_PROJECTS: BoardProjectCard[] = [
     status: "cancelled",
     priority: "medium",
     slaRisk: "on_time",
+    templateType: "平台迁移",
     departmentTracks: [
       { departmentName: "技术部", status: "not_started" },
       { departmentName: "商务部", status: "not_started" },

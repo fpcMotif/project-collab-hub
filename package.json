@@ -7,6 +7,9 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "format": "turbo run format",
+    "format:fix": "turbo run format:fix",
     "check-types": "turbo run check-types",
     "prepare": "command -v prek >/dev/null 2>&1 && prek install && prek install --hook-type pre-push || echo 'Install prek for git hooks: cargo install prek'"
   },

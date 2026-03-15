@@ -101,6 +101,20 @@ export const STAGE_TRANSITIONS: Record<string, readonly string[]> = {
   cancelled: [],
 } as const;
 
+/**
+ * Linear happy-path sequence. `cancelled` is intentionally excluded because it
+ * is a terminal side-path rather than part of the forward delivery flow.
+ */
+export const BOARD_FLOW_SEQUENCE = [
+  "new",
+  "assessment",
+  "solution",
+  "ready",
+  "executing",
+  "delivering",
+  "done",
+] as const;
+
 export const DEPARTMENT_TRACK_STATUSES = [
   "not_required",
   "not_started",
@@ -113,32 +127,88 @@ export const DEPARTMENT_TRACK_STATUSES = [
 /** Statuses that block a project from advancing past a gate */
 export const BLOCKING_STATUSES = ["blocked", "waiting_approval"] as const;
 
+export function getNextProjectStatus(
+  currentStatus: string,
+): (typeof BOARD_FLOW_SEQUENCE)[number] | null {
+  const index = BOARD_FLOW_SEQUENCE.indexOf(
+    currentStatus as (typeof BOARD_FLOW_SEQUENCE)[number],
+  );
+
+  if (index === -1 || index === BOARD_FLOW_SEQUENCE.length - 1) {
+    return null;
+  }
+
+  return BOARD_FLOW_SEQUENCE[index + 1];
+}
+
+function isForwardStageTransition(currentStatus: string, targetStatus: string): boolean {
+  const currentIndex = BOARD_FLOW_SEQUENCE.indexOf(
+    currentStatus as (typeof BOARD_FLOW_SEQUENCE)[number],
+  );
+  const targetIndex = BOARD_FLOW_SEQUENCE.indexOf(
+    targetStatus as (typeof BOARD_FLOW_SEQUENCE)[number],
+  );
+
+  return currentIndex !== -1 && targetIndex !== -1 && targetIndex > currentIndex;
+}
+
 /**
- * Check whether a project can transition to the next stage.
- * A project cannot advance if any required department track
- * is in a blocking status.
+ * Check whether a project can transition to the target stage.
+ *
+ * Rules:
+ * - transition must be explicitly permitted by STAGE_TRANSITIONS
+ * - backward transitions / cancellation are allowed once the transition itself
+ *   is valid (they are remediation paths)
+ * - forward transitions require:
+ *   - no blocked / waiting-approval required tracks
+ *   - zero pending required approvals
+ *   - all required department tracks completed
  */
 export function canAdvanceStage(
   currentStatus: string,
   targetStatus: string,
   requiredTrackStatuses: readonly string[],
+  pendingRequiredApprovalCount = 0,
 ): { allowed: boolean; reason?: string } {
-  const allowed = STAGE_TRANSITIONS[currentStatus];
-  if (!allowed || !allowed.includes(targetStatus)) {
+  const allowedTargets = STAGE_TRANSITIONS[currentStatus];
+  if (!allowedTargets || !allowedTargets.includes(targetStatus)) {
     return {
       allowed: false,
       reason: `Transition from "${currentStatus}" to "${targetStatus}" is not permitted`,
     };
   }
 
-  const blockingTracks = requiredTrackStatuses.filter((s) =>
-    (BLOCKING_STATUSES as readonly string[]).includes(s),
+  if (!isForwardStageTransition(currentStatus, targetStatus)) {
+    return { allowed: true };
+  }
+
+  const requiredStatuses = requiredTrackStatuses.filter(
+    (status) => status !== "not_required",
+  );
+
+  const blockingTracks = requiredStatuses.filter((status) =>
+    (BLOCKING_STATUSES as readonly string[]).includes(status),
   );
 
   if (blockingTracks.length > 0) {
     return {
       allowed: false,
       reason: `${blockingTracks.length} required department(s) are blocked or waiting approval`,
+    };
+  }
+
+  if (pendingRequiredApprovalCount > 0) {
+    return {
+      allowed: false,
+      reason: `${pendingRequiredApprovalCount} required approval(s) are still pending`,
+    };
+  }
+
+  const incompleteTracks = requiredStatuses.filter((status) => status !== "done");
+  if (incompleteTracks.length > 0) {
+    return {
+      allowed: false,
+      reason: `${incompleteTracks.length} required department(s) are not complete`,
     };
   }
 

@@ -10,11 +10,19 @@
       "cache": false
     },
     "lint": {
-      "inputs": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.mjs", "eslint.config.*"]
+      "inputs": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.mjs", "oxlint.json"]
+    },
+    "lint:fix": {
+      "cache": false
+    },
+    "format": {
+      "inputs": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.mjs", "**/*.json", "**/*.css"]
+    },
+    "format:fix": {
+      "cache": false
     },
     "check-types": {
-      "dependsOn": ["^build"],
-      "inputs": ["**/*.ts", "**/*.tsx", "tsconfig.json", "tsconfig.*.json"]
+      "dependsOn": ["^check-types"]
     }
   }
 }
