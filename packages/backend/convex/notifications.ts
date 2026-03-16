@@ -32,8 +32,8 @@ export const create = mutation({
   handler: async (ctx, args) =>
     ctx.db.insert("notificationDeliveries", {
       ...args,
-      status: "pending",
       retryCount: 0,
+      status: "pending",
     }),
 });
 

@@ -4,19 +4,15 @@ import { useCallback, useSyncExternalStore } from "react";
 
 import type { BoardFilterState, BoardSavedView } from "../types";
 
-const STORAGE_KEY = "project-collab-hub.board.saved-views";
 const STORAGE_EVENT = "project-collab-hub.board.saved-views.updated";
-
-// Stable empty array for SSR snapshot — must be a cached reference.
+const STORAGE_KEY = "project-collab-hub.board.saved-views";
 const EMPTY_VIEWS: BoardSavedView[] = [];
+const NOOP = () => undefined;
 
-// Cache the last raw string and parsed result so readSavedViews returns
-// a stable reference when localStorage hasn't changed, satisfying
-// useSyncExternalStore's requirement that getSnapshot be pure/cached.
-let _cachedRaw: string | null = undefined as unknown as null;
-let _cachedViews: BoardSavedView[] = EMPTY_VIEWS;
+let cachedRaw: null | string | undefined;
+let cachedViews: BoardSavedView[] = EMPTY_VIEWS;
 
-function readSavedViews(): BoardSavedView[] {
+const readSavedViews = (): BoardSavedView[] => {
   if (typeof window === "undefined") {
     return EMPTY_VIEWS;
   }
@@ -24,56 +20,56 @@ function readSavedViews(): BoardSavedView[] {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
 
-    // Return the cached snapshot when the raw string hasn't changed.
-    if (raw === _cachedRaw) {
-      return _cachedViews;
+    if (raw === cachedRaw) {
+      return cachedViews;
     }
 
-    _cachedRaw = raw;
+    cachedRaw = raw;
 
     if (!raw) {
-      _cachedViews = EMPTY_VIEWS;
-      return _cachedViews;
+      cachedViews = EMPTY_VIEWS;
+      return cachedViews;
     }
 
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) {
-      _cachedViews = EMPTY_VIEWS;
-      return _cachedViews;
+      cachedViews = EMPTY_VIEWS;
+      return cachedViews;
     }
 
-    _cachedViews = parsed.filter(
+    cachedViews = parsed.filter(
       (item): item is BoardSavedView =>
-        typeof item?.id === "string" &&
-        typeof item?.name === "string" &&
         typeof item?.filters === "object" &&
-        item.filters !== null
+        item.filters !== null &&
+        typeof item?.id === "string" &&
+        typeof item?.name === "string"
     );
-    return _cachedViews;
-  } catch {
-    _cachedViews = EMPTY_VIEWS;
-    return _cachedViews;
-  }
-}
 
-function emitSavedViewsChanged() {
+    return cachedViews;
+  } catch {
+    cachedViews = EMPTY_VIEWS;
+    return cachedViews;
+  }
+};
+
+const emitSavedViewsChanged = () => {
   if (typeof window === "undefined") {
     return;
   }
 
   window.dispatchEvent(new Event(STORAGE_EVENT));
-}
+};
 
-function persistSavedViews(views: BoardSavedView[]) {
+const persistSavedViews = (views: BoardSavedView[]) => {
   if (typeof window === "undefined") {
     return;
   }
 
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(views));
   emitSavedViewsChanged();
-}
+};
 
-function createViewId() {
+const createViewId = () => {
   if (
     typeof crypto !== "undefined" &&
     typeof crypto.randomUUID === "function"
@@ -82,11 +78,11 @@ function createViewId() {
   }
 
   return `view-${Date.now()}`;
-}
+};
 
-function subscribe(callback: () => void) {
+const subscribe = (callback: () => void) => {
   if (typeof window === "undefined") {
-    return () => {};
+    return NOOP;
   }
 
   const handleChange = () => callback();
@@ -98,9 +94,9 @@ function subscribe(callback: () => void) {
     window.removeEventListener("storage", handleChange);
     window.removeEventListener(STORAGE_EVENT, handleChange);
   };
-}
+};
 
-export function useBoardSavedViews() {
+export const useBoardSavedViews = () => {
   const savedViews = useSyncExternalStore(
     subscribe,
     readSavedViews,
@@ -141,4 +137,4 @@ export function useBoardSavedViews() {
     saveView,
     savedViews,
   } as const;
-}
+};

@@ -237,17 +237,17 @@ export default defineSchema({
   projectTemplates: defineTable({
     approvalGates: v.array(
       v.object({
-        triggerStage: v.string(),
         approvalCode: v.string(),
-        title: v.string(),
         isRequired: v.boolean(),
+        title: v.string(),
+        triggerStage: v.string(),
       })
     ),
     chatPolicy: v.object({
-      autoCreateChat: v.boolean(),
       addBotAsManager: v.boolean(),
-      pinProjectCard: v.boolean(),
+      autoCreateChat: v.boolean(),
       chatNameTemplate: v.optional(v.string()),
+      pinProjectCard: v.boolean(),
     }),
     createdBy: v.string(),
     defaultPriority: v.union(
@@ -258,10 +258,10 @@ export default defineSchema({
     ),
     departments: v.array(
       v.object({
+        defaultOwnerId: v.optional(v.string()),
         departmentId: v.string(),
         departmentName: v.string(),
         isRequired: v.boolean(),
-        defaultOwnerId: v.optional(v.string()),
       })
     ),
     description: v.string(),
@@ -269,9 +269,9 @@ export default defineSchema({
     name: v.string(),
     notificationRules: v.array(
       v.object({
-        event: v.string(),
         channel: v.string(),
         enabled: v.boolean(),
+        event: v.string(),
         recipientStrategy: v.string(),
       })
     ),

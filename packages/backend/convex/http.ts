@@ -15,8 +15,8 @@ http.route({
     // Handle URL verification challenge
     if (body.type === "url_verification") {
       return new Response(JSON.stringify({ challenge: body.challenge }), {
-        status: 200,
         headers: { "Content-Type": "application/json" },
+        status: 200,
       });
     }
 
@@ -31,21 +31,24 @@ http.route({
 
     // Route to appropriate handler based on event type
     switch (eventType) {
-      case "approval_instance":
+      case "approval_instance": {
         await handleApprovalEvent(ctx, body, eventId);
         break;
+      }
       case "task.updated":
-      case "task.completed":
+      case "task.completed": {
         await handleTaskEvent(ctx, body, eventId);
         break;
-      default:
+      }
+      default: {
         // Log unhandled event types for observability
         console.log(`Unhandled Feishu event type: ${eventType}`);
+      }
     }
 
     return new Response(JSON.stringify({ ok: true }), {
-      status: 200,
       headers: { "Content-Type": "application/json" },
+      status: 200,
     });
   }),
   method: "POST",
@@ -62,8 +65,8 @@ http.route({
     // Handle URL verification
     if (body.type === "url_verification") {
       return new Response(JSON.stringify({ challenge: body.challenge }), {
-        status: 200,
         headers: { "Content-Type": "application/json" },
+        status: 200,
       });
     }
 
@@ -80,9 +83,9 @@ http.route({
         const { workItemId, userId } = actionValue;
         if (workItemId && userId) {
           await ctx.runMutation(api.workItems.updateStatus, {
+            actorId: userId,
             id: workItemId as never,
             status: "in_progress",
-            actorId: userId,
           });
         }
         break;
@@ -96,14 +99,15 @@ http.route({
         // this is just for navigating to the approval
         break;
       }
-      default:
+      default: {
         console.log(`Unhandled card action: ${actionTag}`);
+      }
     }
 
     // Return empty body to acknowledge (Feishu expects 200)
     return new Response(JSON.stringify({}), {
-      status: 200,
       headers: { "Content-Type": "application/json" },
+      status: 200,
     });
   }),
   method: "POST",
@@ -120,8 +124,8 @@ http.route({
     // Handle URL verification
     if (body.type === "url_verification") {
       return new Response(JSON.stringify({ challenge: body.challenge }), {
-        status: 200,
         headers: { "Content-Type": "application/json" },
+        status: 200,
       });
     }
 
@@ -132,8 +136,8 @@ http.route({
     const projectIdMatch = url.match(/\/projects\/([a-zA-Z0-9_]+)/);
     if (!projectIdMatch) {
       return new Response(JSON.stringify({}), {
-        status: 200,
         headers: { "Content-Type": "application/json" },
+        status: 200,
       });
     }
 
@@ -144,28 +148,28 @@ http.route({
 
     if (!project) {
       return new Response(JSON.stringify({}), {
-        status: 200,
         headers: { "Content-Type": "application/json" },
+        status: 200,
       });
     }
 
     // Return link preview card data
     const previewCard = {
-      type: "template",
       data: {
         template_id: "link_preview",
         template_variable: {
-          project_name: project.name,
-          project_status: project.status,
-          project_owner: project.ownerId,
           open_url: url,
+          project_name: project.name,
+          project_owner: project.ownerId,
+          project_status: project.status,
         },
       },
+      type: "template",
     };
 
     return new Response(JSON.stringify(previewCard), {
-      status: 200,
       headers: { "Content-Type": "application/json" },
+      status: 200,
     });
   }),
   method: "POST",

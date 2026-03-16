@@ -156,38 +156,38 @@ export function createInitialMockProjectDetail(
   return {
     approvals: buildApprovals(project, departmentTracks),
     bindings: {
+      bases: [
+        {
+          baseAppToken: `bascn_${project.id.toLowerCase()}`,
+          fieldOwnership: "App-owned",
+          id: `${project.id}-base-1`,
+          lastSyncedAt: Date.now() - 1000 * 60 * 30,
+          recordId: `rec_${project.id.toLowerCase()}`,
+          tableId: "tblProjects",
+        },
+      ],
       chats: [
         {
-          id: `${project.id}-chat-1`,
-          feishuChatId: `oc_${project.id.toLowerCase()}`,
           chatType: "manual_bound",
+          feishuChatId: `oc_${project.id.toLowerCase()}`,
+          id: `${project.id}-chat-1`,
           pinnedMessageId: `om_${project.id.toLowerCase()}`,
         },
       ],
       docs: [
         {
-          id: `${project.id}-doc-1`,
-          title: `${project.name} 项目方案`,
           docType: "doc",
-          purpose: "方案沉淀",
           feishuDocToken: `doc_${project.id.toLowerCase()}`,
+          id: `${project.id}-doc-1`,
+          purpose: "方案沉淀",
+          title: `${project.name} 项目方案`,
         },
         {
-          id: `${project.id}-doc-2`,
-          title: `${project.name} 交付清单`,
           docType: "wiki",
-          purpose: "交付资料",
           feishuDocToken: `wiki_${project.id.toLowerCase()}`,
-        },
-      ],
-      bases: [
-        {
-          id: `${project.id}-base-1`,
-          baseAppToken: `bascn_${project.id.toLowerCase()}`,
-          tableId: "tblProjects",
-          recordId: `rec_${project.id.toLowerCase()}`,
-          fieldOwnership: "App-owned",
-          lastSyncedAt: Date.now() - 1000 * 60 * 30,
+          id: `${project.id}-doc-2`,
+          purpose: "交付资料",
+          title: `${project.name} 交付清单`,
         },
       ],
     },
@@ -195,12 +195,12 @@ export function createInitialMockProjectDetail(
     departmentTracks,
     project: {
       ...project,
-      description: `${project.name} 的项目详情页示例，当前用于验证飞书协同项目台的前端结构。`,
       createdBy: "系统演示账号",
-      sourceEntry: "workbench",
-      startDate: Date.now() - 1000 * 60 * 60 * 24 * 3,
+      description: `${project.name} 的项目详情页示例，当前用于验证飞书协同项目台的前端结构。`,
       endDate: Date.now() + 1000 * 60 * 60 * 24 * 14,
       slaDeadline: Date.now() + 1000 * 60 * 60 * 24 * 7,
+      sourceEntry: "workbench",
+      startDate: Date.now() - 1000 * 60 * 60 * 24 * 3,
     },
     timeline: buildTimeline(project),
     workItems: buildWorkItems(project, departmentTracks),

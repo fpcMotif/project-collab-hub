@@ -56,9 +56,9 @@ export const SLA_RISK_STYLES: Record<
   SlaRisk,
   { dot: string; text: string; label: string }
 > = {
-  at_risk: { dot: "bg-amber-500", text: "text-amber-700", label: "风险" },
-  on_time: { dot: "bg-green-500", text: "text-green-700", label: "按时" },
-  overdue: { dot: "bg-red-500", text: "text-red-700", label: "逾期" },
+  at_risk: { dot: "bg-amber-500", label: "风险", text: "text-amber-700" },
+  on_time: { dot: "bg-green-500", label: "按时", text: "text-green-700" },
+  overdue: { dot: "bg-red-500", label: "逾期", text: "text-red-700" },
 } as const;
 
 export const APPROVAL_STATUS_LABELS: Record<ApprovalStatusFilter, string> = {

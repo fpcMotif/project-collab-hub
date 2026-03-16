@@ -8,27 +8,27 @@ const TONE_STYLES: Record<
 > = {
   attention: {
     container: "border border-amber-200 bg-amber-50",
-    summary: "text-amber-800",
     detail: "text-amber-700",
     dot: "bg-amber-500",
+    summary: "text-amber-800",
   },
   blocked: {
     container: "border border-red-200 bg-red-50",
-    summary: "text-red-800",
     detail: "text-red-700",
     dot: "bg-red-500",
+    summary: "text-red-800",
   },
   ready: {
     container: "border border-green-200 bg-green-50",
-    summary: "text-green-800",
     detail: "text-green-700",
     dot: "bg-green-500",
+    summary: "text-green-800",
   },
   terminal: {
     container: "border border-gray-200 bg-gray-50",
-    summary: "text-gray-700",
     detail: "text-gray-600",
     dot: "bg-gray-400",
+    summary: "text-gray-700",
   },
 };
 

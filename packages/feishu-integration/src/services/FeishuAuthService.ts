@@ -32,12 +32,12 @@ export const FeishuAuthServiceLive = (config: FeishuAuthConfig) =>
           const resp = await fetch(
             "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
             {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 app_id: config.appId,
                 app_secret: config.appSecret,
               }),
+              headers: { "Content-Type": "application/json" },
+              method: "POST",
             }
           );
           const data = (await resp.json()) as {

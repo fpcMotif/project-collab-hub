@@ -43,8 +43,8 @@ export const create = mutation({
             channel: "private_chat",
             messageType: "mention",
             payload: JSON.stringify({
-              commentId,
               authorId: args.authorId,
+              commentId,
               commentPreview: args.body.slice(0, 120),
               targetScope: args.targetScope,
             }),

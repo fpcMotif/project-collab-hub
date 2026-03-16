@@ -37,8 +37,8 @@ export const FeishuApprovalServiceLive = Layer.effect(
           const resp = await auth.client.approval.instance.create({
             data: {
               approval_code: params.approvalCode,
-              open_id: params.applicantId,
               form: params.formData,
+              open_id: params.applicantId,
             },
           });
           const instanceCode = (

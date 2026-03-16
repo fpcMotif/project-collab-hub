@@ -343,9 +343,9 @@ export function useMockProjectDetailState(projectId: string) {
                     item.id === workItemId
                       ? {
                           ...item,
-                          status,
                           completedAt:
                             status === "done" ? Date.now() : undefined,
+                          status,
                         }
                       : item
                   )
@@ -398,9 +398,9 @@ export function useMockProjectDetailState(projectId: string) {
 
               const nextStatus: DeptTrackStatus =
                 status === "approved"
-                  ? track.status === "waiting_approval"
+                  ? (track.status === "waiting_approval"
                     ? "done"
-                    : track.status
+                    : track.status)
                   : "blocked";
 
               return {
@@ -438,14 +438,14 @@ export function useMockProjectDetailState(projectId: string) {
           return status === "approved"
             ? {
                 ...track,
+                blockReason: undefined,
                 status:
                   track.status === "waiting_approval" ? "done" : track.status,
-                blockReason: undefined,
               }
             : {
                 ...track,
-                status: "blocked",
                 blockReason: "审批被拒绝",
+                status: "blocked",
               };
         }),
         pendingApprovalCount: Math.max(

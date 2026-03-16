@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
-import { ConvexClientProvider } from "@/providers/ConvexClientProvider";
+import { ConvexClientProvider } from "@/providers/convex-client-provider";
 
 import "./globals.css";
 
@@ -20,11 +20,11 @@ export const metadata: Metadata = {
   title: "Project Collab Hub",
 };
 
-export default function RootLayout({
+const RootLayout = ({
   children,
 }: Readonly<{
   children: React.ReactNode;
-}>) {
+}>) => {
   return (
     <html lang="en">
       <body
@@ -34,4 +34,6 @@ export default function RootLayout({
       </body>
     </html>
   );
-}
+};
+
+export default RootLayout;

@@ -29,36 +29,36 @@ export const FeishuMessageServiceLive = Layer.effect(
   Effect.map(FeishuAuthService, (auth) => ({
     sendCard: (params: SendCardMessageParams) =>
       Effect.tryPromise({
+        catch: (error) =>
+          new Error(
+            `Failed to send card message: ${error instanceof Error ? error.message : String(error)}`
+          ),
         try: () =>
           auth.client.im.message.create({
-            params: { receive_id_type: "chat_id" },
             data: {
               receive_id: params.chatId,
               msg_type: "interactive",
               content: JSON.stringify(params.card),
             },
+            params: { receive_id_type: "chat_id" },
           }),
-        catch: (error) =>
-          new Error(
-            `Failed to send card message: ${error instanceof Error ? error.message : String(error)}`
-          ),
       }).pipe(Effect.asVoid),
 
     sendText: (params: SendTextMessageParams) =>
       Effect.tryPromise({
+        catch: (error) =>
+          new Error(
+            `Failed to send text message: ${error instanceof Error ? error.message : String(error)}`
+          ),
         try: () =>
           auth.client.im.message.create({
-            params: { receive_id_type: "chat_id" },
             data: {
               receive_id: params.chatId,
               msg_type: "text",
               content: JSON.stringify({ text: params.text }),
             },
+            params: { receive_id_type: "chat_id" },
           }),
-        catch: (error) =>
-          new Error(
-            `Failed to send text message: ${error instanceof Error ? error.message : String(error)}`
-          ),
       }).pipe(Effect.asVoid),
   }))
 );

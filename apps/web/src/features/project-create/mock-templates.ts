@@ -19,16 +19,16 @@ export const MOCK_PROJECT_TEMPLATES: ProjectTemplateOption[] = [
   {
     approvalGates: [
       {
-        triggerStage: "ready",
         approvalCode: "APPROVAL_PROCUREMENT_BUDGET",
-        title: "采购预算审批",
         isRequired: true,
+        title: "采购预算审批",
+        triggerStage: "ready",
       },
       {
-        triggerStage: "delivering",
         approvalCode: "APPROVAL_DELIVERY_ACCEPTANCE",
-        title: "交付验收审批",
         isRequired: true,
+        title: "交付验收审批",
+        triggerStage: "delivering",
       },
     ],
     defaultPriority: "high",
@@ -58,10 +58,10 @@ export const MOCK_PROJECT_TEMPLATES: ProjectTemplateOption[] = [
   {
     approvalGates: [
       {
-        triggerStage: "ready",
         approvalCode: "APPROVAL_PROJECT_START",
-        title: "项目启动审批",
         isRequired: true,
+        title: "项目启动审批",
+        triggerStage: "ready",
       },
     ],
     defaultPriority: "medium",

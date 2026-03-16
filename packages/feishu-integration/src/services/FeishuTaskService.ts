@@ -33,40 +33,44 @@ export const FeishuTaskServiceLive = Layer.effect(
   Effect.map(FeishuAuthService, (auth) => ({
     completeTask: (taskGuid: string) =>
       Effect.tryPromise({
-        try: () =>
-          auth.client.task.v2.task.patch({
-            path: { task_guid: taskGuid },
-            data: {
-              task: { completed_at: String(Math.floor(Date.now() / 1000)) },
-              update_fields: ["completed_at"],
-            },
-          }),
         catch: (error) =>
           new Error(
             `Failed to complete Feishu task: ${error instanceof Error ? error.message : String(error)}`
           ),
+        try: () =>
+          auth.client.task.v2.task.patch({
+            data: {
+              task: { completed_at: String(Math.floor(Date.now() / 1000)) },
+              update_fields: ["completed_at"],
+            },
+            path: { task_guid: taskGuid },
+          }),
       }).pipe(Effect.asVoid),
 
     createTask: (params: CreateFeishuTaskParams) =>
       Effect.tryPromise({
+        catch: (error) =>
+          new Error(
+            `Failed to create Feishu task: ${error instanceof Error ? error.message : String(error)}`
+          ),
         try: async () => {
           const resp = await auth.client.task.v2.task.create({
             data: {
-              summary: params.summary,
               description: params.description,
               due: {
                 timestamp: params.dueTimestamp,
                 is_all_day: true,
-              },
-              origin: {
-                platform_i18n_name: { en_us: "Project Collab Hub" },
-                href: { url: params.originHref, title: params.originTitle },
               },
               members: params.memberIds.map((id) => ({
                 id,
                 type: "user" as const,
                 role: "assignee",
               })),
+              origin: {
+                platform_i18n_name: { en_us: "Project Collab Hub" },
+                href: { url: params.originHref, title: params.originTitle },
+              },
+              summary: params.summary,
             },
           });
           const taskGuid = (resp?.data as { task?: { guid?: string } })?.task
@@ -76,24 +80,20 @@ export const FeishuTaskServiceLive = Layer.effect(
           }
           return { taskGuid };
         },
-        catch: (error) =>
-          new Error(
-            `Failed to create Feishu task: ${error instanceof Error ? error.message : String(error)}`
-          ),
       }),
 
     getTask: (taskGuid: string) =>
       Effect.tryPromise({
+        catch: (error) =>
+          new Error(
+            `Failed to get Feishu task: ${error instanceof Error ? error.message : String(error)}`
+          ),
         try: async () => {
           const resp = await auth.client.task.v2.task.get({
             path: { task_guid: taskGuid },
           });
           return (resp?.data as Record<string, unknown>) ?? {};
         },
-        catch: (error) =>
-          new Error(
-            `Failed to get Feishu task: ${error instanceof Error ? error.message : String(error)}`
-          ),
       }),
   }))
 );

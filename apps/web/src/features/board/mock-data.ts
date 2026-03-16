@@ -114,9 +114,9 @@ export const MOCK_PROJECTS: BoardProjectRecord[] = [
       { departmentName: "技术部", status: "done" },
       { departmentName: "商务部", status: "done" },
       {
+        blockReason: "核心设备交期未确认",
         departmentName: "采购部",
         status: "blocked",
-        blockReason: "核心设备交期未确认",
       },
     ],
     id: "P-007",
@@ -153,9 +153,9 @@ export const MOCK_PROJECTS: BoardProjectRecord[] = [
     departmentTracks: [
       { departmentName: "技术部", status: "in_progress" },
       {
+        blockReason: "生产环境变更窗口尚未审批",
         departmentName: "运维部",
         status: "blocked",
-        blockReason: "生产环境变更窗口尚未审批",
       },
     ],
     id: "P-009",

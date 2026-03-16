@@ -8,9 +8,9 @@ import {
   getProjectStatusByColumnId,
 } from "../lib/view-model";
 import type { BoardFilterState, BoardMoveResult } from "../types";
-import { useMockProjectStore } from "./useMockProjectStore";
+import { useMockProjectStore } from "./use-mock-project-store";
 
-export function useMockBoardData(filters: BoardFilterState) {
+export const useMockBoardData = (filters: BoardFilterState) => {
   const { projects, replaceProjects } = useMockProjectStore();
 
   const boardData = useMemo(
@@ -58,4 +58,4 @@ export function useMockBoardData(filters: BoardFilterState) {
     moveProject,
     movingProjectId: null,
   } as const;
-}
+};

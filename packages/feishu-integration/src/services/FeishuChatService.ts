@@ -29,24 +29,28 @@ export const FeishuChatServiceLive = Layer.effect(
   Effect.map(FeishuAuthService, (auth) => ({
     addBotToChat: (chatId: string) =>
       Effect.tryPromise({
-        try: () =>
-          auth.client.im.chatMembers.create({
-            path: { chat_id: chatId },
-            data: { id_list: [] },
-          }),
         catch: (error) =>
           new Error(
             `Failed to add bot to chat: ${error instanceof Error ? error.message : String(error)}`
           ),
+        try: () =>
+          auth.client.im.chatMembers.create({
+            data: { id_list: [] },
+            path: { chat_id: chatId },
+          }),
       }).pipe(Effect.asVoid),
 
     createChat: (params: CreateChatParams) =>
       Effect.tryPromise({
+        catch: (error) =>
+          new Error(
+            `Failed to create chat: ${error instanceof Error ? error.message : String(error)}`
+          ),
         try: async () => {
           const resp = await auth.client.im.chat.create({
             data: {
-              name: params.name,
               description: params.description,
+              name: params.name,
               owner_id: params.ownerOpenId,
               user_id_list: [...params.userOpenIds],
             },
@@ -58,22 +62,18 @@ export const FeishuChatServiceLive = Layer.effect(
           }
           return { chatId };
         },
-        catch: (error) =>
-          new Error(
-            `Failed to create chat: ${error instanceof Error ? error.message : String(error)}`
-          ),
       }),
 
     pinMessage: (messageId: string) =>
       Effect.tryPromise({
-        try: () =>
-          auth.client.im.pin.create({
-            data: { message_id: messageId },
-          }),
         catch: (error) =>
           new Error(
             `Failed to pin message: ${error instanceof Error ? error.message : String(error)}`
           ),
+        try: () =>
+          auth.client.im.pin.create({
+            data: { message_id: messageId },
+          }),
       }).pipe(Effect.asVoid),
   }))
 );

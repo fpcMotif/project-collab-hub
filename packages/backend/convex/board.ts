@@ -143,9 +143,9 @@ async function buildBoardProjectRecord(ctx: any, project: any) {
   return {
     customerName: project.customerName ?? "未填写客户",
     departmentTracks: departmentTracks.map((track) => ({
+      blockReason: track.blockReason,
       departmentName: track.departmentName,
       status: track.isRequired ? track.status : "not_required",
-      blockReason: track.blockReason,
     })),
     id: project._id,
     name: project.name,
@@ -254,112 +254,112 @@ export const getProjectDetail = query({
 
     return {
       approvals: approvalGates.map((gate) => ({
-        id: gate._id,
-        title: gate.title,
-        triggerStage: gate.triggerStage,
-        status: gate.status,
-        approvalCode: gate.approvalCode,
-        instanceCode: gate.instanceCode,
         applicantId: gate.applicantId,
-        resolvedAt: gate.resolvedAt,
-        resolvedBy: gate.resolvedBy,
+        approvalCode: gate.approvalCode,
         departmentName: gate.departmentTrackId
           ? (departmentTrackById.get(gate.departmentTrackId)?.departmentName ??
             null)
           : null,
+        id: gate._id,
+        instanceCode: gate.instanceCode,
+        resolvedAt: gate.resolvedAt,
+        resolvedBy: gate.resolvedBy,
+        status: gate.status,
+        title: gate.title,
+        triggerStage: gate.triggerStage,
       })),
       bindings: {
-        chats: chatBindings.map((binding) => ({
+        bases: baseBindings.map((binding) => ({
+          baseAppToken: binding.baseAppToken,
+          fieldOwnership: binding.fieldOwnership,
           id: binding._id,
-          feishuChatId: binding.feishuChatId,
+          lastSyncedAt: binding.lastSyncedAt,
+          recordId: binding.recordId,
+          tableId: binding.tableId,
+        })),
+        chats: chatBindings.map((binding) => ({
           chatType: binding.chatType,
+          feishuChatId: binding.feishuChatId,
+          id: binding._id,
           pinnedMessageId: binding.pinnedMessageId,
         })),
         docs: docBindings.map((binding) => ({
-          id: binding._id,
-          title: binding.title,
           docType: binding.docType,
-          purpose: binding.purpose,
           feishuDocToken: binding.feishuDocToken,
-        })),
-        bases: baseBindings.map((binding) => ({
           id: binding._id,
-          baseAppToken: binding.baseAppToken,
-          tableId: binding.tableId,
-          recordId: binding.recordId,
-          fieldOwnership: binding.fieldOwnership,
-          lastSyncedAt: binding.lastSyncedAt,
+          purpose: binding.purpose,
+          title: binding.title,
         })),
       },
       comments: comments.map((comment) => ({
-        id: comment._id,
         authorId: comment.authorId,
         body: comment.body,
-        targetScope: comment.targetScope,
+        createdAt: comment._creationTime,
+        id: comment._id,
         isDeleted: comment.isDeleted,
-        parentCommentId: comment.parentCommentId ?? null,
         mentionedUserIds:
           commentMentionsByCommentId
             .get(comment._id)
             ?.map((mention) => mention.mentionedUserId) ?? [],
-        createdAt: comment._creationTime,
+        parentCommentId: comment.parentCommentId ?? null,
+        targetScope: comment.targetScope,
       })),
       departmentTracks: departmentTracks.map((track) => ({
-        id: track._id,
+        blockReason: track.blockReason,
+        collaboratorIds: track.collaboratorIds ?? [],
         departmentId: track.departmentId,
         departmentName: track.departmentName,
-        isRequired: track.isRequired,
-        status: track.status,
-        ownerId: track.ownerId,
-        collaboratorIds: track.collaboratorIds ?? [],
         dueDate: track.dueDate,
-        blockReason: track.blockReason,
-        relatedWorkItemCount: workItems.filter(
-          (item) => item.departmentTrackId === track._id
-        ).length,
+        id: track._id,
+        isRequired: track.isRequired,
+        ownerId: track.ownerId,
         pendingApprovalCount: approvalGates.filter(
           (gate) =>
             gate.departmentTrackId === track._id && gate.status === "pending"
         ).length,
+        relatedWorkItemCount: workItems.filter(
+          (item) => item.departmentTrackId === track._id
+        ).length,
+        status: track.status,
       })),
       project: {
         ...boardProject,
-        description: project.description,
         createdBy: project.createdBy,
-        sourceEntry: project.sourceEntry,
-        startDate: project.startDate,
+        description: project.description,
         endDate: project.endDate,
         slaDeadline: project.slaDeadline,
+        sourceEntry: project.sourceEntry,
+        startDate: project.startDate,
       },
       timeline: auditEvents.map((event) => ({
-        id: event._id,
-        actorId: event.actorId,
         action: event.action,
-        objectType: event.objectType,
-        objectId: event.objectId,
+        actorId: event.actorId,
         changeSummary: event.changeSummary,
-        sourceEntry: event.sourceEntry,
         createdAt: event._creationTime,
+        id: event._id,
+        objectId: event.objectId,
+        objectType: event.objectType,
+        sourceEntry: event.sourceEntry,
       })),
       workItems: workItems.map((item) => {
         const binding = taskBindingByWorkItemId.get(item._id);
         return {
-          id: item._id,
-          title: item.title,
-          description: item.description,
-          status: item.status,
-          priority: item.priority,
           assigneeId: item.assigneeId,
           collaboratorIds: item.collaboratorIds ?? [],
-          dueDate: item.dueDate,
           completedAt: item.completedAt,
-          departmentTrackId: item.departmentTrackId,
           departmentName: item.departmentTrackId
             ? (departmentTrackById.get(item.departmentTrackId)
                 ?.departmentName ?? null)
             : null,
+          departmentTrackId: item.departmentTrackId,
+          description: item.description,
+          dueDate: item.dueDate,
           feishuTaskGuid: binding?.feishuTaskGuid ?? null,
           feishuTaskStatus: binding?.feishuTaskStatus ?? null,
+          id: item._id,
+          priority: item.priority,
+          status: item.status,
+          title: item.title,
         };
       }),
     };
