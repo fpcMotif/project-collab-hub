@@ -12,6 +12,11 @@
     "effect": "^3"
   },
   "devDependencies": {
-    "typescript": "^5"
+    "@edge-runtime/vm": "^5.0.0",
+    "@types/node": "^25.5.0",
+    "convex-test": "^0.0.41",
+    "typescript": "^5",
+    "vite": "^8.0.0",
+    "vitest": "^4.1.0"
   }
 }
