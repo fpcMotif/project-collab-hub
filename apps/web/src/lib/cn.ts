@@ -4,6 +4,4 @@
  */
 export const cn = (
   ...inputs: (string | false | null | undefined | 0)[]
-): string => {
-  return inputs.filter(Boolean).join(" ");
-};
+): string => inputs.filter(Boolean).join(" ");

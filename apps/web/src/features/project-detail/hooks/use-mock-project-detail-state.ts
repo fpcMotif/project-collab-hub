@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 
-import { useMockProjectStore } from "@/features/board/hooks/useMockProjectStore";
+import { useMockProjectStore } from "@/features/board/hooks/use-mock-project-store";
 import type {
   BoardProjectRecord,
   DeptTrackStatus,
@@ -180,7 +180,7 @@ export function useMockProjectDetailState(projectId: string) {
     readOverlayStore,
     () => EMPTY_OVERLAY_STORE
   );
-  const { projects, replaceProjects } = useMockProjectStore();
+  const { projects, replaceProjects } = use - mock - project - store();
 
   const baseDetail = useMemo(
     () => getMockProjectDetail(projectId, projects),
@@ -219,7 +219,7 @@ export function useMockProjectDetailState(projectId: string) {
   const createComment = useCallback(
     async (body: string, mentionedUserIds: string[]) => {
       if (!detail || !body.trim()) {
-        return { message: "评论内容不能为空", ok: false } as const;
+        return { message: "评论内容不能为空", ok: false };
       }
 
       const nextComment: ProjectDetailComment = {
@@ -248,7 +248,7 @@ export function useMockProjectDetailState(projectId: string) {
         workItems: current.workItems,
       }));
 
-      return { message: "评论已保存", ok: true } as const;
+      return { message: "评论已保存", ok: true };
     },
     [detail, projectId, updateOverlay]
   );
@@ -256,7 +256,7 @@ export function useMockProjectDetailState(projectId: string) {
   const deleteComment = useCallback(
     async (commentId: string) => {
       if (!detail) {
-        return { message: "未找到项目详情", ok: false } as const;
+        return { message: "未找到项目详情", ok: false };
       }
 
       updateOverlay((current) => ({
@@ -272,7 +272,7 @@ export function useMockProjectDetailState(projectId: string) {
         workItems: current.workItems,
       }));
 
-      return { message: "评论已删除", ok: true } as const;
+      return { message: "评论已删除", ok: true };
     },
     [detail, projectId, updateOverlay]
   );
@@ -280,14 +280,14 @@ export function useMockProjectDetailState(projectId: string) {
   const updateWorkItemStatus = useCallback(
     async (workItemId: string, status: WorkItemStatus) => {
       if (!detail) {
-        return { message: "未找到项目详情", ok: false } as const;
+        return { message: "未找到项目详情", ok: false };
       }
 
       const existingItem = detail.workItems.find(
         (item) => item.id === workItemId
       );
       if (!existingItem) {
-        return { message: "未找到行动项", ok: false } as const;
+        return { message: "未找到行动项", ok: false };
       }
 
       updateOverlay((current) => {
@@ -361,7 +361,7 @@ export function useMockProjectDetailState(projectId: string) {
         };
       });
 
-      return { message: "行动项状态已更新", ok: true } as const;
+      return { message: "行动项状态已更新", ok: true };
     },
     [detail, projectId, updateOverlay, updateProjectRecord]
   );
@@ -369,12 +369,12 @@ export function useMockProjectDetailState(projectId: string) {
   const resolveApproval = useCallback(
     async (approvalId: string, status: "approved" | "rejected") => {
       if (!detail) {
-        return { message: "未找到项目详情", ok: false } as const;
+        return { message: "未找到项目详情", ok: false };
       }
 
       const approval = detail.approvals.find((item) => item.id === approvalId);
       if (!approval) {
-        return { message: "未找到审批", ok: false } as const;
+        return { message: "未找到审批", ok: false };
       }
 
       updateOverlay((current) => {
@@ -457,7 +457,7 @@ export function useMockProjectDetailState(projectId: string) {
       return {
         message: status === "approved" ? "审批已通过" : "审批已拒绝",
         ok: true,
-      } as const;
+      };
     },
     [detail, projectId, updateOverlay, updateProjectRecord]
   );
@@ -469,5 +469,5 @@ export function useMockProjectDetailState(projectId: string) {
     isLoading: false,
     resolveApproval,
     updateWorkItemStatus,
-  } as const;
+  };
 }

@@ -58,17 +58,17 @@ export const FeishuTaskServiceLive = Layer.effect(
             data: {
               description: params.description,
               due: {
-                timestamp: params.dueTimestamp,
                 is_all_day: true,
+                timestamp: params.dueTimestamp,
               },
               members: params.memberIds.map((id) => ({
                 id,
-                type: "user" as const,
                 role: "assignee",
+                type: "user" as const,
               })),
               origin: {
-                platform_i18n_name: { en_us: "Project Collab Hub" },
                 href: { url: params.originHref, title: params.originTitle },
+                platform_i18n_name: { en_us: "Project Collab Hub" },
               },
               summary: params.summary,
             },

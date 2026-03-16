@@ -1,0 +1,50 @@
+--- apps/web/src/features/project-detail/hooks/use-mock-project-detail-state.ts
++++ apps/web/src/features/project-detail/hooks/use-mock-project-detail-state.ts
+@@ -201,11 +201,11 @@
+   const updateWorkItemStatus = useCallback(
+     async (workItemId: string, status: WorkItemStatus) => {
+       if (!detail) {
+-        return { message: "未找到项目详情", ok: false } as const;
++        return { message: "未找到项目详情", ok: false };
+       }
+
+       const existingItem = detail.workItems.find(
+         (item) => item.id === workItemId
+       );
+       if (!existingItem) {
+-        return { message: "未找到行动项", ok: false } as const;
++        return { message: "未找到行动项", ok: false };
+       }
+
+@@ -279,7 +279,7 @@
+         };
+       });
+
+-      return { message: "行动项状态已更新", ok: true } as const;
++      return { message: "行动项状态已更新", ok: true };
+     },
+     [detail, projectId, updateOverlay, updateProjectRecord]
+   );
+@@ -288,12 +288,12 @@
+   const resolveApproval = useCallback(
+     async (approvalId: string, status: "approved" | "rejected") => {
+       if (!detail) {
+-        return { message: "未找到项目详情", ok: false } as const;
++        return { message: "未找到项目详情", ok: false };
+       }
+
+       const approval = detail.approvals.find((item) => item.id === approvalId);
+       if (!approval) {
+-        return { message: "未找到审批", ok: false } as const;
++        return { message: "未找到审批", ok: false };
+       }
+
+@@ -370,7 +370,7 @@
+       return {
+         message: status === "approved" ? "审批已通过" : "审批已拒绝",
+         ok: true,
+-      } as const;
++      };
+     },
+     [detail, projectId, updateOverlay, updateProjectRecord]
+   );

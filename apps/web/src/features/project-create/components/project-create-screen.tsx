@@ -4,10 +4,10 @@ import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
-import { useMockProjectStore } from "@/features/board/hooks/useMockProjectStore";
+import { useMockProjectStore } from "@/features/board/hooks/use-mock-project-store";
 import type { BoardProjectRecord } from "@/features/board/types";
 import { convexFunctionRefs } from "@/lib/convex-function-refs";
-import { useConvexEnabled } from "@/providers/ConvexClientProvider";
+import { useConvexEnabled } from "@/providers/convex-client-provider";
 
 import { MOCK_PROJECT_TEMPLATES } from "../mock-templates";
 import type {
@@ -135,7 +135,7 @@ function ConnectedProjectCreateScreen() {
 function MockProjectCreateScreen() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { addProject } = useMockProjectStore();
+  const { addProject } = use - mock - project - store();
 
   return (
     <ProjectCreateForm

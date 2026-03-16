@@ -7,7 +7,7 @@ import type { BoardProjectRecord } from "../types";
 
 const STORAGE_EVENT = "project-collab-hub.board.mock-projects.updated";
 const STORAGE_KEY = "project-collab-hub.board.mock-projects";
-const NOOP = () => undefined;
+const NOOP = () => {};
 
 let cachedProjects: BoardProjectRecord[] = MOCK_PROJECTS;
 let cachedRaw: null | string | undefined;
