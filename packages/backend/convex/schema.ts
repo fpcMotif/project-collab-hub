@@ -225,6 +225,7 @@ export default defineSchema({
       v.literal("retrying"),
     ),
     retryCount: v.number(),
+    nextAttemptAt: v.optional(v.number()),
     lastError: v.optional(v.string()),
     payload: v.string(),
   })
