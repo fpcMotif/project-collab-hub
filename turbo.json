@@ -24,7 +24,8 @@
         "**/*.js",
         "**/*.mjs",
         "**/*.json",
-        "**/*.css"
+        "**/*.css",
+        ".oxfmtrc.json"
       ]
     },
     "format:fix": {
@@ -32,6 +33,17 @@
     },
     "check-types": {
       "dependsOn": ["^check-types"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "src/**/*.test.ts",
+        "src/**/*.test.tsx",
+        "tests/**/*.ts",
+        "tests/**/*.tsx"
+      ]
     }
   }
 }

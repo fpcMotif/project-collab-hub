@@ -13,10 +13,11 @@
     "format": "turbo run format",
     "format:fix": "turbo run format:fix",
     "check-types": "turbo run check-types",
-    "validate": "bun run lint && bun run check-types && bun run build",
-    "prepare": "lefthook install",
     "check": "ultracite check",
-    "fix": "ultracite fix"
+    "fix": "ultracite fix",
+    "test": "turbo run test",
+    "validate": "bun run lint && bun run check-types && bun run test && bun run build",
+    "prepare": "lefthook install"
   },
   "dependencies": {
     "convex": "^1.33.1"

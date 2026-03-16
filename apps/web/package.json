@@ -10,7 +10,8 @@
     "lint:fix": "oxlint -c .oxlintrc.json --fix .",
     "format": "oxfmt --check .",
     "format:fix": "oxfmt .",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@collab-hub/shared": "workspace:*",
@@ -28,7 +29,8 @@
     "oxfmt": "latest",
     "oxlint": "latest",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.0"
   },
   "trustedDependencies": [
     "sharp",
