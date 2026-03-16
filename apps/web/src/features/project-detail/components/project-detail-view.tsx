@@ -207,8 +207,6 @@ function SectionCard({
   );
 }
 
-("use client");
-
 import Link from "next/link";
 import type { ReactNode } from "react";
 
