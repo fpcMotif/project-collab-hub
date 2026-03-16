@@ -215,17 +215,81 @@ async function handleApprovalEvent(
 async function handleTaskEvent(
   ctx: { runQuery: typeof Function.prototype; runMutation: typeof Function.prototype },
   body: Record<string, unknown>,
-  _eventId: string,
+  eventId: string,
 ) {
   const event = body.event as Record<string, unknown> | undefined;
   if (!event) return;
 
   const taskGuid = event.task_id as string | undefined;
-  if (!taskGuid) return;
+  const task = event.task as Record<string, unknown> | undefined;
+  const taskStatus =
+    (event.status as string | undefined) ??
+    (event.task_status as string | undefined) ??
+    (task?.status as string | undefined);
 
-  // TODO: Look up feishuTaskBindings by taskGuid, then update workItem status.
-  // This requires a query on feishuTaskBindings.by_feishu_task index.
-  console.log(`Task event received for task: ${taskGuid}`);
+  if (!taskGuid || !taskStatus) {
+    console.log("Task event missing task_id or status", { eventId, taskGuid, taskStatus });
+    return;
+  }
+
+  const binding = await (ctx.runQuery as Function)(
+    api.feishuTaskBindings.getByTaskGuid,
+    { taskGuid },
+  );
+
+  if (!binding) {
+    console.log("No Feishu task binding found", { eventId, taskGuid, taskStatus });
+    return;
+  }
+
+  if (binding.syncDirection !== "app_created") {
+    console.log("Ignoring task event for non-app-created binding", {
+      eventId,
+      taskGuid,
+      syncDirection: binding.syncDirection,
+    });
+    return;
+  }
+
+  const normalizedStatus = taskStatus.toLowerCase();
+  const statusMap: Record<string, "todo" | "in_progress" | "in_review" | "done"> = {
+    created: "todo",
+    todo: "todo",
+    not_started: "todo",
+    in_progress: "in_progress",
+    running: "in_progress",
+    in_review: "in_review",
+    reviewing: "in_review",
+    completed: "done",
+    done: "done",
+    closed: "done",
+  };
+  const mappedStatus = statusMap[normalizedStatus];
+
+  if (!mappedStatus) {
+    console.log("Unsupported Feishu task status", {
+      eventId,
+      taskGuid,
+      taskStatus,
+    });
+    return;
+  }
+
+  const result = await (ctx.runMutation as Function)(
+    api.feishuTaskBindings.applyTaskEvent,
+    {
+      bindingId: binding._id,
+      workItemId: binding.workItemId,
+      taskGuid,
+      feishuTaskStatus: taskStatus,
+      mappedStatus,
+      eventId,
+    },
+  );
+
+  if (result?.deduplicated) {
+    console.log("Deduplicated repeated task event", { eventId, taskGuid });
+  }
 }
 
 export default http;
