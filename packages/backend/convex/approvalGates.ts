@@ -11,6 +11,17 @@ export const listByProject = query({
   },
 });
 
+
+export const listPending = query({
+  args: {},
+  handler: async (ctx) => {
+    return ctx.db
+      .query("approvalGates")
+      .withIndex("by_status", (q) => q.eq("status", "pending"))
+      .collect();
+  },
+});
+
 export const getByInstanceCode = query({
   args: { instanceCode: v.string() },
   handler: async (ctx, args) => {
@@ -66,7 +77,7 @@ export const resolve = mutation({
   args: {
     id: v.id("approvalGates"),
     instanceCode: v.string(),
-    status: v.union(v.literal("approved"), v.literal("rejected")),
+    status: v.union(v.literal("approved"), v.literal("rejected"), v.literal("cancelled")),
     resolvedBy: v.string(),
     idempotencyKey: v.optional(v.string()),
   },

@@ -1,4 +1,4 @@
-import { query } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 export const listByProject = query({
@@ -20,5 +20,22 @@ export const listByActor = query({
       .withIndex("by_actor", (q) => q.eq("actorId", args.actorId))
       .order("desc")
       .collect();
+  },
+});
+
+export const logSystemEvent = mutation({
+  args: {
+    action: v.string(),
+    objectType: v.string(),
+    objectId: v.string(),
+    changeSummary: v.string(),
+    sourceEntry: v.optional(v.string()),
+    idempotencyKey: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("auditEvents", {
+      actorId: "system",
+      ...args,
+    });
   },
 });
