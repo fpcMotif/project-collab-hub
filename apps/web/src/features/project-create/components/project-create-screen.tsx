@@ -142,12 +142,12 @@ const MockProjectCreateScreen = () => {
     <ProjectCreateForm
       templates={MOCK_PROJECT_TEMPLATES}
       isSubmitting={isSubmitting}
-      onSubmit={async (values) => {
+      onSubmit={(values) => {
         const template = MOCK_PROJECT_TEMPLATES.find(
           (item) => item.id === values.templateId
         );
         if (!template) {
-          return { message: "未找到模板", ok: false };
+          return Promise.resolve({ message: "未找到模板", ok: false });
         }
 
         setIsSubmitting(true);
@@ -155,7 +155,7 @@ const MockProjectCreateScreen = () => {
           const project = createMockProjectRecord(values, template);
           addProject(project);
           router.push(`/projects/${project.id}`);
-          return { ok: true, projectId: project.id };
+          return Promise.resolve({ ok: true, projectId: project.id });
         } finally {
           setIsSubmitting(false);
         }
