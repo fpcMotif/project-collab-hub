@@ -1,14 +1,13 @@
-import { httpRouter } from "convex/server";
+import { httpRouter, anyApi } from "convex/server";
+import type { GenericActionCtx } from "convex/server";
 
 import { api } from "./_generated/api";
+import type { DataModel } from "./_generated/dataModel";
 import { httpAction } from "./_generated/server";
 
-const http = httpRouter();
+type CallableCtx = GenericActionCtx<DataModel>;
 
-interface CallableCtx {
-  runQuery: (...args: unknown[]) => unknown;
-  runMutation: (...args: unknown[]) => unknown;
-}
+const http = httpRouter();
 
 // ── Internal Handlers ───────────────────────────────────────────────────
 
@@ -41,15 +40,15 @@ const handleApprovalEvent = async (
   }
 
   // Find the approval gate by instance code
-  const gate = await ctx.runQuery(api.approvalGates.getByInstanceCode, {
+  const gate = (await ctx.runQuery(anyApi.approvalGates.getByInstanceCode, {
     instanceCode,
-  });
+  })) as unknown as { _id: string };
   if (!gate) {
     return;
   }
 
   // Resolve the approval gate with idempotency
-  await ctx.runMutation(api.approvalGates.resolve, {
+  await ctx.runMutation(anyApi.approvalGates.resolve, {
     id: gate._id,
     idempotencyKey: eventId,
     instanceCode,
@@ -189,7 +188,7 @@ http.route({
 
     const [, projectId] = projectIdMatch;
     const project = await ctx
-      .runQuery(api.projects.getById, { id: projectId as never })
+      .runQuery(anyApi.projects.getById, { id: projectId as never })
       .catch(() => null);
 
     if (!project) {

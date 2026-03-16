@@ -24,10 +24,7 @@ export interface ProjectTemplateOption {
   approvalGates: ProjectTemplateApprovalOption[];
 }
 
-export interface ConvexProjectTemplateDoc extends Omit<
-  ProjectTemplateOption,
-  "id"
-> {
+export interface ConvexProjectTemplateDoc extends Omit<ProjectTemplateOption, "id"> {
   _id: string;
 }
 
