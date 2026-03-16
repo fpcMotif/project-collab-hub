@@ -7,7 +7,7 @@ interface DepartmentChipProps {
   track: DepartmentTrackSummary;
 }
 
-export function DepartmentChip({ track }: DepartmentChipProps) {
+export const DepartmentChip = ({ track }: DepartmentChipProps) => {
   const style = DEPT_STATUS_STYLES[track.status];
   const label = DEPT_STATUS_LABELS[track.status];
   const title = track.blockReason
@@ -26,4 +26,4 @@ export function DepartmentChip({ track }: DepartmentChipProps) {
       {track.departmentName}
     </span>
   );
-}
+};

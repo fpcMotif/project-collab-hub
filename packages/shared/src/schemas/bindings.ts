@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 import { Schema } from "effect";
 
 export class FeishuTaskBinding extends Schema.Class<FeishuTaskBinding>(

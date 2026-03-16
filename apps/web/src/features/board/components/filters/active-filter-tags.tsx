@@ -29,10 +29,10 @@ const FILTER_LABELS: Record<keyof BoardFilterState, string> = {
   templateType: "模板",
 };
 
-function formatFilterValue<K extends keyof BoardFilterState>(
+const formatFilterValue = <K extends keyof BoardFilterState>(
   key: K,
   value: NonNullable<BoardFilterState[K]>
-): string {
+): string => {
   switch (key) {
     case "priority": {
       return PRIORITY_LABELS[value as Priority];
@@ -50,13 +50,13 @@ function formatFilterValue<K extends keyof BoardFilterState>(
       return value;
     }
   }
-}
+};
 
-export function ActiveFilterTags({
+export const ActiveFilterTags = ({
   filters,
   onClear,
   onClearAll,
-}: ActiveFilterTagsProps) {
+}: ActiveFilterTagsProps) => {
   const activeKeys = (
     Object.keys(filters) as (keyof BoardFilterState)[]
   ).filter((key) => filters[key] !== null);
@@ -108,4 +108,4 @@ export function ActiveFilterTags({
       )}
     </div>
   );
-}
+};

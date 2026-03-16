@@ -19,23 +19,20 @@ export const useMockBoardData = (filters: BoardFilterState) => {
   );
 
   const moveProject = useCallback(
-    async (
-      projectId: string,
-      targetColumnId: string
-    ): Promise<BoardMoveResult> => {
+    (projectId: string, targetColumnId: string): Promise<BoardMoveResult> => {
       const project = projects.find((item) => item.id === projectId);
       if (!project) {
-        return { message: "未找到项目卡片", ok: false };
+        return Promise.resolve({ message: "未找到项目卡片", ok: false });
       }
 
       const targetStatus = getProjectStatusByColumnId(targetColumnId);
       if (!targetStatus) {
-        return { message: "未找到目标阶段", ok: false };
+        return Promise.resolve({ message: "未找到目标阶段", ok: false });
       }
 
       const decision = getProjectMoveDecision(project, targetStatus);
       if (!decision.ok) {
-        return { message: decision.message, ok: false };
+        return Promise.resolve({ message: decision.message, ok: false });
       }
 
       replaceProjects(
@@ -44,10 +41,10 @@ export const useMockBoardData = (filters: BoardFilterState) => {
         )
       );
 
-      return {
+      return Promise.resolve({
         message: `已移动到「${boardData.columns.find((column) => column.id === targetColumnId)?.name ?? targetColumnId}」`,
         ok: true,
-      };
+      });
     },
     [boardData.columns, projects, replaceProjects]
   );

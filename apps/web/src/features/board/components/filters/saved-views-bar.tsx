@@ -12,21 +12,15 @@ interface SavedViewsBarProps {
   savedViews: BoardSavedView[];
 }
 
-const isSameFilterValue = (
-  left: BoardFilterState,
-  right: BoardFilterState
-) => {
-  return (
-    left.approvalStatus === right.approvalStatus &&
-    left.customer === right.customer &&
-    left.department === right.department &&
-    left.overdueStatus === right.overdueStatus &&
-    left.owner === right.owner &&
-    left.priority === right.priority &&
-    left.slaRisk === right.slaRisk &&
-    left.templateType === right.templateType
-  );
-};
+const isSameFilterValue = (left: BoardFilterState, right: BoardFilterState) =>
+  left.approvalStatus === right.approvalStatus &&
+  left.customer === right.customer &&
+  left.department === right.department &&
+  left.overdueStatus === right.overdueStatus &&
+  left.owner === right.owner &&
+  left.priority === right.priority &&
+  left.slaRisk === right.slaRisk &&
+  left.templateType === right.templateType;
 
 export const SavedViewsBar = ({
   activeFilters,

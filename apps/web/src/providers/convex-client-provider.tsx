@@ -9,11 +9,9 @@ const convex = convexUrl ? new ConvexReactClient(convexUrl) : null;
 
 const ConvexEnabledContext = createContext(false);
 
-export function useConvexEnabled() {
-  return useContext(ConvexEnabledContext);
-}
+export const useConvexEnabled = () => useContext(ConvexEnabledContext);
 
-export function ConvexClientProvider({ children }: { children: ReactNode }) {
+export const ConvexClientProvider = ({ children }: { children: ReactNode }) => {
   if (!convex) {
     return (
       <ConvexEnabledContext.Provider value={false}>
@@ -27,4 +25,4 @@ export function ConvexClientProvider({ children }: { children: ReactNode }) {
       <ConvexProvider client={convex}>{children}</ConvexProvider>
     </ConvexEnabledContext.Provider>
   );
-}
+};

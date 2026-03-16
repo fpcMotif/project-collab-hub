@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 
-import { useMockProjectStore } from "@/features/board/hooks/useMockProjectStore";
+import { useMockProjectStore } from "@/features/board/hooks/use-mock-project-store";
 import type {
   BoardProjectRecord,
   DeptTrackStatus,
@@ -39,7 +39,7 @@ const EMPTY_OVERLAY_STORE: OverlayStore = {};
 let _cachedRaw: string | null = undefined as unknown as null;
 let _cachedStore: OverlayStore = EMPTY_OVERLAY_STORE;
 
-function readOverlayStore(): OverlayStore {
+const readOverlayStore = (): OverlayStore => {
   if (typeof window === "undefined") {
     return EMPTY_OVERLAY_STORE;
   }
@@ -68,23 +68,25 @@ function readOverlayStore(): OverlayStore {
     _cachedStore = EMPTY_OVERLAY_STORE;
     return _cachedStore;
   }
-}
+};
 
-function writeOverlayStore(nextStore: OverlayStore) {
+const writeOverlayStore = (nextStore: OverlayStore) => {
   if (typeof window === "undefined") {
     return;
   }
 
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextStore));
   window.dispatchEvent(new Event(STORAGE_EVENT));
-}
+};
 
-function subscribe(callback: () => void) {
+const subscribe = (onChange: () => void) => {
   if (typeof window === "undefined") {
-    return () => {};
+    return () => {
+      /* noop */
+    };
   }
 
-  const handleChange = () => callback();
+  const handleChange = () => onChange();
   window.addEventListener("storage", handleChange);
   window.addEventListener(STORAGE_EVENT, handleChange);
 
@@ -92,12 +94,12 @@ function subscribe(callback: () => void) {
     window.removeEventListener("storage", handleChange);
     window.removeEventListener(STORAGE_EVENT, handleChange);
   };
-}
+};
 
-function mergeDetailWithOverlay(
+const mergeDetailWithOverlay = (
   baseDetail: ProjectDetailData | null,
   overlay: ProjectDetailOverlay | undefined
-): ProjectDetailData | null {
+): ProjectDetailData | null => {
   if (!baseDetail) {
     return null;
   }
@@ -114,12 +116,12 @@ function mergeDetailWithOverlay(
     timeline: overlay.timeline,
     workItems: overlay.workItems,
   };
-}
+};
 
-function getNextTrackStatusFromWorkItems(
+const getNextTrackStatusFromWorkItems = (
   track: ProjectDetailDepartmentTrack,
   workItems: ProjectDetailWorkItem[]
-): DeptTrackStatus {
+): DeptTrackStatus => {
   if (track.status === "blocked" || track.status === "waiting_approval") {
     return track.status;
   }
@@ -144,37 +146,35 @@ function getNextTrackStatusFromWorkItems(
   }
 
   return "not_started";
-}
+};
 
-function deriveSlaRisk(
+const deriveSlaRisk = (
   currentRisk: SlaRisk,
   overdueTaskCount: number
-): SlaRisk {
+): SlaRisk => {
   if (overdueTaskCount > 0) {
     return "overdue";
   }
 
   return currentRisk === "overdue" ? "on_time" : currentRisk;
-}
+};
 
-function createTimelineEvent(
+const createTimelineEvent = (
   projectId: string,
   action: string,
   changeSummary: string
-): ProjectDetailTimelineEvent {
-  return {
-    action,
-    actorId: ACTION_ACTOR_ID,
-    changeSummary,
-    createdAt: Date.now(),
-    id: `${projectId}-timeline-${Date.now()}`,
-    objectId: projectId,
-    objectType: "project",
-    sourceEntry: "web",
-  };
-}
+): ProjectDetailTimelineEvent => ({
+  action,
+  actorId: ACTION_ACTOR_ID,
+  changeSummary,
+  createdAt: Date.now(),
+  id: `${projectId}-timeline-${Date.now()}`,
+  objectId: projectId,
+  objectType: "project",
+  sourceEntry: "web",
+});
 
-export function useMockProjectDetailState(projectId: string) {
+export const useMockProjectDetailState = (projectId: string) => {
   const overlayStore = useSyncExternalStore<OverlayStore>(
     subscribe,
     readOverlayStore,
@@ -217,7 +217,7 @@ export function useMockProjectDetailState(projectId: string) {
   );
 
   const createComment = useCallback(
-    async (body: string, mentionedUserIds: string[]) => {
+    (body: string, mentionedUserIds: string[]) => {
       if (!detail || !body.trim()) {
         return { message: "评论内容不能为空", ok: false } as const;
       }
@@ -254,7 +254,7 @@ export function useMockProjectDetailState(projectId: string) {
   );
 
   const deleteComment = useCallback(
-    async (commentId: string) => {
+    (commentId: string) => {
       if (!detail) {
         return { message: "未找到项目详情", ok: false } as const;
       }
@@ -278,7 +278,7 @@ export function useMockProjectDetailState(projectId: string) {
   );
 
   const updateWorkItemStatus = useCallback(
-    async (workItemId: string, status: WorkItemStatus) => {
+    (workItemId: string, status: WorkItemStatus) => {
       if (!detail) {
         return { message: "未找到项目详情", ok: false } as const;
       }
@@ -367,7 +367,7 @@ export function useMockProjectDetailState(projectId: string) {
   );
 
   const resolveApproval = useCallback(
-    async (approvalId: string, status: "approved" | "rejected") => {
+    (approvalId: string, status: "approved" | "rejected") => {
       if (!detail) {
         return { message: "未找到项目详情", ok: false } as const;
       }
@@ -396,12 +396,11 @@ export function useMockProjectDetailState(projectId: string) {
                 return track;
               }
 
-              const nextStatus: DeptTrackStatus =
-                status === "approved"
-                  ? (track.status === "waiting_approval"
-                    ? "done"
-                    : track.status)
-                  : "blocked";
+              let nextStatus: DeptTrackStatus = "blocked";
+              if (status === "approved") {
+                nextStatus =
+                  track.status === "waiting_approval" ? "done" : track.status;
+              }
 
               return {
                 ...track,
@@ -470,4 +469,4 @@ export function useMockProjectDetailState(projectId: string) {
     resolveApproval,
     updateWorkItemStatus,
   } as const;
-}
+};

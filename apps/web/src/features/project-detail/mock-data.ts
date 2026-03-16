@@ -10,10 +10,10 @@ import type {
   ProjectDetailWorkItem,
 } from "./types";
 
-function buildDepartmentTracks(
+const buildDepartmentTracks = (
   project: BoardProjectRecord
-): ProjectDetailDepartmentTrack[] {
-  return project.departmentTracks.map((track, index) => ({
+): ProjectDetailDepartmentTrack[] =>
+  project.departmentTracks.map((track, index) => ({
     blockReason: track.blockReason,
     collaboratorIds:
       project.ownerName === "未分配" ? [] : [`协作人-${index + 1}`],
@@ -27,13 +27,27 @@ function buildDepartmentTracks(
     relatedWorkItemCount: track.status === "not_required" ? 0 : index + 1,
     status: track.status,
   }));
-}
 
-function buildWorkItems(
+const mapTrackStatusToWorkItemStatus = (
+  trackStatus: string
+): "done" | "in_progress" | "in_review" | "todo" => {
+  if (trackStatus === "done") {
+    return "done";
+  }
+  if (trackStatus === "in_progress") {
+    return "in_progress";
+  }
+  if (trackStatus === "waiting_approval") {
+    return "in_review";
+  }
+  return "todo";
+};
+
+const buildWorkItems = (
   project: BoardProjectRecord,
   departmentTracks: ProjectDetailDepartmentTrack[]
-): ProjectDetailWorkItem[] {
-  return departmentTracks
+): ProjectDetailWorkItem[] =>
+  departmentTracks
     .filter((track) => track.isRequired)
     .slice(0, 3)
     .map((track, index) => ({
@@ -49,22 +63,14 @@ function buildWorkItems(
       feishuTaskStatus: track.status === "done" ? "COMPLETED" : "ACTIVE",
       id: `${project.id}-work-${index + 1}`,
       priority: index === 0 ? project.priority : "medium",
-      status:
-        track.status === "done"
-          ? "done"
-          : track.status === "in_progress"
-            ? "in_progress"
-            : track.status === "waiting_approval"
-              ? "in_review"
-              : "todo",
+      status: mapTrackStatusToWorkItemStatus(track.status),
       title: `${track.departmentName}任务 ${index + 1}`,
     }));
-}
 
-function buildApprovals(
+const buildApprovals = (
   project: BoardProjectRecord,
   departmentTracks: ProjectDetailDepartmentTrack[]
-): ProjectDetailApproval[] {
+): ProjectDetailApproval[] => {
   const pendingDepartment = departmentTracks.find(
     (track) => track.pendingApprovalCount > 0
   );
@@ -89,68 +95,62 @@ function buildApprovals(
       triggerStage: project.status,
     },
   ];
-}
+};
 
-function buildComments(project: BoardProjectRecord): ProjectDetailComment[] {
-  return [
-    {
-      authorId: project.ownerName,
-      body: `已同步 ${project.name} 的当前阶段和风险信息。`,
-      createdAt: Date.now() - 1000 * 60 * 60 * 8,
-      id: `${project.id}-comment-1`,
-      isDeleted: false,
-      mentionedUserIds:
-        project.ownerName === "未分配" ? [] : [project.ownerName],
-      parentCommentId: null,
-      targetScope: "project",
-    },
-    {
-      authorId: "PMO-值班",
-      body:
-        project.pendingApprovalCount > 0
-          ? "审批仍在处理中，请相关同事关注飞书审批通知。"
-          : "如无新增阻塞，可按计划推进下一阶段。",
-      createdAt: Date.now() - 1000 * 60 * 60 * 3,
-      id: `${project.id}-comment-2`,
-      isDeleted: false,
-      mentionedUserIds:
-        project.ownerName === "未分配" ? [] : [project.ownerName],
-      parentCommentId: null,
-      targetScope: "project",
-    },
-  ];
-}
+const buildComments = (project: BoardProjectRecord): ProjectDetailComment[] => [
+  {
+    authorId: project.ownerName,
+    body: `已同步 ${project.name} 的当前阶段和风险信息。`,
+    createdAt: Date.now() - 1000 * 60 * 60 * 8,
+    id: `${project.id}-comment-1`,
+    isDeleted: false,
+    mentionedUserIds: project.ownerName === "未分配" ? [] : [project.ownerName],
+    parentCommentId: null,
+    targetScope: "project",
+  },
+  {
+    authorId: "PMO-值班",
+    body:
+      project.pendingApprovalCount > 0
+        ? "审批仍在处理中，请相关同事关注飞书审批通知。"
+        : "如无新增阻塞，可按计划推进下一阶段。",
+    createdAt: Date.now() - 1000 * 60 * 60 * 3,
+    id: `${project.id}-comment-2`,
+    isDeleted: false,
+    mentionedUserIds: project.ownerName === "未分配" ? [] : [project.ownerName],
+    parentCommentId: null,
+    targetScope: "project",
+  },
+];
 
-function buildTimeline(
+const buildTimeline = (
   project: BoardProjectRecord
-): ProjectDetailTimelineEvent[] {
-  return [
-    {
-      action: "project.created",
-      actorId: project.ownerName,
-      changeSummary: `${project.name} 已创建并进入 ${getColumnNameByStatus(project.status) ?? project.status}`,
-      createdAt: Date.now() - 1000 * 60 * 60 * 24,
-      id: `${project.id}-timeline-1`,
-      objectId: project.id,
-      objectType: "project",
-      sourceEntry: "workbench",
-    },
-    {
-      action: "project.stage_reviewed",
-      actorId: "web_app.board_drag_drop",
-      changeSummary: `当前阶段：${getColumnNameByStatus(project.status) ?? project.status}`,
-      createdAt: Date.now() - 1000 * 60 * 60 * 2,
-      id: `${project.id}-timeline-2`,
-      objectId: project.id,
-      objectType: "project",
-      sourceEntry: "board",
-    },
-  ];
-}
+): ProjectDetailTimelineEvent[] => [
+  {
+    action: "project.created",
+    actorId: project.ownerName,
+    changeSummary: `${project.name} 已创建并进入 ${getColumnNameByStatus(project.status) ?? project.status}`,
+    createdAt: Date.now() - 1000 * 60 * 60 * 24,
+    id: `${project.id}-timeline-1`,
+    objectId: project.id,
+    objectType: "project",
+    sourceEntry: "workbench",
+  },
+  {
+    action: "project.stage_reviewed",
+    actorId: "web_app.board_drag_drop",
+    changeSummary: `当前阶段：${getColumnNameByStatus(project.status) ?? project.status}`,
+    createdAt: Date.now() - 1000 * 60 * 60 * 2,
+    id: `${project.id}-timeline-2`,
+    objectId: project.id,
+    objectType: "project",
+    sourceEntry: "board",
+  },
+];
 
-export function createInitialMockProjectDetail(
+export const createInitialMockProjectDetail = (
   project: BoardProjectRecord
-): ProjectDetailData {
+): ProjectDetailData => {
   const departmentTracks = buildDepartmentTracks(project);
 
   return {
@@ -205,16 +205,16 @@ export function createInitialMockProjectDetail(
     timeline: buildTimeline(project),
     workItems: buildWorkItems(project, departmentTracks),
   };
-}
+};
 
-export function getMockProjectDetail(
+export const getMockProjectDetail = (
   projectId: string,
   projects: BoardProjectRecord[]
-): ProjectDetailData | null {
+): ProjectDetailData | null => {
   const project = projects.find((item) => item.id === projectId);
   if (!project) {
     return null;
   }
 
   return createInitialMockProjectDetail(project);
-}
+};

@@ -4,7 +4,7 @@ import { query, mutation } from "./_generated/server";
 
 export const listByProject = query({
   args: { projectId: v.id("projects") },
-  handler: async (ctx, args) =>
+  handler: (ctx, args) =>
     ctx.db
       .query("departmentTracks")
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
@@ -20,7 +20,7 @@ export const create = mutation({
     ownerId: v.optional(v.string()),
     projectId: v.id("projects"),
   },
-  handler: async (ctx, args) =>
+  handler: (ctx, args) =>
     ctx.db.insert("departmentTracks", {
       ...args,
       status: "not_started",

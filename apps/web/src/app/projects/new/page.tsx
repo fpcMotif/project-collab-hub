@@ -6,8 +6,6 @@ export const metadata: Metadata = {
   title: "新建项目 - Project Collab Hub",
 };
 
-const ProjectCreatePage = () => {
-  return <ProjectCreateScreen />;
-};
+const ProjectCreatePage = () => <ProjectCreateScreen />;
 
 export default ProjectCreatePage;
