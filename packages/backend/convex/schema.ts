@@ -199,7 +199,8 @@ export default defineSchema({
     notificationDeliveryId: v.optional(v.id("notificationDeliveries")),
   })
     .index("by_comment", ["commentId"])
-    .index("by_mentioned_user", ["mentionedUserId"]),
+    .index("by_mentioned_user", ["mentionedUserId"])
+    .index("by_notification_delivery", ["notificationDeliveryId"]),
 
   notificationDeliveries: defineTable({
     projectId: v.id("projects"),

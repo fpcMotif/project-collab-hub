@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "convex": "^1",
-    "effect": "^3"
+    "effect": "^3",
+    "@collab-hub/feishu-integration": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5"
