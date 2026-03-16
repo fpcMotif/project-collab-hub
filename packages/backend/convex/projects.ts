@@ -34,6 +34,43 @@ export const getById = query({
   },
 });
 
+export const getDetailOverview = query({
+  args: { id: v.id("projects") },
+  handler: async (ctx, args) => {
+    const project = await ctx.db.get(args.id);
+    if (!project) {
+      return null;
+    }
+
+    const [departmentTracks, approvalGates, workItems, comments] = await Promise.all([
+      ctx.db
+        .query("departmentTracks")
+        .withIndex("by_project", (q) => q.eq("projectId", args.id))
+        .collect(),
+      ctx.db
+        .query("approvalGates")
+        .withIndex("by_project", (q) => q.eq("projectId", args.id))
+        .collect(),
+      ctx.db
+        .query("workItems")
+        .withIndex("by_project", (q) => q.eq("projectId", args.id))
+        .collect(),
+      ctx.db
+        .query("comments")
+        .withIndex("by_project", (q) => q.eq("projectId", args.id))
+        .collect(),
+    ]);
+
+    return {
+      project,
+      departmentTracks,
+      approvalGates,
+      workItems,
+      comments,
+    };
+  },
+});
+
 export const create = mutation({
   args: {
     name: v.string(),
@@ -100,6 +137,23 @@ export const updateStatus = mutation({
     const project = await ctx.db.get(args.id);
     if (!project) {
       throw new Error(`Project ${args.id} not found`);
+    }
+
+    const pendingGate = await ctx.db
+      .query("approvalGates")
+      .withIndex("by_project", (q) => q.eq("projectId", args.id))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("triggerStage"), args.status),
+          q.eq(q.field("status"), "pending"),
+        ),
+      )
+      .first();
+
+    if (pendingGate) {
+      throw new Error(
+        `GATE_BLOCKED:阶段 ${args.status} 需要先完成审批「${pendingGate.title}」后才能迁移。`,
+      );
     }
 
     const fromStatus = project.status;
