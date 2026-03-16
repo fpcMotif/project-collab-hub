@@ -1,5 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -7,11 +8,30 @@
     },
     "dev": {
       "persistent": true,
+      "cache": false,
+      "interactive": true
+    },
+    "lint": {
+      "inputs": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.mjs", "oxlint.json"]
+    },
+    "lint:fix": {
       "cache": false
     },
-    "lint": {},
+    "format": {
+      "inputs": [
+        "**/*.ts",
+        "**/*.tsx",
+        "**/*.js",
+        "**/*.mjs",
+        "**/*.json",
+        "**/*.css"
+      ]
+    },
+    "format:fix": {
+      "cache": false
+    },
     "check-types": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^check-types"]
     }
   }
 }

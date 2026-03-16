@@ -12,9 +12,9 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
+    "@effect/platform": "^0.77",
     "@larksuiteoapi/node-sdk": "^1",
-    "effect": "^3",
-    "@effect/platform": "^0.77"
+    "effect": "^3"
   },
   "devDependencies": {
     "typescript": "^5"

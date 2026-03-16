@@ -1,7 +1,12 @@
+import path from "node:path";
+
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  transpilePackages: ["@collab-hub/shared"],
+  turbopack: {
+    root: path.resolve(process.cwd(), "../.."),
+  },
 };
 
 export default nextConfig;

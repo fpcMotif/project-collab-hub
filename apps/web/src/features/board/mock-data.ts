@@ -1,0 +1,271 @@
+import type { BoardProjectRecord } from "./types";
+
+/**
+ * ~15 mock projects spread across all 8 board columns.
+ * Keyed by ProjectStatus so useBoardData can group into columns trivially.
+ */
+export const MOCK_PROJECTS: BoardProjectRecord[] = [
+  // ── COL-NEW (新建/待分诊) ────────────────────────────────────────
+  {
+    customerName: "宁德时代",
+    departmentTracks: [
+      { departmentName: "技术部", status: "not_started" },
+      { departmentName: "商务部", status: "not_started" },
+    ],
+    id: "P-001",
+    name: "新能源电池产线MES系统",
+    overdueTaskCount: 0,
+    ownerName: "未分配",
+    pendingApprovalCount: 0,
+    priority: "urgent",
+    slaRisk: "at_risk",
+    status: "new",
+    templateType: "制造业交付",
+  },
+  {
+    customerName: "京东物流",
+    departmentTracks: [{ departmentName: "技术部", status: "not_started" }],
+    id: "P-002",
+    name: "智能仓储WMS升级",
+    overdueTaskCount: 0,
+    ownerName: "未分配",
+    pendingApprovalCount: 0,
+    priority: "medium",
+    slaRisk: "on_time",
+    status: "new",
+    templateType: "供应链交付",
+  },
+
+  // ── COL-ASSESS (需求评估) ────────────────────────────────────────
+  {
+    customerName: "比亚迪",
+    departmentTracks: [
+      { departmentName: "技术部", status: "in_progress" },
+      { departmentName: "设计部", status: "not_started" },
+      { departmentName: "采购部", status: "not_required" },
+    ],
+    id: "P-003",
+    name: "车载HMI交互平台",
+    overdueTaskCount: 1,
+    ownerName: "李明",
+    pendingApprovalCount: 0,
+    priority: "high",
+    slaRisk: "on_time",
+    status: "assessment",
+    templateType: "产品定制",
+  },
+  {
+    customerName: "蚂蚁集团",
+    departmentTracks: [
+      { departmentName: "技术部", status: "in_progress" },
+      { departmentName: "商务部", status: "in_progress" },
+    ],
+    id: "P-004",
+    name: "供应链金融SaaS平台",
+    overdueTaskCount: 0,
+    ownerName: "王芳",
+    pendingApprovalCount: 0,
+    priority: "medium",
+    slaRisk: "on_time",
+    status: "assessment",
+    templateType: "SaaS 实施",
+  },
+
+  // ── COL-SOLUTION (方案与报价) ────────────────────────────────────
+  {
+    customerName: "三一重工",
+    departmentTracks: [
+      { departmentName: "技术部", status: "done" },
+      { departmentName: "商务部", status: "waiting_approval" },
+      { departmentName: "法务部", status: "in_progress" },
+    ],
+    id: "P-005",
+    name: "工业物联网监控系统",
+    overdueTaskCount: 2,
+    ownerName: "张伟",
+    pendingApprovalCount: 1,
+    priority: "high",
+    slaRisk: "at_risk",
+    status: "solution",
+    templateType: "制造业交付",
+  },
+
+  // ── COL-READY (待协同启动) ──────────────────────────────────────
+  {
+    customerName: "万科",
+    departmentTracks: [
+      { departmentName: "技术部", status: "done" },
+      { departmentName: "采购部", status: "done" },
+      { departmentName: "物流部", status: "not_started" },
+    ],
+    id: "P-006",
+    name: "智慧园区管理平台",
+    overdueTaskCount: 0,
+    ownerName: "赵静",
+    pendingApprovalCount: 0,
+    priority: "medium",
+    slaRisk: "on_time",
+    status: "ready",
+    templateType: "园区数字化",
+  },
+  {
+    customerName: "SHEIN",
+    departmentTracks: [
+      { departmentName: "技术部", status: "done" },
+      { departmentName: "商务部", status: "done" },
+      {
+        blockReason: "核心设备交期未确认",
+        departmentName: "采购部",
+        status: "blocked",
+      },
+    ],
+    id: "P-007",
+    name: "跨境电商ERP集成",
+    overdueTaskCount: 3,
+    ownerName: "刘洋",
+    pendingApprovalCount: 2,
+    priority: "urgent",
+    slaRisk: "overdue",
+    status: "ready",
+    templateType: "供应链交付",
+  },
+
+  // ── COL-EXEC (执行中) ──────────────────────────────────────────
+  {
+    customerName: "富士康",
+    departmentTracks: [
+      { departmentName: "技术部", status: "in_progress" },
+      { departmentName: "采购部", status: "done" },
+      { departmentName: "物流部", status: "in_progress" },
+    ],
+    id: "P-008",
+    name: "AI质检系统部署",
+    overdueTaskCount: 1,
+    ownerName: "陈磊",
+    pendingApprovalCount: 0,
+    priority: "high",
+    slaRisk: "on_time",
+    status: "executing",
+    templateType: "制造业交付",
+  },
+  {
+    customerName: "字节跳动",
+    departmentTracks: [
+      { departmentName: "技术部", status: "in_progress" },
+      {
+        blockReason: "生产环境变更窗口尚未审批",
+        departmentName: "运维部",
+        status: "blocked",
+      },
+    ],
+    id: "P-009",
+    name: "数据中台迁移项目",
+    overdueTaskCount: 4,
+    ownerName: "周敏",
+    pendingApprovalCount: 1,
+    priority: "medium",
+    slaRisk: "at_risk",
+    status: "executing",
+    templateType: "平台迁移",
+  },
+  {
+    customerName: "平安保险",
+    departmentTracks: [
+      { departmentName: "技术部", status: "in_progress" },
+      { departmentName: "设计部", status: "done" },
+    ],
+    id: "P-010",
+    name: "智能客服系统v2",
+    overdueTaskCount: 0,
+    ownerName: "李明",
+    pendingApprovalCount: 0,
+    priority: "low",
+    slaRisk: "on_time",
+    status: "executing",
+    templateType: "SaaS 实施",
+  },
+
+  // ── COL-DELIVER (待交付/验收) ──────────────────────────────────
+  {
+    customerName: "华为",
+    departmentTracks: [
+      { departmentName: "技术部", status: "done" },
+      { departmentName: "商务部", status: "waiting_approval" },
+    ],
+    id: "P-011",
+    name: "OA审批流程改造",
+    overdueTaskCount: 0,
+    ownerName: "张伟",
+    pendingApprovalCount: 1,
+    priority: "high",
+    slaRisk: "on_time",
+    status: "delivering",
+    templateType: "流程优化",
+  },
+  {
+    customerName: "美的集团",
+    departmentTracks: [
+      { departmentName: "技术部", status: "done" },
+      { departmentName: "物流部", status: "done" },
+      { departmentName: "商务部", status: "done" },
+    ],
+    id: "P-012",
+    name: "生产排程优化系统",
+    overdueTaskCount: 1,
+    ownerName: "王芳",
+    pendingApprovalCount: 0,
+    priority: "medium",
+    slaRisk: "overdue",
+    status: "delivering",
+    templateType: "制造业交付",
+  },
+
+  // ── COL-DONE (已完成) ──────────────────────────────────────────
+  {
+    customerName: "腾讯",
+    departmentTracks: [
+      { departmentName: "技术部", status: "done" },
+      { departmentName: "商务部", status: "done" },
+    ],
+    id: "P-013",
+    name: "HR人事管理系统",
+    overdueTaskCount: 0,
+    ownerName: "赵静",
+    pendingApprovalCount: 0,
+    priority: "low",
+    slaRisk: "on_time",
+    status: "done",
+    templateType: "SaaS 实施",
+  },
+
+  // ── COL-CANCEL (已取消) ────────────────────────────────────────
+  {
+    customerName: "中粮集团",
+    departmentTracks: [{ departmentName: "技术部", status: "not_started" }],
+    id: "P-014",
+    name: "区块链溯源平台",
+    overdueTaskCount: 0,
+    ownerName: "刘洋",
+    pendingApprovalCount: 0,
+    priority: "low",
+    slaRisk: "on_time",
+    status: "cancelled",
+    templateType: "平台探索",
+  },
+  {
+    customerName: "阿里巴巴",
+    departmentTracks: [
+      { departmentName: "技术部", status: "not_started" },
+      { departmentName: "商务部", status: "not_started" },
+    ],
+    id: "P-015",
+    name: "旧版CRM数据迁移",
+    overdueTaskCount: 0,
+    ownerName: "陈磊",
+    pendingApprovalCount: 0,
+    priority: "medium",
+    slaRisk: "on_time",
+    status: "cancelled",
+    templateType: "平台迁移",
+  },
+];

@@ -6,24 +6,27 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "oxlint -c .oxlintrc.json .",
+    "lint:fix": "oxlint -c .oxlintrc.json --fix .",
+    "format": "oxfmt --check .",
+    "format:fix": "oxfmt .",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
+    "@collab-hub/shared": "workspace:*",
     "convex": "^1",
     "effect": "^3",
     "next": "16.1.6",
     "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "@collab-hub/shared": "workspace:*"
+    "react-dom": "19.2.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.1.6",
+    "oxfmt": "latest",
+    "oxlint": "latest",
     "tailwindcss": "^4",
     "typescript": "^5"
   },

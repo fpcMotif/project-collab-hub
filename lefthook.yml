@@ -1,0 +1,30 @@
+pre-commit:
+  parallel: false
+  jobs:
+    - name: ultracite-fix
+      run: bun x ultracite fix
+      glob:
+        - "**/*.js"
+        - "**/*.jsx"
+        - "**/*.ts"
+        - "**/*.tsx"
+        - "**/*.json"
+        - "**/*.jsonc"
+        - "**/*.css"
+      stage_fixed: true
+    - name: ultracite-check
+      run: bun x ultracite check
+      glob:
+        - "**/*.js"
+        - "**/*.jsx"
+        - "**/*.ts"
+        - "**/*.tsx"
+        - "**/*.json"
+        - "**/*.jsonc"
+        - "**/*.css"
+
+pre-push:
+  parallel: false
+  jobs:
+    - name: check-types
+      run: bun run check-types

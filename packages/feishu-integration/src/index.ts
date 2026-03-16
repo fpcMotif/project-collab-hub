@@ -2,29 +2,29 @@ export {
   FeishuAuthService,
   FeishuAuthServiceLive,
   type FeishuAuthConfig,
-} from "./services/FeishuAuthService.js";
+} from "./services/feishu-auth-service.js";
 export {
   FeishuMessageService,
   FeishuMessageServiceLive,
   type SendTextMessageParams,
   type SendCardMessageParams,
-} from "./services/FeishuMessageService.js";
+} from "./services/feishu-message-service.js";
 export {
   FeishuApprovalService,
   FeishuApprovalServiceLive,
   type CreateApprovalInstanceParams,
   type ApprovalInstanceResult,
-} from "./services/FeishuApprovalService.js";
+} from "./services/feishu-approval-service.js";
 export {
   FeishuTaskService,
   FeishuTaskServiceLive,
   type CreateFeishuTaskParams,
   type FeishuTaskResult,
-} from "./services/FeishuTaskService.js";
+} from "./services/feishu-task-service.js";
 export {
   FeishuChatService,
   FeishuChatServiceLive,
   type CreateChatParams,
   type ChatResult,
-} from "./services/FeishuChatService.js";
-export { FeishuLive } from "./layers/FeishuLayer.js";
+} from "./services/feishu-chat-service.js";
+export { FeishuLive } from "./layers/feishu-layer.js";

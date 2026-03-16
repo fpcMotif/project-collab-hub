@@ -8,34 +8,34 @@ export const ProjectStatus = Schema.Literal(
   "executing",
   "delivering",
   "done",
-  "cancelled",
+  "cancelled"
 );
 export type ProjectStatus = typeof ProjectStatus.Type;
 
 export const SourceEntry = Schema.Literal(
   "workbench",
   "message_shortcut",
-  "api",
+  "api"
 );
 export type SourceEntry = typeof SourceEntry.Type;
 
 export class Project extends Schema.Class<Project>("Project")({
+  createdBy: Schema.String,
+  customerName: Schema.optionalWith(Schema.String, { as: "Option" }),
+  departmentId: Schema.String,
+  description: Schema.String,
+  endDate: Schema.optionalWith(Schema.DateFromNumber, { as: "Option" }),
   id: Schema.String,
   name: Schema.String,
-  description: Schema.String,
-  status: ProjectStatus,
   ownerId: Schema.String,
-  departmentId: Schema.String,
-  customerName: Schema.optionalWith(Schema.String, { as: "Option" }),
-  templateId: Schema.optionalWith(Schema.String, { as: "Option" }),
-  templateVersion: Schema.optionalWith(Schema.Number, { as: "Option" }),
   priority: Schema.optionalWith(
     Schema.Literal("low", "medium", "high", "urgent"),
-    { as: "Option" },
+    { as: "Option" }
   ),
-  startDate: Schema.optionalWith(Schema.DateFromNumber, { as: "Option" }),
-  endDate: Schema.optionalWith(Schema.DateFromNumber, { as: "Option" }),
   slaDeadline: Schema.optionalWith(Schema.DateFromNumber, { as: "Option" }),
-  createdBy: Schema.String,
   sourceEntry: SourceEntry,
+  startDate: Schema.optionalWith(Schema.DateFromNumber, { as: "Option" }),
+  status: ProjectStatus,
+  templateId: Schema.optionalWith(Schema.String, { as: "Option" }),
+  templateVersion: Schema.optionalWith(Schema.Number, { as: "Option" }),
 }) {}
