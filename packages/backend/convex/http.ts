@@ -212,20 +212,184 @@ async function handleApprovalEvent(
   });
 }
 
+type WorkItemStatus = "todo" | "in_progress" | "in_review" | "done";
+
+function extractTaskGuid(event: Record<string, unknown>): string | undefined {
+  const directTaskId = event.task_id;
+  if (typeof directTaskId === "string" && directTaskId) {
+    return directTaskId;
+  }
+
+  const task = event.task as Record<string, unknown> | undefined;
+  const nestedTaskId = task?.task_id;
+  if (typeof nestedTaskId === "string" && nestedTaskId) {
+    return nestedTaskId;
+  }
+
+  return undefined;
+}
+
+function extractTaskStatus(event: Record<string, unknown>): string | undefined {
+  const directStatus = event.status;
+  if (typeof directStatus === "string" && directStatus) {
+    return directStatus;
+  }
+
+  const task = event.task as Record<string, unknown> | undefined;
+  const nestedStatus = task?.status;
+  if (typeof nestedStatus === "string" && nestedStatus) {
+    return nestedStatus;
+  }
+
+  return undefined;
+}
+
+function mapFeishuTaskStatusToWorkItemStatus(
+  feishuStatus: string,
+): WorkItemStatus | undefined {
+  const normalized = feishuStatus.trim().toLowerCase();
+
+  const statusMap: Record<string, WorkItemStatus> = {
+    completed: "done",
+    done: "done",
+    in_progress: "in_progress",
+    inprogress: "in_progress",
+    executing: "in_progress",
+    underway: "in_progress",
+    todo: "todo",
+    open: "todo",
+    pending: "todo",
+    not_started: "todo",
+    in_review: "in_review",
+    review: "in_review",
+  };
+
+  return statusMap[normalized];
+}
+
 async function handleTaskEvent(
   ctx: { runQuery: typeof Function.prototype; runMutation: typeof Function.prototype },
   body: Record<string, unknown>,
-  _eventId: string,
+  eventId: string,
 ) {
   const event = body.event as Record<string, unknown> | undefined;
   if (!event) return;
 
-  const taskGuid = event.task_id as string | undefined;
+  const taskGuid = extractTaskGuid(event);
   if (!taskGuid) return;
 
-  // TODO: Look up feishuTaskBindings by taskGuid, then update workItem status.
-  // This requires a query on feishuTaskBindings.by_feishu_task index.
-  console.log(`Task event received for task: ${taskGuid}`);
+  const header = body.header as Record<string, unknown> | undefined;
+  const eventType = typeof header?.event_type === "string" ? header.event_type : "";
+
+  const incomingTaskStatus =
+    extractTaskStatus(event) || (eventType === "task.completed" ? "completed" : undefined);
+  if (!incomingTaskStatus) return;
+
+  const idempotencyKey = `feishu.task_event.${eventId}`;
+  const lockAcquired = await (ctx.runMutation as Function)(
+    api.auditEvents.acquireIdempotencyLock,
+    {
+      idempotencyKey,
+      actorId: "feishu_bot",
+      action: "feishu.task.event.received",
+      objectType: "feishu_task_event",
+      objectId: eventId,
+      changeSummary: `Task event accepted: task=${taskGuid}, status=${incomingTaskStatus}`,
+      sourceEntry: "feishu_webhook",
+    },
+  );
+  if (!lockAcquired) {
+    return;
+  }
+
+  const binding = await (ctx.runQuery as Function)(
+    api.feishuTaskBindings.getByFeishuTaskGuid,
+    { feishuTaskGuid: taskGuid },
+  );
+  if (!binding) {
+    await (ctx.runMutation as Function)(api.auditEvents.create, {
+      actorId: "feishu_bot",
+      action: "feishu.task.binding_missing",
+      objectType: "feishu_task",
+      objectId: taskGuid,
+      changeSummary: `No binding found for task ${taskGuid}; status=${incomingTaskStatus}`,
+      sourceEntry: "feishu_webhook",
+    });
+    return;
+  }
+
+  const syncedAt = Date.now();
+
+  if (binding.feishuTaskStatus !== incomingTaskStatus) {
+    await (ctx.runMutation as Function)(api.feishuTaskBindings.updateSyncState, {
+      id: binding._id,
+      feishuTaskStatus: incomingTaskStatus,
+      lastSyncedAt: syncedAt,
+    });
+  }
+
+  if (binding.syncDirection === "manual_link") {
+    await (ctx.runMutation as Function)(api.auditEvents.create, {
+      projectId: binding.projectId,
+      actorId: "feishu_bot",
+      action: "feishu.task.manual_link.audit_only",
+      objectType: "feishu_task_binding",
+      objectId: binding._id,
+      changeSummary: `Task ${taskGuid} status=${incomingTaskStatus} recorded (audit only, no app->work item sync).`,
+      sourceEntry: "feishu_webhook",
+    });
+    return;
+  }
+
+  const mappedStatus = mapFeishuTaskStatusToWorkItemStatus(incomingTaskStatus);
+  if (!mappedStatus) {
+    await (ctx.runMutation as Function)(api.auditEvents.create, {
+      projectId: binding.projectId,
+      actorId: "feishu_bot",
+      action: "feishu.task.unmapped_status",
+      objectType: "feishu_task_binding",
+      objectId: binding._id,
+      changeSummary: `Task ${taskGuid} status=${incomingTaskStatus} has no local mapping.`,
+      sourceEntry: "feishu_webhook",
+    });
+    return;
+  }
+
+  const workItem = await (ctx.runQuery as Function)(api.workItems.getById, {
+    id: binding.workItemId,
+  });
+  if (!workItem) {
+    await (ctx.runMutation as Function)(api.auditEvents.create, {
+      projectId: binding.projectId,
+      actorId: "feishu_bot",
+      action: "feishu.task.work_item_missing",
+      objectType: "feishu_task_binding",
+      objectId: binding._id,
+      changeSummary: `Bound work item not found for task ${taskGuid}.`,
+      sourceEntry: "feishu_webhook",
+    });
+    return;
+  }
+
+  if (workItem.status === mappedStatus) {
+    return;
+  }
+
+  await (ctx.runMutation as Function)(api.workItems.updateStatus, {
+    id: binding.workItemId,
+    status: mappedStatus,
+    actorId: "feishu_bot",
+  });
+
+  await (ctx.runMutation as Function)(api.auditEvents.create, {
+    projectId: binding.projectId,
+    actorId: "feishu_bot",
+    action: "feishu.task.synced_to_work_item",
+    objectType: "feishu_task_binding",
+    objectId: binding._id,
+    changeSummary: `Task ${taskGuid} status ${incomingTaskStatus} synced to work item status ${mappedStatus}.`,
+    sourceEntry: "feishu_webhook",
+  });
 }
 
 export default http;

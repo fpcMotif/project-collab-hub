@@ -11,6 +11,13 @@ export const listByProject = query({
   },
 });
 
+export const getById = query({
+  args: { id: v.id("workItems") },
+  handler: async (ctx, args) => {
+    return ctx.db.get(args.id);
+  },
+});
+
 export const listByAssignee = query({
   args: { assigneeId: v.string() },
   handler: async (ctx, args) => {
