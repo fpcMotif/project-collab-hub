@@ -290,6 +290,10 @@ export default defineSchema({
     objectType: v.string(),
     objectId: v.string(),
     changeSummary: v.string(),
+    fromStage: v.optional(projectStatus),
+    toStage: v.optional(projectStatus),
+    decision: v.optional(v.union(v.literal("allowed"), v.literal("rejected"))),
+    decisionReason: v.optional(v.string()),
     sourceEntry: v.optional(v.string()),
     idempotencyKey: v.optional(v.string()),
   })
