@@ -4,6 +4,12 @@ import { api } from "./_generated/api";
 
 const http = httpRouter();
 
+function sanitizeLogInput(input: unknown): string {
+  if (typeof input !== "string") return "";
+  // Strip control characters and truncate to 100 characters to prevent log forging
+  return input.replace(/[\r\n\x00-\x1F\x7F]/g, "").substring(0, 100);
+}
+
 // ── Feishu Event Subscription Verification ──────────────────────────────
 // Feishu sends a challenge request to verify the endpoint.
 
@@ -41,7 +47,7 @@ http.route({
         break;
       default:
         // Log unhandled event types for observability
-        console.log(`Unhandled Feishu event type: ${eventType}`);
+        console.log(`Unhandled Feishu event type: ${sanitizeLogInput(eventType)}`);
     }
 
     return new Response(JSON.stringify({ ok: true }), {
@@ -98,7 +104,7 @@ http.route({
         break;
       }
       default:
-        console.log(`Unhandled card action: ${actionTag}`);
+        console.log(`Unhandled card action: ${sanitizeLogInput(actionTag)}`);
     }
 
     // Return empty body to acknowledge (Feishu expects 200)
@@ -225,7 +231,7 @@ async function handleTaskEvent(
 
   // TODO: Look up feishuTaskBindings by taskGuid, then update workItem status.
   // This requires a query on feishuTaskBindings.by_feishu_task index.
-  console.log(`Task event received for task: ${taskGuid}`);
+  console.log(`Task event received for task: ${sanitizeLogInput(taskGuid)}`);
 }
 
 export default http;
