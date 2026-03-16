@@ -37,7 +37,7 @@ http.route({
         break;
       case "task.updated":
       case "task.completed":
-        await handleTaskEvent(ctx, body, eventId);
+        await handleTaskEvent(ctx, body, eventId, eventType);
         break;
       default:
         // Log unhandled event types for observability
@@ -215,17 +215,141 @@ async function handleApprovalEvent(
 async function handleTaskEvent(
   ctx: { runQuery: typeof Function.prototype; runMutation: typeof Function.prototype },
   body: Record<string, unknown>,
-  _eventId: string,
+  eventId: string,
+  eventType: string,
 ) {
+  const payload = JSON.stringify(body);
+  const existingReceipt = await (ctx.runQuery as Function)(
+    api.feishuEventReceipts.getByEventId,
+    { eventId },
+  );
+  if (existingReceipt && existingReceipt.status !== "pending_retry") {
+    console.log(`Duplicate Feishu task event ignored: ${eventId}`);
+    return;
+  }
+
   const event = body.event as Record<string, unknown> | undefined;
-  if (!event) return;
+  if (!event) {
+    await (ctx.runMutation as Function)(api.feishuEventReceipts.upsert, {
+      eventId,
+      eventType,
+      status: "ignored",
+      reason: "missing_event_payload",
+      payload,
+    });
+    return;
+  }
 
   const taskGuid = event.task_id as string | undefined;
-  if (!taskGuid) return;
+  if (!taskGuid) {
+    await (ctx.runMutation as Function)(api.feishuEventReceipts.upsert, {
+      eventId,
+      eventType,
+      status: "ignored",
+      reason: "missing_task_guid",
+      payload,
+    });
+    return;
+  }
 
-  // TODO: Look up feishuTaskBindings by taskGuid, then update workItem status.
-  // This requires a query on feishuTaskBindings.by_feishu_task index.
-  console.log(`Task event received for task: ${taskGuid}`);
+  const rawStatus =
+    (event.status as string | undefined) ??
+    (event.task_status as string | undefined) ??
+    ((event.completed as boolean | undefined) === true ? "completed" : undefined) ??
+    (eventType === "task.completed" ? "completed" : undefined);
+  const feishuStatus = rawStatus?.toLowerCase();
+
+  const statusMap: Record<string, "todo" | "in_progress" | "in_review" | "done"> = {
+    created: "todo",
+    todo: "todo",
+    started: "in_progress",
+    in_progress: "in_progress",
+    processing: "in_progress",
+    pending_review: "in_review",
+    reviewing: "in_review",
+    completed: "done",
+    done: "done",
+  };
+  const mappedStatus = feishuStatus ? statusMap[feishuStatus] : undefined;
+  if (!mappedStatus) {
+    await (ctx.runMutation as Function)(api.feishuEventReceipts.upsert, {
+      eventId,
+      eventType,
+      taskGuid,
+      status: "ignored",
+      reason: `unsupported_task_status:${feishuStatus ?? "unknown"}`,
+      payload,
+    });
+    return;
+  }
+
+  const binding = await (ctx.runQuery as Function)(
+    api.feishuTaskBindings.getByTaskGuid,
+    { taskGuid },
+  );
+
+  if (!binding) {
+    console.log(`Feishu task event ignored for unbound task: ${taskGuid}`);
+    await (ctx.runMutation as Function)(api.auditEvents.logIntegrationEvent, {
+      actorId: "feishu_bot",
+      action: "feishu.task.unbound_event",
+      objectType: "feishu_task",
+      objectId: taskGuid,
+      changeSummary: `Ignored unbound task event ${eventType} (${eventId})`,
+      sourceEntry: "feishu_webhook",
+      idempotencyKey: eventId,
+    });
+    await (ctx.runMutation as Function)(api.feishuEventReceipts.upsert, {
+      eventId,
+      eventType,
+      taskGuid,
+      status: "ignored",
+      reason: "binding_not_found",
+      payload,
+    });
+    return;
+  }
+
+  try {
+    await (ctx.runMutation as Function)(api.workItems.updateStatus, {
+      id: binding.workItemId,
+      status: mappedStatus,
+      actorId: (event.user_id as string) ?? "feishu_bot",
+    });
+
+    await (ctx.runMutation as Function)(api.feishuTaskBindings.markSyncedFromFeishu, {
+      id: binding._id,
+      feishuTaskStatus: feishuStatus ?? eventType,
+    });
+
+    await (ctx.runMutation as Function)(api.feishuEventReceipts.upsert, {
+      eventId,
+      eventType,
+      taskGuid,
+      status: "processed",
+      payload,
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    await (ctx.runMutation as Function)(api.auditEvents.logIntegrationEvent, {
+      projectId: binding.projectId,
+      actorId: "feishu_bot",
+      action: "feishu.task.sync_failed",
+      objectType: "work_item",
+      objectId: binding.workItemId,
+      changeSummary: `Failed to apply task event ${eventType} (${eventId}): ${errorMessage}`,
+      sourceEntry: "feishu_webhook",
+    });
+    await (ctx.runMutation as Function)(api.feishuEventReceipts.upsert, {
+      eventId,
+      eventType,
+      taskGuid,
+      status: "pending_retry",
+      reason: "status_writeback_failed",
+      lastError: errorMessage,
+      payload,
+    });
+  }
 }
 
 export default http;

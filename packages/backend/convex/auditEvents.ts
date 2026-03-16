@@ -1,4 +1,4 @@
-import { query } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 export const listByProject = query({
@@ -20,5 +20,33 @@ export const listByActor = query({
       .withIndex("by_actor", (q) => q.eq("actorId", args.actorId))
       .order("desc")
       .collect();
+  },
+});
+
+export const logIntegrationEvent = mutation({
+  args: {
+    projectId: v.optional(v.id("projects")),
+    actorId: v.string(),
+    action: v.string(),
+    objectType: v.string(),
+    objectId: v.string(),
+    changeSummary: v.string(),
+    sourceEntry: v.optional(v.string()),
+    idempotencyKey: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    if (args.idempotencyKey) {
+      const existing = await ctx.db
+        .query("auditEvents")
+        .withIndex("by_idempotency_key", (q) =>
+          q.eq("idempotencyKey", args.idempotencyKey),
+        )
+        .first();
+      if (existing) {
+        return existing._id;
+      }
+    }
+
+    return ctx.db.insert("auditEvents", args);
   },
 });

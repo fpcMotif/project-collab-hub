@@ -133,6 +133,24 @@ export default defineSchema({
     .index("by_feishu_task", ["feishuTaskGuid"])
     .index("by_project", ["projectId"]),
 
+  feishuEventReceipts: defineTable({
+    eventId: v.string(),
+    eventType: v.string(),
+    taskGuid: v.optional(v.string()),
+    status: v.union(
+      v.literal("processed"),
+      v.literal("ignored"),
+      v.literal("pending_retry"),
+    ),
+    reason: v.optional(v.string()),
+    lastError: v.optional(v.string()),
+    retryCount: v.number(),
+    payload: v.string(),
+    lastProcessedAt: v.number(),
+  })
+    .index("by_event_id", ["eventId"])
+    .index("by_status", ["status"]),
+
   chatBindings: defineTable({
     projectId: v.id("projects"),
     feishuChatId: v.string(),
