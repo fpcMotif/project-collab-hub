@@ -23,6 +23,17 @@ export const getByInstanceCode = query({
   },
 });
 
+
+export const listPending = query({
+  args: {},
+  handler: async (ctx) => {
+    return ctx.db
+      .query("approvalGates")
+      .withIndex("by_status", (q) => q.eq("status", "pending"))
+      .collect();
+  },
+});
+
 export const create = mutation({
   args: {
     projectId: v.id("projects"),

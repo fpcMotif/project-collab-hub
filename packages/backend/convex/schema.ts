@@ -121,6 +121,37 @@ export default defineSchema({
     .index("by_instance_code", ["instanceCode"])
     .index("by_status", ["status"]),
 
+  eventInbox: defineTable({
+    source: v.union(
+      v.literal("events"),
+      v.literal("card_callback"),
+      v.literal("link_preview"),
+    ),
+    eventId: v.string(),
+    eventType: v.string(),
+    payload: v.string(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("processing"),
+      v.literal("retrying"),
+      v.literal("processed"),
+      v.literal("dead_letter"),
+    ),
+    retryCount: v.number(),
+    maxRetry: v.number(),
+    nextRetryAt: v.optional(v.number()),
+    processedAt: v.optional(v.number()),
+    deadLetterAt: v.optional(v.number()),
+    lastError: v.optional(v.string()),
+    alarmLevel: v.optional(v.union(v.literal("warning"), v.literal("critical"))),
+    alarmMessage: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_event_id", ["eventId"])
+    .index("by_status", ["status"])
+    .index("by_status_retry", ["status", "nextRetryAt"]),
+
   feishuTaskBindings: defineTable({
     workItemId: v.id("workItems"),
     projectId: v.id("projects"),
@@ -189,6 +220,17 @@ export default defineSchema({
   })
     .index("by_project", ["projectId"])
     .index("by_parent", ["parentCommentId"]),
+
+
+
+  reconcileAudits: defineTable({
+    entityType: v.union(v.literal("approval_instance"), v.literal("task")),
+    entityId: v.string(),
+    driftReason: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_entity", ["entityType", "entityId"])
+    .index("by_created_at", ["createdAt"]),
 
   mentions: defineTable({
     commentId: v.id("comments"),
