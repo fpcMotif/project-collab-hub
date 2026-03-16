@@ -1,6 +1,17 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
+const projectStatuses = [
+  "new",
+  "assessment",
+  "solution",
+  "ready",
+  "executing",
+  "delivering",
+  "done",
+  "cancelled",
+] as const;
+
 export const list = query({
   args: {
     status: v.optional(
@@ -41,8 +52,7 @@ export const create = mutation({
     ownerId: v.string(),
     departmentId: v.string(),
     customerName: v.optional(v.string()),
-    templateId: v.optional(v.string()),
-    templateVersion: v.optional(v.number()),
+    templateId: v.id("projectTemplates"),
     priority: v.optional(
       v.union(
         v.literal("low"),
@@ -55,6 +65,7 @@ export const create = mutation({
     endDate: v.optional(v.number()),
     slaDeadline: v.optional(v.number()),
     createdBy: v.string(),
+    externalRef: v.string(),
     sourceEntry: v.union(
       v.literal("workbench"),
       v.literal("message_shortcut"),
@@ -62,10 +73,75 @@ export const create = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    const idempotencyKey = `project:create:${args.sourceEntry}:${args.externalRef}`;
+    const existingCreateEvent = await ctx.db
+      .query("auditEvents")
+      .withIndex("by_idempotency_key", (q) => q.eq("idempotencyKey", idempotencyKey))
+      .first();
+
+    if (existingCreateEvent?.projectId) {
+      return existingCreateEvent.projectId;
+    }
+
+    const inputTemplate = await ctx.db.get(args.templateId);
+    if (!inputTemplate) {
+      throw new Error(`Template ${args.templateId} not found`);
+    }
+
+    let activeTemplate = inputTemplate;
+    if (!inputTemplate.isActive) {
+      const activeByName = await ctx.db
+        .query("projectTemplates")
+        .withIndex("by_name", (q) => q.eq("name", inputTemplate.name))
+        .filter((q) => q.eq(q.field("isActive"), true))
+        .collect();
+
+      const latestActive = activeByName.sort((a, b) => b.version - a.version)[0];
+      if (!latestActive) {
+        throw new Error(`No active version found for template ${inputTemplate.name}`);
+      }
+      activeTemplate = latestActive;
+    }
+
+    const { externalRef, ...projectFields } = args;
+
     const projectId = await ctx.db.insert("projects", {
-      ...args,
+      ...projectFields,
+      templateId: activeTemplate._id,
+      templateVersion: activeTemplate.version,
       status: "new",
     });
+
+    const departmentTrackPayload = activeTemplate.departments.map((department) => ({
+      projectId,
+      departmentId: department.departmentId,
+      departmentName: department.departmentName,
+      isRequired: department.isRequired,
+      status: department.isRequired ? "not_started" : "not_required",
+      ownerId: department.defaultOwnerId,
+    }));
+
+    await Promise.all(
+      departmentTrackPayload.map((track) => ctx.db.insert("departmentTracks", track)),
+    );
+
+    await Promise.all(
+      activeTemplate.approvalGates.map((gate) => {
+        if (!projectStatuses.includes(gate.triggerStage as (typeof projectStatuses)[number])) {
+          throw new Error(`Unsupported approval gate trigger stage: ${gate.triggerStage}`);
+        }
+
+        return ctx.db.insert("approvalGates", {
+          projectId,
+          triggerStage: gate.triggerStage as (typeof projectStatuses)[number],
+          approvalCode: gate.approvalCode,
+          status: "pending",
+          title: gate.title,
+          applicantId: args.createdBy,
+          templateVersion: activeTemplate.version,
+        });
+      }),
+    );
 
     await ctx.db.insert("auditEvents", {
       projectId,
@@ -73,8 +149,9 @@ export const create = mutation({
       action: "project.created",
       objectType: "project",
       objectId: projectId,
-      changeSummary: `Project "${args.name}" created via ${args.sourceEntry}`,
+      changeSummary: `Project "${args.name}" created via ${args.sourceEntry}; template=${activeTemplate.name} v${activeTemplate.version}; injectedDepartments=${departmentTrackPayload.length}`,
       sourceEntry: args.sourceEntry,
+      idempotencyKey,
     });
 
     return projectId;

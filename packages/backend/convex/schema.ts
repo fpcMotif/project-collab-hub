@@ -52,7 +52,7 @@ export default defineSchema({
     ownerId: v.string(),
     departmentId: v.string(),
     customerName: v.optional(v.string()),
-    templateId: v.optional(v.string()),
+    templateId: v.optional(v.id("projectTemplates")),
     templateVersion: v.optional(v.number()),
     priority: v.optional(workItemPriority),
     startDate: v.optional(v.number()),
