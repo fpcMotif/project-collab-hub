@@ -1,27 +1,45 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
-import type { BoardProjectRecord } from "../types";
+
 import { MOCK_PROJECTS } from "../mock-data";
+import type { BoardProjectRecord } from "../types";
 
 const STORAGE_KEY = "project-collab-hub.board.mock-projects";
 const STORAGE_EVENT = "project-collab-hub.board.mock-projects.updated";
 
-function readProjectRecords() {
+// Cache the last raw string and parsed result so readProjectRecords returns
+// a stable reference when localStorage hasn't changed.
+let _cachedRaw: string | null = undefined as unknown as null;
+let _cachedProjects: BoardProjectRecord[] = MOCK_PROJECTS;
+
+function readProjectRecords(): BoardProjectRecord[] {
   if (typeof window === "undefined") {
     return MOCK_PROJECTS;
   }
 
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
+
+    if (raw === _cachedRaw) {
+      return _cachedProjects;
+    }
+
+    _cachedRaw = raw;
+
     if (!raw) {
-      return MOCK_PROJECTS;
+      _cachedProjects = MOCK_PROJECTS;
+      return _cachedProjects;
     }
 
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as BoardProjectRecord[]) : MOCK_PROJECTS;
+    _cachedProjects = Array.isArray(parsed)
+      ? (parsed as BoardProjectRecord[])
+      : MOCK_PROJECTS;
+    return _cachedProjects;
   } catch {
-    return MOCK_PROJECTS;
+    _cachedProjects = MOCK_PROJECTS;
+    return _cachedProjects;
   }
 }
 
@@ -36,7 +54,7 @@ function writeProjectRecords(projects: BoardProjectRecord[]) {
 
 function subscribe(callback: () => void) {
   if (typeof window === "undefined") {
-    return () => undefined;
+    return () => {};
   }
 
   const handleChange = () => callback();
@@ -51,19 +69,26 @@ function subscribe(callback: () => void) {
 }
 
 export function useMockProjectStore() {
-  const projects = useSyncExternalStore(subscribe, readProjectRecords, () => MOCK_PROJECTS);
+  const projects = useSyncExternalStore(
+    subscribe,
+    readProjectRecords,
+    () => MOCK_PROJECTS
+  );
 
   const replaceProjects = useCallback((nextProjects: BoardProjectRecord[]) => {
     writeProjectRecords(nextProjects);
   }, []);
 
-  const addProject = useCallback((project: BoardProjectRecord) => {
-    writeProjectRecords([...projects, project]);
-  }, [projects]);
+  const addProject = useCallback(
+    (project: BoardProjectRecord) => {
+      writeProjectRecords([...projects, project]);
+    },
+    [projects]
+  );
 
   return {
+    addProject,
     projects,
     replaceProjects,
-    addProject,
   } as const;
 }

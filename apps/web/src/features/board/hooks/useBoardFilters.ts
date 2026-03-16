@@ -1,5 +1,6 @@
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useCallback, useMemo } from "react";
+
 import type {
   ApprovalStatusFilter,
   BoardFilterState,
@@ -20,8 +21,14 @@ const FILTER_KEYS: (keyof BoardFilterState)[] = [
 ];
 const PRIORITY_VALUES = new Set<Priority>(["urgent", "high", "medium", "low"]);
 const SLA_RISK_VALUES = new Set<SlaRisk>(["on_time", "at_risk", "overdue"]);
-const APPROVAL_STATUS_VALUES = new Set<ApprovalStatusFilter>(["pending", "clear"]);
-const OVERDUE_STATUS_VALUES = new Set<OverdueStatusFilter>(["overdue", "normal"]);
+const APPROVAL_STATUS_VALUES = new Set<ApprovalStatusFilter>([
+  "pending",
+  "clear",
+]);
+const OVERDUE_STATUS_VALUES = new Set<OverdueStatusFilter>([
+  "overdue",
+  "normal",
+]);
 
 function parsePriority(value: string | null): Priority | null {
   if (!value || !PRIORITY_VALUES.has(value as Priority)) {
@@ -39,7 +46,9 @@ function parseSlaRisk(value: string | null): SlaRisk | null {
   return value as SlaRisk;
 }
 
-function parseApprovalStatus(value: string | null): ApprovalStatusFilter | null {
+function parseApprovalStatus(
+  value: string | null
+): ApprovalStatusFilter | null {
   if (!value || !APPROVAL_STATUS_VALUES.has(value as ApprovalStatusFilter)) {
     return null;
   }
@@ -61,13 +70,13 @@ function parseTextFilter(value: string | null): string | null {
 
 function parseFilters(params: URLSearchParams): BoardFilterState {
   return {
-    priority: parsePriority(params.get("priority")),
-    slaRisk: parseSlaRisk(params.get("slaRisk")),
-    owner: parseTextFilter(params.get("owner")),
+    approvalStatus: parseApprovalStatus(params.get("approvalStatus")),
     customer: parseTextFilter(params.get("customer")),
     department: parseTextFilter(params.get("department")),
-    approvalStatus: parseApprovalStatus(params.get("approvalStatus")),
     overdueStatus: parseOverdueStatus(params.get("overdueStatus")),
+    owner: parseTextFilter(params.get("owner")),
+    priority: parsePriority(params.get("priority")),
+    slaRisk: parseSlaRisk(params.get("slaRisk")),
     templateType: parseTextFilter(params.get("templateType")),
   };
 }
@@ -97,7 +106,7 @@ export function useBoardFilters() {
 
       router.replace(buildUrl(pathname, params), { scroll: false });
     },
-    [router, pathname],
+    [router, pathname]
   );
 
   const setFilter = useCallback(
@@ -110,7 +119,7 @@ export function useBoardFilters() {
       }
       router.replace(buildUrl(pathname, params), { scroll: false });
     },
-    [searchParams, router, pathname],
+    [searchParams, router, pathname]
   );
 
   const clearFilter = useCallback(
@@ -119,7 +128,7 @@ export function useBoardFilters() {
       params.delete(key);
       router.replace(buildUrl(pathname, params), { scroll: false });
     },
-    [searchParams, router, pathname],
+    [searchParams, router, pathname]
   );
 
   const clearAll = useCallback(() => {
@@ -130,5 +139,5 @@ export function useBoardFilters() {
     router.replace(buildUrl(pathname, params), { scroll: false });
   }, [searchParams, router, pathname]);
 
-  return { filters, replaceFilters, setFilter, clearFilter, clearAll } as const;
+  return { clearAll, clearFilter, filters, replaceFilters, setFilter } as const;
 }

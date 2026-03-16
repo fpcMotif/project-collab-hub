@@ -1,4 +1,5 @@
 import { Context, Effect, Layer } from "effect";
+
 import { FeishuAuthService } from "./FeishuAuthService.js";
 
 export interface CreateApprovalInstanceParams {
@@ -11,16 +12,14 @@ export interface ApprovalInstanceResult {
   readonly instanceCode: string;
 }
 
-export class FeishuApprovalService extends Context.Tag(
-  "FeishuApprovalService",
-)<
+export class FeishuApprovalService extends Context.Tag("FeishuApprovalService")<
   FeishuApprovalService,
   {
     readonly createInstance: (
-      params: CreateApprovalInstanceParams,
+      params: CreateApprovalInstanceParams
     ) => Effect.Effect<ApprovalInstanceResult, Error>;
     readonly getInstance: (
-      instanceCode: string,
+      instanceCode: string
     ) => Effect.Effect<Record<string, unknown>, Error>;
   }
 >() {}
@@ -30,6 +29,10 @@ export const FeishuApprovalServiceLive = Layer.effect(
   Effect.map(FeishuAuthService, (auth) => ({
     createInstance: (params: CreateApprovalInstanceParams) =>
       Effect.tryPromise({
+        catch: (error) =>
+          new Error(
+            `Failed to create approval instance: ${error instanceof Error ? error.message : String(error)}`
+          ),
         try: async () => {
           const resp = await auth.client.approval.instance.create({
             data: {
@@ -46,24 +49,20 @@ export const FeishuApprovalServiceLive = Layer.effect(
           }
           return { instanceCode };
         },
-        catch: (error) =>
-          new Error(
-            `Failed to create approval instance: ${error instanceof Error ? error.message : String(error)}`,
-          ),
       }),
 
     getInstance: (instanceCode: string) =>
       Effect.tryPromise({
+        catch: (error) =>
+          new Error(
+            `Failed to get approval instance: ${error instanceof Error ? error.message : String(error)}`
+          ),
         try: async () => {
           const resp = await auth.client.approval.instance.get({
             path: { instance_id: instanceCode },
           });
           return (resp?.data as Record<string, unknown>) ?? {};
         },
-        catch: (error) =>
-          new Error(
-            `Failed to get approval instance: ${error instanceof Error ? error.message : String(error)}`,
-          ),
       }),
-  })),
+  }))
 );

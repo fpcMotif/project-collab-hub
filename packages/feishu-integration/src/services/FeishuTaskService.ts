@@ -1,4 +1,5 @@
 import { Context, Effect, Layer } from "effect";
+
 import { FeishuAuthService } from "./FeishuAuthService.js";
 
 export interface CreateFeishuTaskParams {
@@ -18,13 +19,11 @@ export class FeishuTaskService extends Context.Tag("FeishuTaskService")<
   FeishuTaskService,
   {
     readonly createTask: (
-      params: CreateFeishuTaskParams,
+      params: CreateFeishuTaskParams
     ) => Effect.Effect<FeishuTaskResult, Error>;
-    readonly completeTask: (
-      taskGuid: string,
-    ) => Effect.Effect<void, Error>;
+    readonly completeTask: (taskGuid: string) => Effect.Effect<void, Error>;
     readonly getTask: (
-      taskGuid: string,
+      taskGuid: string
     ) => Effect.Effect<Record<string, unknown>, Error>;
   }
 >() {}
@@ -32,6 +31,22 @@ export class FeishuTaskService extends Context.Tag("FeishuTaskService")<
 export const FeishuTaskServiceLive = Layer.effect(
   FeishuTaskService,
   Effect.map(FeishuAuthService, (auth) => ({
+    completeTask: (taskGuid: string) =>
+      Effect.tryPromise({
+        try: () =>
+          auth.client.task.v2.task.patch({
+            path: { task_guid: taskGuid },
+            data: {
+              task: { completed_at: String(Math.floor(Date.now() / 1000)) },
+              update_fields: ["completed_at"],
+            },
+          }),
+        catch: (error) =>
+          new Error(
+            `Failed to complete Feishu task: ${error instanceof Error ? error.message : String(error)}`
+          ),
+      }).pipe(Effect.asVoid),
+
     createTask: (params: CreateFeishuTaskParams) =>
       Effect.tryPromise({
         try: async () => {
@@ -63,25 +78,9 @@ export const FeishuTaskServiceLive = Layer.effect(
         },
         catch: (error) =>
           new Error(
-            `Failed to create Feishu task: ${error instanceof Error ? error.message : String(error)}`,
+            `Failed to create Feishu task: ${error instanceof Error ? error.message : String(error)}`
           ),
       }),
-
-    completeTask: (taskGuid: string) =>
-      Effect.tryPromise({
-        try: () =>
-          auth.client.task.v2.task.patch({
-            path: { task_guid: taskGuid },
-            data: {
-              task: { completed_at: String(Math.floor(Date.now() / 1000)) },
-              update_fields: ["completed_at"],
-            },
-          }),
-        catch: (error) =>
-          new Error(
-            `Failed to complete Feishu task: ${error instanceof Error ? error.message : String(error)}`,
-          ),
-      }).pipe(Effect.asVoid),
 
     getTask: (taskGuid: string) =>
       Effect.tryPromise({
@@ -93,8 +92,8 @@ export const FeishuTaskServiceLive = Layer.effect(
         },
         catch: (error) =>
           new Error(
-            `Failed to get Feishu task: ${error instanceof Error ? error.message : String(error)}`,
+            `Failed to get Feishu task: ${error instanceof Error ? error.message : String(error)}`
           ),
       }),
-  })),
+  }))
 );

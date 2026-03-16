@@ -18,38 +18,48 @@ import type {
 } from "../types";
 
 const PRIORITY_SORT_WEIGHT: Record<Priority, number> = {
-  urgent: 0,
   high: 1,
-  medium: 2,
   low: 3,
+  medium: 2,
+  urgent: 0,
 };
 
 const SLA_SORT_WEIGHT: Record<SlaRisk, number> = {
-  overdue: 0,
   at_risk: 1,
   on_time: 2,
+  overdue: 0,
 };
 
 const STAGE_TONE_SORT_WEIGHT: Record<StageAdvanceTone, number> = {
-  blocked: 0,
   attention: 1,
+  blocked: 0,
   ready: 2,
   terminal: 3,
 };
 
 export function getColumnNameByStatus(status: string | null) {
-  return BOARD_COLUMNS.find((column) => column.projectStatus === status)?.name ?? null;
+  return (
+    BOARD_COLUMNS.find((column) => column.projectStatus === status)?.name ??
+    null
+  );
 }
 
 export function getProjectStatusByColumnId(columnId: string) {
-  return BOARD_COLUMNS.find((column) => column.id === columnId)?.projectStatus ?? null;
+  return (
+    BOARD_COLUMNS.find((column) => column.id === columnId)?.projectStatus ??
+    null
+  );
 }
 
-export function getApprovalStatus(project: BoardProjectRecord): ApprovalStatusFilter {
+export function getApprovalStatus(
+  project: BoardProjectRecord
+): ApprovalStatusFilter {
   return project.pendingApprovalCount > 0 ? "pending" : "clear";
 }
 
-export function getOverdueStatus(project: BoardProjectRecord): OverdueStatusFilter {
+export function getOverdueStatus(
+  project: BoardProjectRecord
+): OverdueStatusFilter {
   return project.overdueTaskCount > 0 ? "overdue" : "normal";
 }
 
@@ -58,109 +68,117 @@ function formatBlockedDepartments(blockedTracks: DepartmentTrackSummary[]) {
     .map((track) =>
       track.blockReason
         ? `${track.departmentName}（${track.blockReason}）`
-        : track.departmentName,
+        : track.departmentName
     )
     .join("、");
 }
 
-export function buildStageAdvanceState(project: BoardProjectRecord): StageAdvanceState {
+export function buildStageAdvanceState(
+  project: BoardProjectRecord
+): StageAdvanceState {
   const nextStatus = getNextProjectStatus(project.status);
   const nextColumnName = getColumnNameByStatus(nextStatus);
   const nextColumnId =
-    BOARD_COLUMNS.find((column) => column.projectStatus === nextStatus)?.id ?? null;
+    BOARD_COLUMNS.find((column) => column.projectStatus === nextStatus)?.id ??
+    null;
 
   if (!nextStatus || !nextColumnName) {
     return {
-      nextStatus: null,
-      nextColumnId: null,
-      nextColumnName: null,
       allowed: false,
-      tone: "terminal",
-      summary: project.status === "done" ? "流程已完成" : "项目已取消",
       detail:
         project.status === "done"
           ? "项目已处于最终完成状态，无需继续推进。"
           : "项目已终止，当前无需继续推进。",
+      nextColumnId: null,
+      nextColumnName: null,
+      nextStatus: null,
+      summary: project.status === "done" ? "流程已完成" : "项目已取消",
+      tone: "terminal",
     };
   }
 
   const requiredTracks = project.departmentTracks.filter(
-    (track) => track.status !== "not_required",
+    (track) => track.status !== "not_required"
   );
   const blockingTracks = requiredTracks.filter(
-    (track) => track.status === "blocked" || track.status === "waiting_approval",
+    (track) => track.status === "blocked" || track.status === "waiting_approval"
   );
-  const incompleteTracks = requiredTracks.filter((track) => track.status !== "done");
+  const incompleteTracks = requiredTracks.filter(
+    (track) => track.status !== "done"
+  );
 
   const stageDecision = canAdvanceStage(
     project.status,
     nextStatus,
     requiredTracks.map((track) => track.status),
-    project.pendingApprovalCount,
+    project.pendingApprovalCount
   );
 
   if (stageDecision.allowed) {
     return {
-      nextStatus,
+      allowed: true,
+      detail: "必需部门已完成，且当前没有待处理审批。",
       nextColumnId,
       nextColumnName,
-      allowed: true,
-      tone: "ready",
+      nextStatus,
       summary: `可推进到「${nextColumnName}」`,
-      detail: "必需部门已完成，且当前没有待处理审批。",
+      tone: "ready",
     };
   }
 
   if (blockingTracks.length > 0) {
     return {
-      nextStatus,
+      allowed: false,
+      detail: `阻塞部门：${formatBlockedDepartments(blockingTracks)}`,
       nextColumnId,
       nextColumnName,
-      allowed: false,
-      tone: "blocked",
+      nextStatus,
       summary: `推进到「${nextColumnName}」受阻`,
-      detail: `阻塞部门：${formatBlockedDepartments(blockingTracks)}`,
+      tone: "blocked",
     };
   }
 
   if (project.pendingApprovalCount > 0) {
     return {
-      nextStatus,
+      allowed: false,
+      detail: `还有 ${project.pendingApprovalCount} 个审批事项待处理。`,
       nextColumnId,
       nextColumnName,
-      allowed: false,
-      tone: "attention",
+      nextStatus,
       summary: `推进到「${nextColumnName}」待审批`,
-      detail: `还有 ${project.pendingApprovalCount} 个审批事项待处理。`,
+      tone: "attention",
     };
   }
 
   if (incompleteTracks.length > 0) {
     return {
-      nextStatus,
+      allowed: false,
+      detail: `待完成部门：${incompleteTracks.map((track) => track.departmentName).join("、")}`,
       nextColumnId,
       nextColumnName,
-      allowed: false,
-      tone: "attention",
+      nextStatus,
       summary: `推进到「${nextColumnName}」待协同完成`,
-      detail: `待完成部门：${incompleteTracks.map((track) => track.departmentName).join("、")}`,
+      tone: "attention",
     };
   }
 
   return {
-    nextStatus,
+    allowed: false,
+    detail: stageDecision.reason ?? "请检查阶段配置与审批规则。",
     nextColumnId,
     nextColumnName,
-    allowed: false,
-    tone: "blocked",
+    nextStatus,
     summary: `当前不可推进到「${nextColumnName}」`,
-    detail: stageDecision.reason ?? "请检查阶段配置与审批规则。",
+    tone: "blocked",
   };
 }
 
-export function getProjectMoveDecision(project: BoardProjectRecord, targetStatus: string) {
+export function getProjectMoveDecision(
+  project: BoardProjectRecord,
+  targetStatus: string
+) {
   if (project.status === targetStatus) {
-    return { ok: true, message: "项目已处于目标阶段" } as const;
+    return { message: "项目已处于目标阶段", ok: true } as const;
   }
 
   const requiredTracks = project.departmentTracks
@@ -171,59 +189,76 @@ export function getProjectMoveDecision(project: BoardProjectRecord, targetStatus
     project.status,
     targetStatus,
     requiredTracks,
-    project.pendingApprovalCount,
+    project.pendingApprovalCount
   );
 
   return {
-    ok: decision.allowed,
     message: decision.allowed ? "阶段迁移成功" : decision.reason,
+    ok: decision.allowed,
   } as const;
 }
 
 function sortCards(cards: BoardProjectCard[]) {
-  return [...cards].sort((left, right) => {
-    return (
+  return [...cards].toSorted(
+    (left, right) =>
       STAGE_TONE_SORT_WEIGHT[left.stageAdvance.tone] -
         STAGE_TONE_SORT_WEIGHT[right.stageAdvance.tone] ||
       SLA_SORT_WEIGHT[left.slaRisk] - SLA_SORT_WEIGHT[right.slaRisk] ||
       right.overdueTaskCount - left.overdueTaskCount ||
       right.pendingApprovalCount - left.pendingApprovalCount ||
-      PRIORITY_SORT_WEIGHT[left.priority] - PRIORITY_SORT_WEIGHT[right.priority] ||
+      PRIORITY_SORT_WEIGHT[left.priority] -
+        PRIORITY_SORT_WEIGHT[right.priority] ||
       left.name.localeCompare(right.name, "zh-Hans-CN")
-    );
-  });
+  );
 }
 
-export function buildBoardViewData(projects: BoardProjectRecord[], filters: BoardFilterState) {
+export function buildBoardViewData(
+  projects: BoardProjectRecord[],
+  filters: BoardFilterState
+) {
   let filtered = projects;
 
   if (filters.department) {
     filtered = filtered.filter((project) =>
-      project.departmentTracks.some((track) => track.departmentName === filters.department),
+      project.departmentTracks.some(
+        (track) => track.departmentName === filters.department
+      )
     );
   }
   if (filters.owner) {
-    filtered = filtered.filter((project) => project.ownerName === filters.owner);
+    filtered = filtered.filter(
+      (project) => project.ownerName === filters.owner
+    );
   }
   if (filters.priority) {
-    filtered = filtered.filter((project) => project.priority === filters.priority);
+    filtered = filtered.filter(
+      (project) => project.priority === filters.priority
+    );
   }
   if (filters.approvalStatus) {
     filtered = filtered.filter(
-      (project) => getApprovalStatus(project) === filters.approvalStatus,
+      (project) => getApprovalStatus(project) === filters.approvalStatus
     );
   }
   if (filters.overdueStatus) {
-    filtered = filtered.filter((project) => getOverdueStatus(project) === filters.overdueStatus);
+    filtered = filtered.filter(
+      (project) => getOverdueStatus(project) === filters.overdueStatus
+    );
   }
   if (filters.slaRisk) {
-    filtered = filtered.filter((project) => project.slaRisk === filters.slaRisk);
+    filtered = filtered.filter(
+      (project) => project.slaRisk === filters.slaRisk
+    );
   }
   if (filters.customer) {
-    filtered = filtered.filter((project) => project.customerName === filters.customer);
+    filtered = filtered.filter(
+      (project) => project.customerName === filters.customer
+    );
   }
   if (filters.templateType) {
-    filtered = filtered.filter((project) => project.templateType === filters.templateType);
+    filtered = filtered.filter(
+      (project) => project.templateType === filters.templateType
+    );
   }
 
   const cards = filtered.map<BoardProjectCard>((project) => ({
@@ -233,41 +268,49 @@ export function buildBoardViewData(projects: BoardProjectRecord[], filters: Boar
   }));
 
   const columns: BoardColumnViewModel[] = BOARD_COLUMNS.map((column) => ({
+    cards: sortCards(
+      cards.filter((project) => project.status === column.projectStatus)
+    ),
+    entryCriteria: column.entryCriteria,
+    exitCriteria: column.exitCriteria,
     id: column.id,
     name: column.name,
     projectStatus: column.projectStatus,
-    entryCriteria: column.entryCriteria,
-    exitCriteria: column.exitCriteria,
-    cards: sortCards(cards.filter((project) => project.status === column.projectStatus)),
   }));
 
-  const ownerOptions = [...new Set(projects.map((project) => project.ownerName))]
-    .sort()
-    .map((owner) => ({ value: owner, label: owner }));
+  const ownerOptions = [
+    ...new Set(projects.map((project) => project.ownerName)),
+  ]
+    .toSorted()
+    .map((owner) => ({ label: owner, value: owner }));
 
-  const customerOptions = [...new Set(projects.map((project) => project.customerName))]
-    .sort()
-    .map((customer) => ({ value: customer, label: customer }));
+  const customerOptions = [
+    ...new Set(projects.map((project) => project.customerName)),
+  ]
+    .toSorted()
+    .map((customer) => ({ label: customer, value: customer }));
 
   const departmentOptions = [
     ...new Set(
       projects.flatMap((project) =>
-        project.departmentTracks.map((track) => track.departmentName),
-      ),
+        project.departmentTracks.map((track) => track.departmentName)
+      )
     ),
   ]
-    .sort()
-    .map((department) => ({ value: department, label: department }));
+    .toSorted()
+    .map((department) => ({ label: department, value: department }));
 
-  const templateTypeOptions = [...new Set(projects.map((project) => project.templateType))]
-    .sort()
-    .map((templateType) => ({ value: templateType, label: templateType }));
+  const templateTypeOptions = [
+    ...new Set(projects.map((project) => project.templateType)),
+  ]
+    .toSorted()
+    .map((templateType) => ({ label: templateType, value: templateType }));
 
   return {
     columns,
-    ownerOptions,
     customerOptions,
     departmentOptions,
+    ownerOptions,
     templateTypeOptions,
     totalProjectCount: projects.length,
     visibleProjectCount: filtered.length,

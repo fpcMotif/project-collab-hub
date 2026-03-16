@@ -1,4 +1,5 @@
 import { Context, Effect, Layer } from "effect";
+
 import { FeishuAuthService } from "./FeishuAuthService.js";
 
 export interface SendTextMessageParams {
@@ -15,10 +16,10 @@ export class FeishuMessageService extends Context.Tag("FeishuMessageService")<
   FeishuMessageService,
   {
     readonly sendText: (
-      params: SendTextMessageParams,
+      params: SendTextMessageParams
     ) => Effect.Effect<void, Error>;
     readonly sendCard: (
-      params: SendCardMessageParams,
+      params: SendCardMessageParams
     ) => Effect.Effect<void, Error>;
   }
 >() {}
@@ -26,23 +27,6 @@ export class FeishuMessageService extends Context.Tag("FeishuMessageService")<
 export const FeishuMessageServiceLive = Layer.effect(
   FeishuMessageService,
   Effect.map(FeishuAuthService, (auth) => ({
-    sendText: (params: SendTextMessageParams) =>
-      Effect.tryPromise({
-        try: () =>
-          auth.client.im.message.create({
-            params: { receive_id_type: "chat_id" },
-            data: {
-              receive_id: params.chatId,
-              msg_type: "text",
-              content: JSON.stringify({ text: params.text }),
-            },
-          }),
-        catch: (error) =>
-          new Error(
-            `Failed to send text message: ${error instanceof Error ? error.message : String(error)}`,
-          ),
-      }).pipe(Effect.asVoid),
-
     sendCard: (params: SendCardMessageParams) =>
       Effect.tryPromise({
         try: () =>
@@ -56,8 +40,25 @@ export const FeishuMessageServiceLive = Layer.effect(
           }),
         catch: (error) =>
           new Error(
-            `Failed to send card message: ${error instanceof Error ? error.message : String(error)}`,
+            `Failed to send card message: ${error instanceof Error ? error.message : String(error)}`
           ),
       }).pipe(Effect.asVoid),
-  })),
+
+    sendText: (params: SendTextMessageParams) =>
+      Effect.tryPromise({
+        try: () =>
+          auth.client.im.message.create({
+            params: { receive_id_type: "chat_id" },
+            data: {
+              receive_id: params.chatId,
+              msg_type: "text",
+              content: JSON.stringify({ text: params.text }),
+            },
+          }),
+        catch: (error) =>
+          new Error(
+            `Failed to send text message: ${error instanceof Error ? error.message : String(error)}`
+          ),
+      }).pipe(Effect.asVoid),
+  }))
 );

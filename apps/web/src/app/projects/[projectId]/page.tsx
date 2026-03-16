@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+
 import { ProjectDetailScreen } from "@/features/project-detail/components/ProjectDetailScreen";
 
 export const metadata: Metadata = {

@@ -1,36 +1,43 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
-import { useConvexEnabled } from "@/providers/ConvexClientProvider";
-import { convexFunctionRefs } from "@/lib/convex-function-refs";
-import type { BoardProjectRecord } from "@/features/board/types";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+
 import { useMockProjectStore } from "@/features/board/hooks/useMockProjectStore";
+import type { BoardProjectRecord } from "@/features/board/types";
+import { convexFunctionRefs } from "@/lib/convex-function-refs";
+import { useConvexEnabled } from "@/providers/ConvexClientProvider";
+
 import { MOCK_PROJECT_TEMPLATES } from "../mock-templates";
-import { ProjectCreateForm } from "./ProjectCreateForm";
 import type {
   ConvexProjectTemplateDoc,
   ProjectCreateFormValues,
   ProjectTemplateOption,
 } from "../types";
+import { ProjectCreateForm } from "./ProjectCreateForm";
 
 const CREATE_ACTOR_ID = "web_app.user";
 
-function toProjectTemplateOption(template: ConvexProjectTemplateDoc): ProjectTemplateOption {
+function toProjectTemplateOption(
+  template: ConvexProjectTemplateDoc
+): ProjectTemplateOption {
   return {
-    id: template._id,
-    name: template.name,
-    description: template.description,
-    version: template.version,
+    approvalGates: template.approvalGates,
     defaultPriority: template.defaultPriority,
     departments: template.departments,
-    approvalGates: template.approvalGates,
+    description: template.description,
+    id: template._id,
+    name: template.name,
+    version: template.version,
   };
 }
 
 function createProjectId() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return `P-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
   }
 
@@ -39,23 +46,23 @@ function createProjectId() {
 
 function createMockProjectRecord(
   values: ProjectCreateFormValues,
-  template: ProjectTemplateOption,
+  template: ProjectTemplateOption
 ): BoardProjectRecord {
   return {
-    id: createProjectId(),
-    name: values.name.trim(),
     customerName: values.customerName.trim() || "未填写客户",
-    ownerName: values.ownerId.trim(),
-    status: "new",
-    priority: values.priority,
-    slaRisk: "on_time",
-    templateType: template.name,
     departmentTracks: template.departments.map((department) => ({
       departmentName: department.departmentName,
       status: department.isRequired ? "not_started" : "not_required",
     })),
-    pendingApprovalCount: 0,
+    id: createProjectId(),
+    name: values.name.trim(),
     overdueTaskCount: 0,
+    ownerName: values.ownerId.trim(),
+    pendingApprovalCount: 0,
+    priority: values.priority,
+    slaRisk: "on_time",
+    status: "new",
+    templateType: template.name,
   };
 }
 
@@ -72,12 +79,16 @@ export function ProjectCreateScreen() {
 function ConnectedProjectCreateScreen() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const templatesQuery = useQuery(convexFunctionRefs.listProjectTemplates, { activeOnly: true });
-  const createProjectFromTemplate = useMutation(convexFunctionRefs.createProjectFromTemplate);
+  const templatesQuery = useQuery(convexFunctionRefs.listProjectTemplates, {
+    activeOnly: true,
+  });
+  const createProjectFromTemplate = useMutation(
+    convexFunctionRefs.createProjectFromTemplate
+  );
 
   const templates = useMemo(
     () => (templatesQuery ?? []).map(toProjectTemplateOption),
-    [templatesQuery],
+    [templatesQuery]
   );
 
   if (templatesQuery === undefined) {
@@ -92,26 +103,26 @@ function ConnectedProjectCreateScreen() {
         setIsSubmitting(true);
         try {
           const result = await createProjectFromTemplate({
-            templateId: values.templateId,
-            name: values.name.trim(),
-            description: values.description.trim(),
-            ownerId: values.ownerId.trim(),
-            departmentId: values.departmentId,
+            createdBy: CREATE_ACTOR_ID,
             customerName: values.customerName.trim() || undefined,
+            departmentId: values.departmentId,
+            description: values.description.trim(),
+            name: values.name.trim(),
+            ownerId: values.ownerId.trim(),
             priority: values.priority,
             slaDeadline: values.slaDeadline
               ? new Date(`${values.slaDeadline}T09:00:00`).getTime()
               : undefined,
-            createdBy: CREATE_ACTOR_ID,
             sourceEntry: "workbench",
+            templateId: values.templateId,
           });
 
           router.push(`/projects/${result.projectId}`);
           return { ok: true, projectId: result.projectId };
         } catch (error) {
           return {
-            ok: false,
             message: error instanceof Error ? error.message : String(error),
+            ok: false,
           };
         } finally {
           setIsSubmitting(false);
@@ -131,9 +142,11 @@ function MockProjectCreateScreen() {
       templates={MOCK_PROJECT_TEMPLATES}
       isSubmitting={isSubmitting}
       onSubmit={async (values) => {
-        const template = MOCK_PROJECT_TEMPLATES.find((item) => item.id === values.templateId);
+        const template = MOCK_PROJECT_TEMPLATES.find(
+          (item) => item.id === values.templateId
+        );
         if (!template) {
-          return { ok: false, message: "未找到模板" };
+          return { message: "未找到模板", ok: false };
         }
 
         setIsSubmitting(true);

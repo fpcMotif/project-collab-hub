@@ -8,3 +8,10 @@ dist/
 convex/_generated/
 *.tsbuildinfo
 .DS_Store
+
+# AI tool skill directories (Windows junctions)
+.agent/
+.claude/
+.factory/
+.pi/
+.agents/

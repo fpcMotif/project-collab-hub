@@ -1,29 +1,31 @@
 import { Schema } from "effect";
 
 export const ApprovalGateConfig = Schema.Struct({
+  approvalCode: Schema.String,
+  isRequired: Schema.Boolean,
+  title: Schema.String,
   triggerStage: Schema.Literal(
     "new",
     "assessment",
     "solution",
     "ready",
     "executing",
-    "delivering",
+    "delivering"
   ),
-  approvalCode: Schema.String,
-  title: Schema.String,
-  isRequired: Schema.Boolean,
 });
 export type ApprovalGateConfig = typeof ApprovalGateConfig.Type;
 
 export const DepartmentTrackConfig = Schema.Struct({
+  defaultOwnerId: Schema.optional(Schema.String),
   departmentId: Schema.String,
   departmentName: Schema.String,
   isRequired: Schema.Boolean,
-  defaultOwnerId: Schema.optional(Schema.String),
 });
 export type DepartmentTrackConfig = typeof DepartmentTrackConfig.Type;
 
 export const NotificationRule = Schema.Struct({
+  channel: Schema.Literal("group_chat", "private_chat", "batch_message"),
+  enabled: Schema.Boolean,
   event: Schema.Literal(
     "project.created",
     "project.status_changed",
@@ -34,43 +36,41 @@ export const NotificationRule = Schema.Struct({
     "work_item.status_changed",
     "comment.mention",
     "task.overdue",
-    "sla.at_risk",
+    "sla.at_risk"
   ),
-  channel: Schema.Literal("group_chat", "private_chat", "batch_message"),
-  enabled: Schema.Boolean,
   recipientStrategy: Schema.Literal(
     "project_owner",
     "department_owner",
     "assignee",
     "mentioned_user",
-    "all_members",
+    "all_members"
   ),
 });
 export type NotificationRule = typeof NotificationRule.Type;
 
 export const ChatPolicy = Schema.Struct({
-  autoCreateChat: Schema.Boolean,
   addBotAsManager: Schema.Boolean,
-  pinProjectCard: Schema.Boolean,
+  autoCreateChat: Schema.Boolean,
   chatNameTemplate: Schema.optional(Schema.String),
+  pinProjectCard: Schema.Boolean,
 });
 export type ChatPolicy = typeof ChatPolicy.Type;
 
 export class ProjectTemplate extends Schema.Class<ProjectTemplate>(
-  "ProjectTemplate",
+  "ProjectTemplate"
 )({
-  id: Schema.String,
-  name: Schema.String,
-  description: Schema.String,
-  version: Schema.Number,
-  isActive: Schema.Boolean,
-  departments: Schema.Array(DepartmentTrackConfig),
   approvalGates: Schema.Array(ApprovalGateConfig),
-  notificationRules: Schema.Array(NotificationRule),
   chatPolicy: ChatPolicy,
-  defaultPriority: Schema.Literal("low", "medium", "high", "urgent"),
   createdBy: Schema.String,
+  defaultPriority: Schema.Literal("low", "medium", "high", "urgent"),
+  departments: Schema.Array(DepartmentTrackConfig),
+  description: Schema.String,
+  id: Schema.String,
+  isActive: Schema.Boolean,
+  name: Schema.String,
+  notificationRules: Schema.Array(NotificationRule),
   updatedAt: Schema.DateFromNumber,
+  version: Schema.Number,
 }) {}
 
 /** Default template for general cross-department projects */
@@ -78,10 +78,25 @@ export const DEFAULT_TEMPLATE_CONFIG: Omit<
   typeof ProjectTemplate.Type,
   "id" | "createdBy" | "updatedAt"
 > = {
-  name: "通用跨部门协同",
-  description: "默认项目模板，包含采购、技术、物流三个部门工作流",
-  version: 1,
-  isActive: true,
+  approvalGates: [
+    {
+      triggerStage: "ready",
+      approvalCode: "APPROVAL_PROJECT_START",
+      title: "项目启动审批",
+      isRequired: true,
+    },
+    {
+      triggerStage: "delivering",
+      approvalCode: "APPROVAL_DELIVERY_GATE",
+      title: "交付门禁审批",
+      isRequired: true,
+    },
+  ],
+  chatPolicy: {
+    autoCreateChat: true,
+    addBotAsManager: true,
+    pinProjectCard: true,
+  },
   defaultPriority: "medium",
   departments: [
     {
@@ -105,20 +120,9 @@ export const DEFAULT_TEMPLATE_CONFIG: Omit<
       isRequired: false,
     },
   ],
-  approvalGates: [
-    {
-      triggerStage: "ready",
-      approvalCode: "APPROVAL_PROJECT_START",
-      title: "项目启动审批",
-      isRequired: true,
-    },
-    {
-      triggerStage: "delivering",
-      approvalCode: "APPROVAL_DELIVERY_GATE",
-      title: "交付门禁审批",
-      isRequired: true,
-    },
-  ],
+  description: "默认项目模板，包含采购、技术、物流三个部门工作流",
+  isActive: true,
+  name: "通用跨部门协同",
   notificationRules: [
     {
       event: "project.created",
@@ -169,9 +173,5 @@ export const DEFAULT_TEMPLATE_CONFIG: Omit<
       recipientStrategy: "project_owner",
     },
   ],
-  chatPolicy: {
-    autoCreateChat: true,
-    addBotAsManager: true,
-    pinProjectCard: true,
-  },
+  version: 1,
 };

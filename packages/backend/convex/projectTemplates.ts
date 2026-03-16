@@ -1,5 +1,6 @@
-import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+
+import { query, mutation } from "./_generated/server";
 
 export const list = query({
   args: { activeOnly: v.optional(v.boolean()) },
@@ -16,38 +17,18 @@ export const list = query({
 
 export const getById = query({
   args: { id: v.id("projectTemplates") },
-  handler: async (ctx, args) => {
-    return ctx.db.get(args.id);
-  },
+  handler: async (ctx, args) => ctx.db.get(args.id),
 });
 
 export const create = mutation({
   args: {
-    name: v.string(),
-    description: v.string(),
-    departments: v.array(
-      v.object({
-        departmentId: v.string(),
-        departmentName: v.string(),
-        isRequired: v.boolean(),
-        defaultOwnerId: v.optional(v.string()),
-      }),
-    ),
     approvalGates: v.array(
       v.object({
         triggerStage: v.string(),
         approvalCode: v.string(),
         title: v.string(),
         isRequired: v.boolean(),
-      }),
-    ),
-    notificationRules: v.array(
-      v.object({
-        event: v.string(),
-        channel: v.string(),
-        enabled: v.boolean(),
-        recipientStrategy: v.string(),
-      }),
+      })
     ),
     chatPolicy: v.object({
       autoCreateChat: v.boolean(),
@@ -55,28 +36,46 @@ export const create = mutation({
       pinProjectCard: v.boolean(),
       chatNameTemplate: v.optional(v.string()),
     }),
+    createdBy: v.string(),
     defaultPriority: v.union(
       v.literal("low"),
       v.literal("medium"),
       v.literal("high"),
-      v.literal("urgent"),
+      v.literal("urgent")
     ),
-    createdBy: v.string(),
+    departments: v.array(
+      v.object({
+        departmentId: v.string(),
+        departmentName: v.string(),
+        isRequired: v.boolean(),
+        defaultOwnerId: v.optional(v.string()),
+      })
+    ),
+    description: v.string(),
+    name: v.string(),
+    notificationRules: v.array(
+      v.object({
+        event: v.string(),
+        channel: v.string(),
+        enabled: v.boolean(),
+        recipientStrategy: v.string(),
+      })
+    ),
   },
   handler: async (ctx, args) => {
     const templateId = await ctx.db.insert("projectTemplates", {
       ...args,
-      version: 1,
       isActive: true,
       updatedAt: Date.now(),
+      version: 1,
     });
 
     await ctx.db.insert("auditEvents", {
-      actorId: args.createdBy,
       action: "template.created",
-      objectType: "project_template",
-      objectId: templateId,
+      actorId: args.createdBy,
       changeSummary: `Template "${args.name}" created (v1)`,
+      objectId: templateId,
+      objectType: "project_template",
     });
 
     return templateId;
@@ -85,8 +84,8 @@ export const create = mutation({
 
 export const createNewVersion = mutation({
   args: {
-    sourceTemplateId: v.id("projectTemplates"),
     actorId: v.string(),
+    sourceTemplateId: v.id("projectTemplates"),
   },
   handler: async (ctx, args) => {
     const source = await ctx.db.get(args.sourceTemplateId);
@@ -101,17 +100,17 @@ export const createNewVersion = mutation({
 
     const newId = await ctx.db.insert("projectTemplates", {
       ...rest,
-      version: newVersion,
       isActive: true,
       updatedAt: Date.now(),
+      version: newVersion,
     });
 
     await ctx.db.insert("auditEvents", {
-      actorId: args.actorId,
       action: "template.versioned",
-      objectType: "project_template",
-      objectId: newId,
+      actorId: args.actorId,
       changeSummary: `Template "${rest.name}" upgraded to v${newVersion}`,
+      objectId: newId,
+      objectType: "project_template",
     });
 
     return newId;

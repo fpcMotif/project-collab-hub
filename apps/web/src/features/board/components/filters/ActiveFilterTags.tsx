@@ -19,40 +19,51 @@ interface ActiveFilterTagsProps {
 }
 
 const FILTER_LABELS: Record<keyof BoardFilterState, string> = {
-  priority: "优先级",
-  slaRisk: "SLA",
-  owner: "负责人",
+  approvalStatus: "审批",
   customer: "客户",
   department: "部门",
-  approvalStatus: "审批",
   overdueStatus: "逾期",
+  owner: "负责人",
+  priority: "优先级",
+  slaRisk: "SLA",
   templateType: "模板",
 };
 
 function formatFilterValue<K extends keyof BoardFilterState>(
   key: K,
-  value: NonNullable<BoardFilterState[K]>,
+  value: NonNullable<BoardFilterState[K]>
 ): string {
   switch (key) {
-    case "priority":
+    case "priority": {
       return PRIORITY_LABELS[value as Priority];
-    case "slaRisk":
+    }
+    case "slaRisk": {
       return SLA_RISK_STYLES[value as SlaRisk].label;
-    case "approvalStatus":
+    }
+    case "approvalStatus": {
       return APPROVAL_STATUS_LABELS[value as ApprovalStatusFilter];
-    case "overdueStatus":
+    }
+    case "overdueStatus": {
       return OVERDUE_STATUS_LABELS[value as OverdueStatusFilter];
-    default:
+    }
+    default: {
       return value;
+    }
   }
 }
 
-export function ActiveFilterTags({ filters, onClear, onClearAll }: ActiveFilterTagsProps) {
-  const activeKeys = (Object.keys(filters) as (keyof BoardFilterState)[]).filter(
-    (key) => filters[key] !== null,
-  );
+export function ActiveFilterTags({
+  filters,
+  onClear,
+  onClearAll,
+}: ActiveFilterTagsProps) {
+  const activeKeys = (
+    Object.keys(filters) as (keyof BoardFilterState)[]
+  ).filter((key) => filters[key] !== null);
 
-  if (activeKeys.length === 0) return null;
+  if (activeKeys.length === 0) {
+    return null;
+  }
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
@@ -74,7 +85,12 @@ export function ActiveFilterTags({ filters, onClear, onClearAll }: ActiveFilterT
               className="ml-0.5 rounded-full p-0.5 hover:bg-blue-200"
               aria-label={`清除${FILTER_LABELS[key]}筛选`}
             >
-              <svg className="h-3 w-3" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
+              <svg
+                className="h-3 w-3"
+                viewBox="0 0 12 12"
+                fill="currentColor"
+                aria-hidden="true"
+              >
                 <path d="M3.17 3.17a.75.75 0 011.06 0L6 4.94l1.77-1.77a.75.75 0 111.06 1.06L7.06 6l1.77 1.77a.75.75 0 11-1.06 1.06L6 7.06 4.23 8.83a.75.75 0 01-1.06-1.06L4.94 6 3.17 4.23a.75.75 0 010-1.06z" />
               </svg>
             </button>

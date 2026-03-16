@@ -1,3 +1,9 @@
+import {
+  APPROVAL_STATUS_OPTIONS,
+  OVERDUE_STATUS_OPTIONS,
+  PRIORITY_OPTIONS,
+  SLA_RISK_OPTIONS,
+} from "../../constants";
 import type {
   ApprovalStatusFilter,
   BoardFilterState,
@@ -5,14 +11,8 @@ import type {
   Priority,
   SlaRisk,
 } from "../../types";
-import {
-  APPROVAL_STATUS_OPTIONS,
-  OVERDUE_STATUS_OPTIONS,
-  PRIORITY_OPTIONS,
-  SLA_RISK_OPTIONS,
-} from "../../constants";
-import { FilterSelect } from "./FilterSelect";
 import { ActiveFilterTags } from "./ActiveFilterTags";
+import { FilterSelect } from "./FilterSelect";
 
 interface FilterBarProps {
   filters: BoardFilterState;
@@ -20,7 +20,10 @@ interface FilterBarProps {
   customerOptions: { value: string; label: string }[];
   departmentOptions: { value: string; label: string }[];
   templateTypeOptions: { value: string; label: string }[];
-  onFilterChange: <K extends keyof BoardFilterState>(key: K, value: BoardFilterState[K]) => void;
+  onFilterChange: <K extends keyof BoardFilterState>(
+    key: K,
+    value: BoardFilterState[K]
+  ) => void;
   onClearFilter: (key: keyof BoardFilterState) => void;
   onClearAll: () => void;
 }
@@ -54,27 +57,36 @@ export function FilterBar({
           label="优先级"
           value={filters.priority}
           options={PRIORITY_OPTIONS}
-          onChange={(value) => onFilterChange("priority", value as Priority | null)}
+          onChange={(value) =>
+            onFilterChange("priority", value as Priority | null)
+          }
         />
         <FilterSelect
           label="审批"
           value={filters.approvalStatus}
           options={APPROVAL_STATUS_OPTIONS}
           onChange={(value) =>
-            onFilterChange("approvalStatus", value as ApprovalStatusFilter | null)
+            onFilterChange(
+              "approvalStatus",
+              value as ApprovalStatusFilter | null
+            )
           }
         />
         <FilterSelect
           label="逾期"
           value={filters.overdueStatus}
           options={OVERDUE_STATUS_OPTIONS}
-          onChange={(value) => onFilterChange("overdueStatus", value as OverdueStatusFilter | null)}
+          onChange={(value) =>
+            onFilterChange("overdueStatus", value as OverdueStatusFilter | null)
+          }
         />
         <FilterSelect
           label="SLA"
           value={filters.slaRisk}
           options={SLA_RISK_OPTIONS}
-          onChange={(value) => onFilterChange("slaRisk", value as SlaRisk | null)}
+          onChange={(value) =>
+            onFilterChange("slaRisk", value as SlaRisk | null)
+          }
         />
         <FilterSelect
           label="客户"
@@ -89,7 +101,11 @@ export function FilterBar({
           onChange={(value) => onFilterChange("templateType", value)}
         />
       </div>
-      <ActiveFilterTags filters={filters} onClear={onClearFilter} onClearAll={onClearAll} />
+      <ActiveFilterTags
+        filters={filters}
+        onClear={onClearFilter}
+        onClearAll={onClearAll}
+      />
     </div>
   );
 }

@@ -9,7 +9,7 @@ const projectStatus = v.union(
   v.literal("executing"),
   v.literal("delivering"),
   v.literal("done"),
-  v.literal("cancelled"),
+  v.literal("cancelled")
 );
 
 const departmentTrackStatus = v.union(
@@ -18,83 +18,83 @@ const departmentTrackStatus = v.union(
   v.literal("in_progress"),
   v.literal("blocked"),
   v.literal("waiting_approval"),
-  v.literal("done"),
+  v.literal("done")
 );
 
 const workItemStatus = v.union(
   v.literal("todo"),
   v.literal("in_progress"),
   v.literal("in_review"),
-  v.literal("done"),
+  v.literal("done")
 );
 
 const workItemPriority = v.union(
   v.literal("low"),
   v.literal("medium"),
   v.literal("high"),
-  v.literal("urgent"),
+  v.literal("urgent")
 );
 
 const approvalStatus = v.union(
   v.literal("pending"),
   v.literal("approved"),
   v.literal("rejected"),
-  v.literal("cancelled"),
+  v.literal("cancelled")
 );
 
 export default defineSchema({
   // ── Core ──────────────────────────────────────────────────────────────
 
   projects: defineTable({
-    name: v.string(),
-    description: v.string(),
-    status: projectStatus,
-    ownerId: v.string(),
-    departmentId: v.string(),
-    customerName: v.optional(v.string()),
-    templateId: v.optional(v.string()),
-    templateVersion: v.optional(v.number()),
-    priority: v.optional(workItemPriority),
-    startDate: v.optional(v.number()),
-    endDate: v.optional(v.number()),
-    slaDeadline: v.optional(v.number()),
     createdBy: v.string(),
+    customerName: v.optional(v.string()),
+    departmentId: v.string(),
+    description: v.string(),
+    endDate: v.optional(v.number()),
+    name: v.string(),
+    ownerId: v.string(),
+    priority: v.optional(workItemPriority),
+    slaDeadline: v.optional(v.number()),
     sourceEntry: v.union(
       v.literal("workbench"),
       v.literal("message_shortcut"),
-      v.literal("api"),
+      v.literal("api")
     ),
+    startDate: v.optional(v.number()),
+    status: projectStatus,
+    templateId: v.optional(v.string()),
+    templateVersion: v.optional(v.number()),
   })
     .index("by_status", ["status"])
     .index("by_owner", ["ownerId"])
     .index("by_department", ["departmentId"]),
 
   departmentTracks: defineTable({
-    projectId: v.id("projects"),
+    blockReason: v.optional(v.string()),
+    collaboratorIds: v.optional(v.array(v.string())),
     departmentId: v.string(),
     departmentName: v.string(),
-    isRequired: v.boolean(),
-    status: departmentTrackStatus,
-    ownerId: v.optional(v.string()),
-    collaboratorIds: v.optional(v.array(v.string())),
     dueDate: v.optional(v.number()),
-    blockReason: v.optional(v.string()),
+    isRequired: v.boolean(),
+    ownerId: v.optional(v.string()),
+    projectId: v.id("projects"),
+    status: departmentTrackStatus,
   })
     .index("by_project", ["projectId"])
     .index("by_department", ["departmentId"])
     .index("by_status", ["status"]),
 
   workItems: defineTable({
-    projectId: v.id("projects"),
-    departmentTrackId: v.optional(v.id("departmentTracks")),
-    title: v.string(),
-    description: v.string(),
-    status: workItemStatus,
-    priority: workItemPriority,
     assigneeId: v.optional(v.string()),
     collaboratorIds: v.optional(v.array(v.string())),
-    dueDate: v.optional(v.number()),
     completedAt: v.optional(v.number()),
+    departmentTrackId: v.optional(v.id("departmentTracks")),
+    description: v.string(),
+    dueDate: v.optional(v.number()),
+    priority: workItemPriority,
+    projectId: v.id("projects"),
+    status: workItemStatus,
+    title: v.string(),
   })
     .index("by_project", ["projectId"])
     .index("by_department_track", ["departmentTrackId"])
@@ -104,67 +104,67 @@ export default defineSchema({
   // ── Feishu Integration Bindings ───────────────────────────────────────
 
   approvalGates: defineTable({
-    projectId: v.id("projects"),
-    departmentTrackId: v.optional(v.id("departmentTracks")),
-    triggerStage: projectStatus,
-    approvalCode: v.string(),
-    instanceCode: v.optional(v.string()),
-    status: approvalStatus,
-    title: v.string(),
     applicantId: v.string(),
-    snapshotData: v.optional(v.string()),
-    templateVersion: v.optional(v.number()),
+    approvalCode: v.string(),
+    departmentTrackId: v.optional(v.id("departmentTracks")),
+    instanceCode: v.optional(v.string()),
+    projectId: v.id("projects"),
     resolvedAt: v.optional(v.number()),
     resolvedBy: v.optional(v.string()),
+    snapshotData: v.optional(v.string()),
+    status: approvalStatus,
+    templateVersion: v.optional(v.number()),
+    title: v.string(),
+    triggerStage: projectStatus,
   })
     .index("by_project", ["projectId"])
     .index("by_instance_code", ["instanceCode"])
     .index("by_status", ["status"]),
 
   feishuTaskBindings: defineTable({
-    workItemId: v.id("workItems"),
-    projectId: v.id("projects"),
     feishuTaskGuid: v.string(),
     feishuTaskStatus: v.string(),
     lastSyncedAt: v.number(),
+    projectId: v.id("projects"),
     syncDirection: v.union(v.literal("app_created"), v.literal("manual_link")),
+    workItemId: v.id("workItems"),
   })
     .index("by_work_item", ["workItemId"])
     .index("by_feishu_task", ["feishuTaskGuid"])
     .index("by_project", ["projectId"]),
 
   chatBindings: defineTable({
-    projectId: v.id("projects"),
-    feishuChatId: v.string(),
-    chatType: v.union(v.literal("auto_created"), v.literal("manual_bound")),
     botAddedAt: v.optional(v.number()),
+    chatType: v.union(v.literal("auto_created"), v.literal("manual_bound")),
+    feishuChatId: v.string(),
     pinnedMessageId: v.optional(v.string()),
+    projectId: v.id("projects"),
   })
     .index("by_project", ["projectId"])
     .index("by_chat", ["feishuChatId"]),
 
   docBindings: defineTable({
-    projectId: v.id("projects"),
-    feishuDocToken: v.string(),
     docType: v.union(
       v.literal("doc"),
       v.literal("wiki"),
       v.literal("sheet"),
-      v.literal("base"),
+      v.literal("base")
     ),
-    title: v.string(),
+    feishuDocToken: v.string(),
+    projectId: v.id("projects"),
     purpose: v.optional(v.string()),
+    title: v.string(),
   })
     .index("by_project", ["projectId"])
     .index("by_doc_token", ["feishuDocToken"]),
 
   baseBindings: defineTable({
-    projectId: v.id("projects"),
     baseAppToken: v.string(),
-    tableId: v.string(),
-    recordId: v.string(),
     fieldOwnership: v.optional(v.string()),
     lastSyncedAt: v.number(),
+    projectId: v.id("projects"),
+    recordId: v.string(),
+    tableId: v.string(),
   })
     .index("by_project", ["projectId"])
     .index("by_record", ["recordId"]),
@@ -172,61 +172,61 @@ export default defineSchema({
   // ── Comments & Mentions ───────────────────────────────────────────────
 
   comments: defineTable({
-    projectId: v.id("projects"),
-    departmentTrackId: v.optional(v.id("departmentTracks")),
-    workItemId: v.optional(v.id("workItems")),
-    parentCommentId: v.optional(v.id("comments")),
     authorId: v.string(),
     body: v.string(),
+    deletedAt: v.optional(v.number()),
+    departmentTrackId: v.optional(v.id("departmentTracks")),
+    editedAt: v.optional(v.number()),
+    isDeleted: v.boolean(),
+    parentCommentId: v.optional(v.id("comments")),
+    projectId: v.id("projects"),
     targetScope: v.union(
       v.literal("project"),
       v.literal("department"),
-      v.literal("work_item"),
+      v.literal("work_item")
     ),
-    isDeleted: v.boolean(),
-    deletedAt: v.optional(v.number()),
-    editedAt: v.optional(v.number()),
+    workItemId: v.optional(v.id("workItems")),
   })
     .index("by_project", ["projectId"])
     .index("by_parent", ["parentCommentId"]),
 
   mentions: defineTable({
     commentId: v.id("comments"),
-    projectId: v.id("projects"),
-    mentionedUserId: v.string(),
     mentionedByUserId: v.string(),
-    notificationSent: v.boolean(),
+    mentionedUserId: v.string(),
     notificationDeliveryId: v.optional(v.id("notificationDeliveries")),
+    notificationSent: v.boolean(),
+    projectId: v.id("projects"),
   })
     .index("by_comment", ["commentId"])
     .index("by_mentioned_user", ["mentionedUserId"]),
 
   notificationDeliveries: defineTable({
-    projectId: v.id("projects"),
-    recipientId: v.string(),
     channel: v.union(
       v.literal("group_chat"),
       v.literal("private_chat"),
-      v.literal("batch_message"),
+      v.literal("batch_message")
     ),
+    feishuMessageId: v.optional(v.string()),
+    lastError: v.optional(v.string()),
     messageType: v.union(
       v.literal("mention"),
       v.literal("approval_result"),
       v.literal("task_update"),
       v.literal("stage_change"),
-      v.literal("risk_alert"),
+      v.literal("risk_alert")
     ),
-    feishuMessageId: v.optional(v.string()),
+    payload: v.string(),
+    projectId: v.id("projects"),
+    recipientId: v.string(),
+    retryCount: v.number(),
     status: v.union(
       v.literal("pending"),
       v.literal("sending"),
       v.literal("sent"),
       v.literal("failed"),
-      v.literal("retrying"),
+      v.literal("retrying")
     ),
-    retryCount: v.number(),
-    lastError: v.optional(v.string()),
-    payload: v.string(),
   })
     .index("by_project", ["projectId"])
     .index("by_recipient", ["recipientId"])
@@ -235,33 +235,13 @@ export default defineSchema({
   // ── Configuration ──────────────────────────────────────────────────────
 
   projectTemplates: defineTable({
-    name: v.string(),
-    description: v.string(),
-    version: v.number(),
-    isActive: v.boolean(),
-    departments: v.array(
-      v.object({
-        departmentId: v.string(),
-        departmentName: v.string(),
-        isRequired: v.boolean(),
-        defaultOwnerId: v.optional(v.string()),
-      }),
-    ),
     approvalGates: v.array(
       v.object({
         triggerStage: v.string(),
         approvalCode: v.string(),
         title: v.string(),
         isRequired: v.boolean(),
-      }),
-    ),
-    notificationRules: v.array(
-      v.object({
-        event: v.string(),
-        channel: v.string(),
-        enabled: v.boolean(),
-        recipientStrategy: v.string(),
-      }),
+      })
     ),
     chatPolicy: v.object({
       autoCreateChat: v.boolean(),
@@ -269,14 +249,34 @@ export default defineSchema({
       pinProjectCard: v.boolean(),
       chatNameTemplate: v.optional(v.string()),
     }),
+    createdBy: v.string(),
     defaultPriority: v.union(
       v.literal("low"),
       v.literal("medium"),
       v.literal("high"),
-      v.literal("urgent"),
+      v.literal("urgent")
     ),
-    createdBy: v.string(),
+    departments: v.array(
+      v.object({
+        departmentId: v.string(),
+        departmentName: v.string(),
+        isRequired: v.boolean(),
+        defaultOwnerId: v.optional(v.string()),
+      })
+    ),
+    description: v.string(),
+    isActive: v.boolean(),
+    name: v.string(),
+    notificationRules: v.array(
+      v.object({
+        event: v.string(),
+        channel: v.string(),
+        enabled: v.boolean(),
+        recipientStrategy: v.string(),
+      })
+    ),
     updatedAt: v.number(),
+    version: v.number(),
   })
     .index("by_active", ["isActive"])
     .index("by_name", ["name"]),
@@ -284,14 +284,14 @@ export default defineSchema({
   // ── Audit & Events ────────────────────────────────────────────────────
 
   auditEvents: defineTable({
-    projectId: v.optional(v.id("projects")),
-    actorId: v.string(),
     action: v.string(),
-    objectType: v.string(),
-    objectId: v.string(),
+    actorId: v.string(),
     changeSummary: v.string(),
-    sourceEntry: v.optional(v.string()),
     idempotencyKey: v.optional(v.string()),
+    objectId: v.string(),
+    objectType: v.string(),
+    projectId: v.optional(v.id("projects")),
+    sourceEntry: v.optional(v.string()),
   })
     .index("by_project", ["projectId"])
     .index("by_actor", ["actorId"])

@@ -1,5 +1,7 @@
 import type { DragEventHandler } from "react";
+
 import { cn } from "@/lib/cn";
+
 import type { BoardColumnViewModel } from "../types";
 import { ProjectCard } from "./ProjectCard";
 
@@ -28,7 +30,7 @@ export function BoardColumn({
     <section
       className={cn(
         "flex min-w-[280px] flex-col rounded-xl bg-gray-50 p-2 transition-colors",
-        dropActive && "ring-2 ring-blue-300 ring-offset-2 ring-offset-gray-100",
+        dropActive && "ring-2 ring-blue-300 ring-offset-2 ring-offset-gray-100"
       )}
       aria-label={column.name}
       data-column-id={column.id}
@@ -41,7 +43,9 @@ export function BoardColumn({
         <span
           className={cn(
             "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-medium",
-            column.cards.length > 0 ? "bg-blue-100 text-blue-700" : "bg-gray-200 text-gray-500",
+            column.cards.length > 0
+              ? "bg-blue-100 text-blue-700"
+              : "bg-gray-200 text-gray-500"
           )}
         >
           {column.cards.length}

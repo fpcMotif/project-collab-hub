@@ -1,15 +1,23 @@
 "use client";
 
 import { useMemo, useState } from "react";
+
 import { cn } from "@/lib/cn";
 
 interface CommentComposerProps {
   members: string[];
   disabled?: boolean;
-  onSubmit: (body: string, mentionedUserIds: string[]) => Promise<{ ok: boolean; message?: string }>;
+  onSubmit: (
+    body: string,
+    mentionedUserIds: string[]
+  ) => Promise<{ ok: boolean; message?: string }>;
 }
 
-export function CommentComposer({ members, disabled = false, onSubmit }: CommentComposerProps) {
+export function CommentComposer({
+  members,
+  disabled = false,
+  onSubmit,
+}: CommentComposerProps) {
   const [body, setBody] = useState("");
   const [memberQuery, setMemberQuery] = useState("");
   const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
@@ -112,13 +120,15 @@ export function CommentComposer({ members, disabled = false, onSubmit }: Comment
           <p
             className={cn(
               "text-sm",
-              noticeTone === "success" ? "text-green-700" : "text-red-600",
+              noticeTone === "success" ? "text-green-700" : "text-red-600"
             )}
           >
             {notice}
           </p>
         ) : (
-          <span className="text-xs text-gray-400">评论会写入时间线，@ 将触发通知</span>
+          <span className="text-xs text-gray-400">
+            评论会写入时间线，@ 将触发通知
+          </span>
         )}
         <button
           type="button"

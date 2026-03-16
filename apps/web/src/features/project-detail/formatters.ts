@@ -1,14 +1,14 @@
 const dateTimeFormatter = new Intl.DateTimeFormat("zh-CN", {
-  month: "short",
   day: "numeric",
   hour: "2-digit",
   minute: "2-digit",
+  month: "short",
 });
 
 const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
-  year: "numeric",
-  month: "short",
   day: "numeric",
+  month: "short",
+  year: "numeric",
 });
 
 export function formatDate(value?: number | null) {

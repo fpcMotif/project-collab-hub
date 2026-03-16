@@ -1,18 +1,23 @@
 "use client";
 
-import type { ReactNode } from "react";
 import Link from "next/link";
-import { cn } from "@/lib/cn";
-import { buildStageAdvanceState, getColumnNameByStatus } from "@/features/board/lib/view-model";
-import {
-  DEPT_STATUS_LABELS,
-  DEPT_STATUS_STYLES,
-} from "@/features/board/constants";
+import type { ReactNode } from "react";
+
 import { CardMetaRow } from "@/features/board/components/CardMetaRow";
 import { PriorityBadge } from "@/features/board/components/PriorityBadge";
 import { SlaRiskIndicator } from "@/features/board/components/SlaRiskIndicator";
 import { StageAdvanceHint } from "@/features/board/components/StageAdvanceHint";
-import { CommentComposer } from "./CommentComposer";
+import {
+  DEPT_STATUS_LABELS,
+  DEPT_STATUS_STYLES,
+} from "@/features/board/constants";
+import {
+  buildStageAdvanceState,
+  getColumnNameByStatus,
+} from "@/features/board/lib/view-model";
+import { cn } from "@/lib/cn";
+
+import { formatDate, formatDateTime } from "../formatters";
 import type {
   ApprovalStatus,
   ProjectDetailApproval,
@@ -23,55 +28,77 @@ import type {
   ProjectDetailWorkItem,
   WorkItemStatus,
 } from "../types";
-import { formatDate, formatDateTime } from "../formatters";
+import { CommentComposer } from "./CommentComposer";
 
 const WORK_ITEM_STATUS_STYLES: Record<WorkItemStatus, string> = {
-  todo: "bg-slate-100 text-slate-700",
+  done: "bg-green-100 text-green-700",
   in_progress: "bg-blue-100 text-blue-700",
   in_review: "bg-amber-100 text-amber-700",
-  done: "bg-green-100 text-green-700",
+  todo: "bg-slate-100 text-slate-700",
 };
 
 const WORK_ITEM_STATUS_LABELS: Record<WorkItemStatus, string> = {
-  todo: "待开始",
+  done: "已完成",
   in_progress: "进行中",
   in_review: "评审中",
-  done: "已完成",
+  todo: "待开始",
 };
 
 const APPROVAL_STATUS_STYLES: Record<ApprovalStatus, string> = {
-  pending: "bg-amber-100 text-amber-700",
   approved: "bg-green-100 text-green-700",
-  rejected: "bg-red-100 text-red-700",
   cancelled: "bg-gray-100 text-gray-600",
+  pending: "bg-amber-100 text-amber-700",
+  rejected: "bg-red-100 text-red-700",
 };
 
 const APPROVAL_STATUS_LABELS: Record<ApprovalStatus, string> = {
-  pending: "待审批",
   approved: "已通过",
-  rejected: "已拒绝",
   cancelled: "已取消",
+  pending: "待审批",
+  rejected: "已拒绝",
 };
 
 interface ProjectDetailViewProps {
   detail: ProjectDetailData;
-  onCreateComment: (body: string, mentionedUserIds: string[]) => Promise<{ ok: boolean; message?: string }>;
-  onDeleteComment: (commentId: string) => Promise<{ ok: boolean; message?: string }>;
-  onUpdateWorkItemStatus: (workItemId: string, status: WorkItemStatus) => Promise<{ ok: boolean; message?: string }>;
-  onResolveApproval: (approvalId: string, status: "approved" | "rejected") => Promise<{ ok: boolean; message?: string }>;
+  onCreateComment: (
+    body: string,
+    mentionedUserIds: string[]
+  ) => Promise<{ ok: boolean; message?: string }>;
+  onDeleteComment: (
+    commentId: string
+  ) => Promise<{ ok: boolean; message?: string }>;
+  onUpdateWorkItemStatus: (
+    workItemId: string,
+    status: WorkItemStatus
+  ) => Promise<{ ok: boolean; message?: string }>;
+  onResolveApproval: (
+    approvalId: string,
+    status: "approved" | "rejected"
+  ) => Promise<{ ok: boolean; message?: string }>;
 }
 
 function getProjectMemberOptions(detail: ProjectDetailData) {
-  return [...new Set([
-    detail.project.ownerName,
-    detail.project.createdBy,
-    ...detail.departmentTracks.flatMap((track) => [track.ownerId, ...track.collaboratorIds]),
-    ...detail.workItems.flatMap((item) => [item.assigneeId, ...item.collaboratorIds]),
-    ...detail.approvals.flatMap((approval) => [approval.applicantId, approval.resolvedBy]),
-    ...detail.timeline.map((event) => event.actorId),
-  ].filter((value): value is string => Boolean(value) && value !== "未分配"))].sort((left, right) =>
-    left.localeCompare(right, "zh-Hans-CN"),
-  );
+  return [
+    ...new Set(
+      [
+        detail.project.ownerName,
+        detail.project.createdBy,
+        ...detail.departmentTracks.flatMap((track) => [
+          track.ownerId,
+          ...track.collaboratorIds,
+        ]),
+        ...detail.workItems.flatMap((item) => [
+          item.assigneeId,
+          ...item.collaboratorIds,
+        ]),
+        ...detail.approvals.flatMap((approval) => [
+          approval.applicantId,
+          approval.resolvedBy,
+        ]),
+        ...detail.timeline.map((event) => event.actorId),
+      ].filter((value): value is string => Boolean(value) && value !== "未分配")
+    ),
+  ].toSorted((left, right) => left.localeCompare(right, "zh-Hans-CN"));
 }
 
 export function ProjectDetailView({
@@ -82,7 +109,8 @@ export function ProjectDetailView({
   onResolveApproval,
 }: ProjectDetailViewProps) {
   const stageAdvance = buildStageAdvanceState(detail.project);
-  const currentStageName = getColumnNameByStatus(detail.project.status) ?? detail.project.status;
+  const currentStageName =
+    getColumnNameByStatus(detail.project.status) ?? detail.project.status;
   const projectMemberOptions = getProjectMemberOptions(detail);
 
   return (
@@ -90,11 +118,18 @@ export function ProjectDetailView({
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
           <div>
-            <Link href="/board" className="text-sm text-blue-600 hover:text-blue-700">
+            <Link
+              href="/board"
+              className="text-sm text-blue-600 hover:text-blue-700"
+            >
               ← 返回项目看板
             </Link>
-            <h1 className="mt-1 text-2xl font-bold text-gray-900">{detail.project.name}</h1>
-            <p className="mt-1 text-sm text-gray-500">{detail.project.customerName} · {detail.project.ownerName}</p>
+            <h1 className="mt-1 text-2xl font-bold text-gray-900">
+              {detail.project.name}
+            </h1>
+            <p className="mt-1 text-sm text-gray-500">
+              {detail.project.customerName} · {detail.project.ownerName}
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
@@ -111,12 +146,16 @@ export function ProjectDetailView({
           <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="max-w-3xl">
-                <p className="text-sm leading-6 text-gray-600">{detail.project.description}</p>
+                <p className="text-sm leading-6 text-gray-600">
+                  {detail.project.description}
+                </p>
                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500">
                   <span>模板：{detail.project.templateType}</span>
                   <span>来源：{detail.project.sourceEntry}</span>
                   <span>创建人：{detail.project.createdBy}</span>
-                  <span>SLA 截止：{formatDate(detail.project.slaDeadline)}</span>
+                  <span>
+                    SLA 截止：{formatDate(detail.project.slaDeadline)}
+                  </span>
                 </div>
               </div>
               <CardMetaRow
@@ -125,9 +164,18 @@ export function ProjectDetailView({
               />
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-4">
-              <MetricCard label="部门工作流" value={String(detail.departmentTracks.length)} />
-              <MetricCard label="行动项" value={String(detail.workItems.length)} />
-              <MetricCard label="审批门禁" value={String(detail.approvals.length)} />
+              <MetricCard
+                label="部门工作流"
+                value={String(detail.departmentTracks.length)}
+              />
+              <MetricCard
+                label="行动项"
+                value={String(detail.workItems.length)}
+              />
+              <MetricCard
+                label="审批门禁"
+                value={String(detail.approvals.length)}
+              />
               <MetricCard label="评论" value={String(detail.comments.length)} />
             </div>
             <div className="mt-4">
@@ -153,7 +201,9 @@ export function ProjectDetailView({
                     onUpdateStatus={onUpdateWorkItemStatus}
                   />
                 ))}
-                {detail.workItems.length === 0 && <EmptyHint text="暂无行动项" />}
+                {detail.workItems.length === 0 && (
+                  <EmptyHint text="暂无行动项" />
+                )}
               </div>
             </SectionCard>
           </div>
@@ -167,7 +217,9 @@ export function ProjectDetailView({
                   onResolve={onResolveApproval}
                 />
               ))}
-              {detail.approvals.length === 0 && <EmptyHint text="暂无审批门禁" />}
+              {detail.approvals.length === 0 && (
+                <EmptyHint text="暂无审批门禁" />
+              )}
             </div>
           </SectionCard>
         </section>
@@ -176,23 +228,36 @@ export function ProjectDetailView({
           <SectionCard title="飞书绑定">
             <BindingGroup
               title="群聊"
-              items={detail.bindings.chats.map((binding) => `${binding.chatType} · ${binding.feishuChatId}`)}
+              items={detail.bindings.chats.map(
+                (binding) => `${binding.chatType} · ${binding.feishuChatId}`
+              )}
             />
             <BindingGroup
               title="文档"
-              items={detail.bindings.docs.map((binding) => `${binding.docType} · ${binding.title}`)}
+              items={detail.bindings.docs.map(
+                (binding) => `${binding.docType} · ${binding.title}`
+              )}
             />
             <BindingGroup
               title="Base"
-              items={detail.bindings.bases.map((binding) => `${binding.tableId} · ${binding.recordId}`)}
+              items={detail.bindings.bases.map(
+                (binding) => `${binding.tableId} · ${binding.recordId}`
+              )}
             />
           </SectionCard>
 
           <SectionCard title="评论线程">
             <div className="space-y-3">
-              <CommentComposer members={projectMemberOptions} onSubmit={onCreateComment} />
+              <CommentComposer
+                members={projectMemberOptions}
+                onSubmit={onCreateComment}
+              />
               {detail.comments.map((comment) => (
-                <CommentRow key={comment.id} comment={comment} onDelete={onDeleteComment} />
+                <CommentRow
+                  key={comment.id}
+                  comment={comment}
+                  onDelete={onDeleteComment}
+                />
               ))}
               {detail.comments.length === 0 && <EmptyHint text="暂无评论" />}
             </div>
@@ -203,7 +268,9 @@ export function ProjectDetailView({
               {detail.timeline.map((event) => (
                 <TimelineRow key={event.id} event={event} />
               ))}
-              {detail.timeline.length === 0 && <EmptyHint text="暂无时间线记录" />}
+              {detail.timeline.length === 0 && (
+                <EmptyHint text="暂无时间线记录" />
+              )}
             </div>
           </SectionCard>
         </aside>
@@ -252,7 +319,13 @@ export function ProjectDetailNotFound({ projectId }: { projectId: string }) {
   );
 }
 
-function SectionCard({ title, children }: { title: string; children: ReactNode }) {
+function SectionCard({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
   return (
     <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       <h2 className="mb-3 text-base font-semibold text-gray-900">{title}</h2>
@@ -270,21 +343,28 @@ function MetricCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function DepartmentTrackRow({ track }: { track: ProjectDetailDepartmentTrack }) {
+function DepartmentTrackRow({
+  track,
+}: {
+  track: ProjectDetailDepartmentTrack;
+}) {
   return (
     <div className="rounded-lg border border-gray-200 p-3">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-sm font-semibold text-gray-900">{track.departmentName}</p>
+          <p className="text-sm font-semibold text-gray-900">
+            {track.departmentName}
+          </p>
           <p className="mt-1 text-xs text-gray-500">
-            Owner：{track.ownerId ?? "未分配"} · 截止：{formatDate(track.dueDate)}
+            Owner：{track.ownerId ?? "未分配"} · 截止：
+            {formatDate(track.dueDate)}
           </p>
         </div>
         <span
           className={cn(
             "rounded-full px-2 py-1 text-xs font-medium",
             DEPT_STATUS_STYLES[track.status].bg,
-            DEPT_STATUS_STYLES[track.status].text,
+            DEPT_STATUS_STYLES[track.status].text
           )}
         >
           {DEPT_STATUS_LABELS[track.status]}
@@ -295,7 +375,11 @@ function DepartmentTrackRow({ track }: { track: ProjectDetailDepartmentTrack }) 
         <span>任务数：{track.relatedWorkItemCount}</span>
         <span>待审批：{track.pendingApprovalCount}</span>
       </div>
-      {track.blockReason && <p className="mt-2 text-xs text-red-600">阻塞原因：{track.blockReason}</p>}
+      {track.blockReason && (
+        <p className="mt-2 text-xs text-red-600">
+          阻塞原因：{track.blockReason}
+        </p>
+      )}
     </div>
   );
 }
@@ -305,7 +389,10 @@ function WorkItemRow({
   onUpdateStatus,
 }: {
   item: ProjectDetailWorkItem;
-  onUpdateStatus: (workItemId: string, status: WorkItemStatus) => Promise<{ ok: boolean; message?: string }>;
+  onUpdateStatus: (
+    workItemId: string,
+    status: WorkItemStatus
+  ) => Promise<{ ok: boolean; message?: string }>;
 }) {
   return (
     <div className="rounded-lg border border-gray-200 p-3">
@@ -313,10 +400,16 @@ function WorkItemRow({
         <div>
           <p className="text-sm font-semibold text-gray-900">{item.title}</p>
           <p className="mt-1 text-xs text-gray-500">
-            {item.departmentName ?? "未关联部门"} · 负责人：{item.assigneeId ?? "未分配"}
+            {item.departmentName ?? "未关联部门"} · 负责人：
+            {item.assigneeId ?? "未分配"}
           </p>
         </div>
-        <span className={cn("rounded-full px-2 py-1 text-xs font-medium", WORK_ITEM_STATUS_STYLES[item.status])}>
+        <span
+          className={cn(
+            "rounded-full px-2 py-1 text-xs font-medium",
+            WORK_ITEM_STATUS_STYLES[item.status]
+          )}
+        >
           {WORK_ITEM_STATUS_LABELS[item.status]}
         </span>
       </div>
@@ -354,19 +447,31 @@ function ApprovalRow({
   onResolve,
 }: {
   approval: ProjectDetailApproval;
-  onResolve: (approvalId: string, status: "approved" | "rejected") => Promise<{ ok: boolean; message?: string }>;
+  onResolve: (
+    approvalId: string,
+    status: "approved" | "rejected"
+  ) => Promise<{ ok: boolean; message?: string }>;
 }) {
   return (
     <div className="rounded-lg border border-gray-200 p-3">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-sm font-semibold text-gray-900">{approval.title}</p>
+          <p className="text-sm font-semibold text-gray-900">
+            {approval.title}
+          </p>
           <p className="mt-1 text-xs text-gray-500">
-            阶段：{getColumnNameByStatus(approval.triggerStage) ?? approval.triggerStage}
+            阶段：
+            {getColumnNameByStatus(approval.triggerStage) ??
+              approval.triggerStage}
             {approval.departmentName ? ` · ${approval.departmentName}` : ""}
           </p>
         </div>
-        <span className={cn("rounded-full px-2 py-1 text-xs font-medium", APPROVAL_STATUS_STYLES[approval.status])}>
+        <span
+          className={cn(
+            "rounded-full px-2 py-1 text-xs font-medium",
+            APPROVAL_STATUS_STYLES[approval.status]
+          )}
+        >
           {APPROVAL_STATUS_LABELS[approval.status]}
         </span>
       </div>
@@ -436,7 +541,9 @@ function CommentRow({
           ))}
         </div>
       )}
-      <p className="mt-2 text-xs text-gray-400">作用域：{comment.targetScope}</p>
+      <p className="mt-2 text-xs text-gray-400">
+        作用域：{comment.targetScope}
+      </p>
     </div>
   );
 }
@@ -474,5 +581,9 @@ function BindingGroup({ title, items }: { title: string; items: string[] }) {
 }
 
 function EmptyHint({ text }: { text: string }) {
-  return <p className="rounded-lg bg-gray-50 px-3 py-6 text-center text-sm text-gray-400">{text}</p>;
+  return (
+    <p className="rounded-lg bg-gray-50 px-3 py-6 text-center text-sm text-gray-400">
+      {text}
+    </p>
+  );
 }

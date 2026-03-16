@@ -1,7 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { BoardColumnViewModel, BoardFilterState, BoardMoveResult, BoardSavedView } from "../types";
+
+import type {
+  BoardColumnViewModel,
+  BoardFilterState,
+  BoardMoveResult,
+  BoardSavedView,
+} from "../types";
 import { BoardColumn } from "./BoardColumn";
 import { FilterBar } from "./filters/FilterBar";
 import { SavedViewsBar } from "./filters/SavedViewsBar";
@@ -18,13 +24,19 @@ interface BoardWorkspaceProps {
   savedViews: BoardSavedView[];
   isLoading: boolean;
   movingProjectId: string | null;
-  onFilterChange: <K extends keyof BoardFilterState>(key: K, value: BoardFilterState[K]) => void;
+  onFilterChange: <K extends keyof BoardFilterState>(
+    key: K,
+    value: BoardFilterState[K]
+  ) => void;
   onApplyView: (filters: BoardFilterState) => void;
   onClearFilter: (key: keyof BoardFilterState) => void;
   onClearAll: () => void;
   onSaveCurrentView: () => void;
   onDeleteView: (id: string) => void;
-  onMoveProject: (projectId: string, targetColumnId: string) => Promise<BoardMoveResult>;
+  onMoveProject: (
+    projectId: string,
+    targetColumnId: string
+  ) => Promise<BoardMoveResult>;
 }
 
 interface BoardNotice {
@@ -54,7 +66,9 @@ export function BoardWorkspace({
 }: BoardWorkspaceProps) {
   const [mobileColumnIdx, setMobileColumnIdx] = useState(0);
   const [draggedProjectId, setDraggedProjectId] = useState<string | null>(null);
-  const [dropTargetColumnId, setDropTargetColumnId] = useState<string | null>(null);
+  const [dropTargetColumnId, setDropTargetColumnId] = useState<string | null>(
+    null
+  );
   const [notice, setNotice] = useState<BoardNotice | null>(null);
 
   const safeMobileColumnIdx = useMemo(() => {
@@ -75,7 +89,10 @@ export function BoardWorkspace({
     }
 
     const result = await onMoveProject(draggedProjectId, columnId);
-    setNotice({ tone: result.ok ? "success" : "error", message: result.message ?? "操作完成" });
+    setNotice({
+      message: result.message ?? "操作完成",
+      tone: result.ok ? "success" : "error",
+    });
     resetDragState();
   };
 
@@ -83,7 +100,10 @@ export function BoardWorkspace({
     return (
       <div className="flex h-full gap-3 overflow-x-auto">
         {Array.from({ length: 6 }).map((_, index) => (
-          <div key={index} className="min-w-[280px] animate-pulse rounded-xl bg-gray-50 p-4">
+          <div
+            key={index}
+            className="min-w-[280px] animate-pulse rounded-xl bg-gray-50 p-4"
+          >
             <div className="mb-4 h-4 w-24 rounded bg-gray-200" />
             <div className="space-y-3">
               <div className="h-36 rounded-lg bg-gray-200" />
@@ -116,7 +136,9 @@ export function BoardWorkspace({
           onDeleteView={onDeleteView}
         />
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
-          <p>当前显示 {visibleProjectCount} / {totalProjectCount} 个项目</p>
+          <p>
+            当前显示 {visibleProjectCount} / {totalProjectCount} 个项目
+          </p>
           <p>桌面端支持拖拽卡片到下一列推进阶段</p>
         </div>
         {notice && (

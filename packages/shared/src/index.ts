@@ -1,19 +1,11 @@
 export { Project, ProjectStatus, SourceEntry } from "./schemas/project";
-export {
-  WorkItem,
-  WorkItemStatus,
-  WorkItemPriority,
-} from "./schemas/task";
+export { WorkItem, WorkItemStatus, WorkItemPriority } from "./schemas/task";
 export {
   DepartmentTrack,
   DepartmentTrackStatus,
 } from "./schemas/departmentTrack";
 export { ApprovalGate, ApprovalStatus } from "./schemas/approval";
-export {
-  Comment,
-  Mention,
-  CommentTargetScope,
-} from "./schemas/comment";
+export { Comment, Mention, CommentTargetScope } from "./schemas/comment";
 export {
   NotificationDelivery,
   NotificationChannel,

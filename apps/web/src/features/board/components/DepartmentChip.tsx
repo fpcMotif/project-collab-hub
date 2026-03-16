@@ -1,4 +1,5 @@
 import { cn } from "@/lib/cn";
+
 import { DEPT_STATUS_STYLES, DEPT_STATUS_LABELS } from "../constants";
 import type { DepartmentTrackSummary } from "../types";
 
@@ -18,7 +19,7 @@ export function DepartmentChip({ track }: DepartmentChipProps) {
       className={cn(
         "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
         style.bg,
-        style.text,
+        style.text
       )}
       title={title}
     >

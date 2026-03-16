@@ -8,15 +8,15 @@ export const BoardColumnId = Schema.Literal(
   "COL-EXEC",
   "COL-DELIVER",
   "COL-DONE",
-  "COL-CANCEL",
+  "COL-CANCEL"
 );
 export type BoardColumnId = typeof BoardColumnId.Type;
 
 export class BoardColumn extends Schema.Class<BoardColumn>("BoardColumn")({
-  id: BoardColumnId,
-  name: Schema.String,
   entryCriteria: Schema.String,
   exitCriteria: Schema.String,
+  id: BoardColumnId,
+  name: Schema.String,
   projectStatus: Schema.Literal(
     "new",
     "assessment",
@@ -25,80 +25,80 @@ export class BoardColumn extends Schema.Class<BoardColumn>("BoardColumn")({
     "executing",
     "delivering",
     "done",
-    "cancelled",
+    "cancelled"
   ),
 }) {}
 
 /** Maps each board column to its corresponding ProjectStatus */
 export const BOARD_COLUMNS: readonly BoardColumn[] = [
   {
-    id: "COL-NEW",
-    name: "新建/待分诊",
     entryCriteria: "客户需求新进入系统",
     exitCriteria: "已确定项目 owner 与必要部门",
+    id: "COL-NEW",
+    name: "新建/待分诊",
     projectStatus: "new",
   },
   {
-    id: "COL-ASSESS",
-    name: "需求评估",
     entryCriteria: "已分配 PM/owner",
     exitCriteria: "形成初步方案范围与预计交付方式",
+    id: "COL-ASSESS",
+    name: "需求评估",
     projectStatus: "assessment",
   },
   {
-    id: "COL-SOLUTION",
-    name: "方案与报价",
     entryCriteria: "技术/商务开始评估",
     exitCriteria: "技术方案和商务约束达成一致",
+    id: "COL-SOLUTION",
+    name: "方案与报价",
     projectStatus: "solution",
   },
   {
-    id: "COL-READY",
-    name: "待协同启动",
     entryCriteria: "已明确采购/技术/物流工作流",
     exitCriteria: "关键启动审批已通过",
+    id: "COL-READY",
+    name: "待协同启动",
     projectStatus: "ready",
   },
   {
-    id: "COL-EXEC",
-    name: "执行中",
     entryCriteria: "任务已下发到各部门",
     exitCriteria: "所有必需工作流完成且无阻塞",
+    id: "COL-EXEC",
+    name: "执行中",
     projectStatus: "executing",
   },
   {
-    id: "COL-DELIVER",
-    name: "待交付/验收",
     entryCriteria: "执行完成，进入交付门禁",
     exitCriteria: "交付审批通过并完成交付",
+    id: "COL-DELIVER",
+    name: "待交付/验收",
     projectStatus: "delivering",
   },
   {
-    id: "COL-DONE",
-    name: "已完成",
     entryCriteria: "项目已交付关闭",
     exitCriteria: "N/A",
+    id: "COL-DONE",
+    name: "已完成",
     projectStatus: "done",
   },
   {
-    id: "COL-CANCEL",
-    name: "已取消",
     entryCriteria: "项目被取消/终止",
     exitCriteria: "N/A",
+    id: "COL-CANCEL",
+    name: "已取消",
     projectStatus: "cancelled",
   },
 ] as const;
 
 /** Valid stage transitions — each key lists allowed next stages */
 export const STAGE_TRANSITIONS: Record<string, readonly string[]> = {
-  new: ["assessment", "cancelled"],
   assessment: ["solution", "cancelled"],
-  solution: ["ready", "assessment", "cancelled"],
-  ready: ["executing", "solution", "cancelled"],
-  executing: ["delivering", "cancelled"],
+  cancelled: [],
   delivering: ["done", "executing", "cancelled"],
   done: [],
-  cancelled: [],
+  executing: ["delivering", "cancelled"],
+  new: ["assessment", "cancelled"],
+  ready: ["executing", "solution", "cancelled"],
+  solution: ["ready", "assessment", "cancelled"],
 } as const;
 
 /**
@@ -128,10 +128,10 @@ export const DEPARTMENT_TRACK_STATUSES = [
 export const BLOCKING_STATUSES = ["blocked", "waiting_approval"] as const;
 
 export function getNextProjectStatus(
-  currentStatus: string,
+  currentStatus: string
 ): (typeof BOARD_FLOW_SEQUENCE)[number] | null {
   const index = BOARD_FLOW_SEQUENCE.indexOf(
-    currentStatus as (typeof BOARD_FLOW_SEQUENCE)[number],
+    currentStatus as (typeof BOARD_FLOW_SEQUENCE)[number]
   );
 
   if (index === -1 || index === BOARD_FLOW_SEQUENCE.length - 1) {
@@ -141,15 +141,20 @@ export function getNextProjectStatus(
   return BOARD_FLOW_SEQUENCE[index + 1];
 }
 
-function isForwardStageTransition(currentStatus: string, targetStatus: string): boolean {
+function isForwardStageTransition(
+  currentStatus: string,
+  targetStatus: string
+): boolean {
   const currentIndex = BOARD_FLOW_SEQUENCE.indexOf(
-    currentStatus as (typeof BOARD_FLOW_SEQUENCE)[number],
+    currentStatus as (typeof BOARD_FLOW_SEQUENCE)[number]
   );
   const targetIndex = BOARD_FLOW_SEQUENCE.indexOf(
-    targetStatus as (typeof BOARD_FLOW_SEQUENCE)[number],
+    targetStatus as (typeof BOARD_FLOW_SEQUENCE)[number]
   );
 
-  return currentIndex !== -1 && targetIndex !== -1 && targetIndex > currentIndex;
+  return (
+    currentIndex !== -1 && targetIndex !== -1 && targetIndex > currentIndex
+  );
 }
 
 /**
@@ -168,7 +173,7 @@ export function canAdvanceStage(
   currentStatus: string,
   targetStatus: string,
   requiredTrackStatuses: readonly string[],
-  pendingRequiredApprovalCount = 0,
+  pendingRequiredApprovalCount = 0
 ): { allowed: boolean; reason?: string } {
   const allowedTargets = STAGE_TRANSITIONS[currentStatus];
   if (!allowedTargets || !allowedTargets.includes(targetStatus)) {
@@ -183,11 +188,11 @@ export function canAdvanceStage(
   }
 
   const requiredStatuses = requiredTrackStatuses.filter(
-    (status) => status !== "not_required",
+    (status) => status !== "not_required"
   );
 
   const blockingTracks = requiredStatuses.filter((status) =>
-    (BLOCKING_STATUSES as readonly string[]).includes(status),
+    (BLOCKING_STATUSES as readonly string[]).includes(status)
   );
 
   if (blockingTracks.length > 0) {
@@ -204,7 +209,9 @@ export function canAdvanceStage(
     };
   }
 
-  const incompleteTracks = requiredStatuses.filter((status) => status !== "done");
+  const incompleteTracks = requiredStatuses.filter(
+    (status) => status !== "done"
+  );
   if (incompleteTracks.length > 0) {
     return {
       allowed: false,

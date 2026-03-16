@@ -1,32 +1,36 @@
-import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+
+import { query, mutation } from "./_generated/server";
 
 export const listByProject = query({
   args: { projectId: v.id("projects") },
-  handler: async (ctx, args) => {
-    return ctx.db
+  handler: async (ctx, args) =>
+    ctx.db
       .query("approvalGates")
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-      .collect();
-  },
+      .collect(),
 });
 
 export const getByInstanceCode = query({
   args: { instanceCode: v.string() },
-  handler: async (ctx, args) => {
-    return ctx.db
+  handler: async (ctx, args) =>
+    ctx.db
       .query("approvalGates")
       .withIndex("by_instance_code", (q) =>
-        q.eq("instanceCode", args.instanceCode),
+        q.eq("instanceCode", args.instanceCode)
       )
-      .first();
-  },
+      .first(),
 });
 
 export const create = mutation({
   args: {
-    projectId: v.id("projects"),
+    applicantId: v.string(),
+    approvalCode: v.string(),
     departmentTrackId: v.optional(v.id("departmentTracks")),
+    projectId: v.id("projects"),
+    snapshotData: v.optional(v.string()),
+    templateVersion: v.optional(v.number()),
+    title: v.string(),
     triggerStage: v.union(
       v.literal("new"),
       v.literal("assessment"),
@@ -35,13 +39,8 @@ export const create = mutation({
       v.literal("executing"),
       v.literal("delivering"),
       v.literal("done"),
-      v.literal("cancelled"),
+      v.literal("cancelled")
     ),
-    approvalCode: v.string(),
-    title: v.string(),
-    applicantId: v.string(),
-    snapshotData: v.optional(v.string()),
-    templateVersion: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const gateId = await ctx.db.insert("approvalGates", {
@@ -50,12 +49,12 @@ export const create = mutation({
     });
 
     await ctx.db.insert("auditEvents", {
-      projectId: args.projectId,
-      actorId: args.applicantId,
       action: "approval_gate.created",
-      objectType: "approval_gate",
-      objectId: gateId,
+      actorId: args.applicantId,
       changeSummary: `Approval "${args.title}" created for stage ${args.triggerStage}`,
+      objectId: gateId,
+      objectType: "approval_gate",
+      projectId: args.projectId,
     });
 
     return gateId;
@@ -65,17 +64,17 @@ export const create = mutation({
 export const resolve = mutation({
   args: {
     id: v.id("approvalGates"),
-    instanceCode: v.string(),
-    status: v.union(v.literal("approved"), v.literal("rejected")),
-    resolvedBy: v.string(),
     idempotencyKey: v.optional(v.string()),
+    instanceCode: v.string(),
+    resolvedBy: v.string(),
+    status: v.union(v.literal("approved"), v.literal("rejected")),
   },
   handler: async (ctx, args) => {
     if (args.idempotencyKey) {
       const existing = await ctx.db
         .query("auditEvents")
         .withIndex("by_idempotency_key", (q) =>
-          q.eq("idempotencyKey", args.idempotencyKey),
+          q.eq("idempotencyKey", args.idempotencyKey)
         )
         .first();
       if (existing) {
@@ -90,19 +89,19 @@ export const resolve = mutation({
 
     await ctx.db.patch(args.id, {
       instanceCode: args.instanceCode,
-      status: args.status,
       resolvedAt: Date.now(),
       resolvedBy: args.resolvedBy,
+      status: args.status,
     });
 
     await ctx.db.insert("auditEvents", {
-      projectId: gate.projectId,
-      actorId: args.resolvedBy,
       action: `approval_gate.${args.status}`,
-      objectType: "approval_gate",
-      objectId: args.id,
+      actorId: args.resolvedBy,
       changeSummary: `Approval "${gate.title}" ${args.status}`,
       idempotencyKey: args.idempotencyKey,
+      objectId: args.id,
+      objectType: "approval_gate",
+      projectId: gate.projectId,
     });
   },
 });

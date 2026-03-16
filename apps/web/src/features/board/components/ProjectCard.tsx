@@ -1,10 +1,12 @@
 import Link from "next/link";
+
 import { cn } from "@/lib/cn";
+
 import type { BoardProjectCard } from "../types";
-import { PriorityBadge } from "./PriorityBadge";
-import { DepartmentChip } from "./DepartmentChip";
-import { SlaRiskIndicator } from "./SlaRiskIndicator";
 import { CardMetaRow } from "./CardMetaRow";
+import { DepartmentChip } from "./DepartmentChip";
+import { PriorityBadge } from "./PriorityBadge";
+import { SlaRiskIndicator } from "./SlaRiskIndicator";
 import { StageAdvanceHint } from "./StageAdvanceHint";
 
 interface ProjectCardProps {
@@ -27,7 +29,7 @@ export function ProjectCard({
       className={cn(
         "rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md",
         draggable && "cursor-grab active:cursor-grabbing",
-        isMoving && "opacity-60",
+        isMoving && "opacity-60"
       )}
       draggable={draggable}
       onDragStart={onDragStart}
@@ -48,7 +50,9 @@ export function ProjectCard({
       </div>
 
       <div className="mb-2 flex items-start justify-between gap-2">
-        <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-gray-900">{card.name}</h3>
+        <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-gray-900">
+          {card.name}
+        </h3>
         <Link
           href={`/projects/${card.id}`}
           className="shrink-0 rounded-md border border-gray-200 px-2 py-1 text-[11px] font-medium text-gray-600 hover:border-blue-300 hover:text-blue-700"

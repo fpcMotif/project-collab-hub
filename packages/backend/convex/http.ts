@@ -1,6 +1,7 @@
 import { httpRouter } from "convex/server";
-import { httpAction } from "./_generated/server";
+
 import { api } from "./_generated/api";
+import { httpAction } from "./_generated/server";
 
 const http = httpRouter();
 
@@ -8,17 +9,15 @@ const http = httpRouter();
 // Feishu sends a challenge request to verify the endpoint.
 
 http.route({
-  path: "/feishu/events",
-  method: "POST",
   handler: httpAction(async (ctx, request) => {
     const body = (await request.json()) as Record<string, unknown>;
 
     // Handle URL verification challenge
     if (body.type === "url_verification") {
-      return new Response(
-        JSON.stringify({ challenge: body.challenge }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ challenge: body.challenge }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     // Extract event header for idempotency
@@ -49,23 +48,23 @@ http.route({
       headers: { "Content-Type": "application/json" },
     });
   }),
+  method: "POST",
+  path: "/feishu/events",
 });
 
 // ── Feishu Card Callback ────────────────────────────────────────────────
 // Handles interactive card button clicks from Feishu message cards.
 
 http.route({
-  path: "/feishu/card-callback",
-  method: "POST",
   handler: httpAction(async (ctx, request) => {
     const body = (await request.json()) as Record<string, unknown>;
 
     // Handle URL verification
     if (body.type === "url_verification") {
-      return new Response(
-        JSON.stringify({ challenge: body.challenge }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ challenge: body.challenge }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const action = body.action as Record<string, unknown> | undefined;
@@ -107,23 +106,23 @@ http.route({
       headers: { "Content-Type": "application/json" },
     });
   }),
+  method: "POST",
+  path: "/feishu/card-callback",
 });
 
 // ── Link Preview Callback ───────────────────────────────────────────────
 // Returns preview card data when project links are pasted in Feishu.
 
 http.route({
-  path: "/feishu/link-preview",
-  method: "POST",
   handler: httpAction(async (ctx, request) => {
     const body = (await request.json()) as Record<string, unknown>;
 
     // Handle URL verification
     if (body.type === "url_verification") {
-      return new Response(
-        JSON.stringify({ challenge: body.challenge }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ challenge: body.challenge }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const event = body.event as Record<string, unknown> | undefined;
@@ -169,59 +168,79 @@ http.route({
       headers: { "Content-Type": "application/json" },
     });
   }),
+  method: "POST",
+  path: "/feishu/link-preview",
 });
 
 // ── Internal Handlers ───────────────────────────────────────────────────
 
 async function handleApprovalEvent(
-  ctx: { runQuery: typeof Function.prototype; runMutation: typeof Function.prototype },
+  ctx: {
+    runQuery: typeof Function.prototype;
+    runMutation: typeof Function.prototype;
+  },
   body: Record<string, unknown>,
-  eventId: string,
+  eventId: string
 ) {
   const event = body.event as Record<string, unknown> | undefined;
-  if (!event) return;
+  if (!event) {
+    return;
+  }
 
   const instanceCode = event.instance_code as string | undefined;
   const approvalStatus = event.status as string | undefined;
 
-  if (!instanceCode || !approvalStatus) return;
+  if (!instanceCode || !approvalStatus) {
+    return;
+  }
 
   // Map Feishu approval status to our status
   const statusMap: Record<string, string> = {
     APPROVED: "approved",
-    REJECTED: "rejected",
     CANCELED: "cancelled",
+    REJECTED: "rejected",
   };
   const mappedStatus = statusMap[approvalStatus];
-  if (!mappedStatus) return;
+  if (!mappedStatus) {
+    return;
+  }
 
   // Find the approval gate by instance code
   const gate = await (ctx.runQuery as Function)(
     api.approvalGates.getByInstanceCode,
-    { instanceCode },
+    { instanceCode }
   );
-  if (!gate) return;
+  if (!gate) {
+    return;
+  }
 
   // Resolve the approval gate with idempotency
   await (ctx.runMutation as Function)(api.approvalGates.resolve, {
     id: gate._id,
-    instanceCode,
-    status: mappedStatus,
-    resolvedBy: (event.user_id as string) ?? "system",
     idempotencyKey: eventId,
+    instanceCode,
+    resolvedBy: (event.user_id as string) ?? "system",
+    status: mappedStatus,
   });
 }
 
 async function handleTaskEvent(
-  ctx: { runQuery: typeof Function.prototype; runMutation: typeof Function.prototype },
+  ctx: {
+    runQuery: typeof Function.prototype;
+    runMutation: typeof Function.prototype;
+  },
   body: Record<string, unknown>,
-  _eventId: string,
+  _eventId: string
 ) {
   const event = body.event as Record<string, unknown> | undefined;
-  if (!event) return;
+  if (!event) {
+    return;
+  }
 
   const taskGuid = event.task_id as string | undefined;
-  if (!taskGuid) return;
+  if (!taskGuid) {
+    return;
+  }
 
   // TODO: Look up feishuTaskBindings by taskGuid, then update workItem status.
   // This requires a query on feishuTaskBindings.by_feishu_task index.

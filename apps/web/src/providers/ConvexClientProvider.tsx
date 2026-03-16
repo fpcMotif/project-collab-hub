@@ -1,11 +1,8 @@
 "use client";
 
-import {
-  createContext,
-  type ReactNode,
-  useContext,
-} from "react";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { createContext, useContext } from "react";
+import type { ReactNode } from "react";
 
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
 const convex = convexUrl ? new ConvexReactClient(convexUrl) : null;
@@ -18,7 +15,11 @@ export function useConvexEnabled() {
 
 export function ConvexClientProvider({ children }: { children: ReactNode }) {
   if (!convex) {
-    return <ConvexEnabledContext.Provider value={false}>{children}</ConvexEnabledContext.Provider>;
+    return (
+      <ConvexEnabledContext.Provider value={false}>
+        {children}
+      </ConvexEnabledContext.Provider>
+    );
   }
 
   return (

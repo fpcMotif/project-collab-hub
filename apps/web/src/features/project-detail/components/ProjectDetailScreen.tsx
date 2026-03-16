@@ -1,6 +1,7 @@
 "use client";
 
 import { useConvexEnabled } from "@/providers/ConvexClientProvider";
+
 import { useConvexProjectDetail } from "../hooks/useConvexProjectDetail";
 import { useMockProjectDetailState } from "../hooks/useMockProjectDetailState";
 import {

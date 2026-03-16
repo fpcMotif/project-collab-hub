@@ -1,4 +1,5 @@
 import { Context, Effect, Layer } from "effect";
+
 import { FeishuAuthService } from "./FeishuAuthService.js";
 
 export interface CreateChatParams {
@@ -16,18 +17,29 @@ export class FeishuChatService extends Context.Tag("FeishuChatService")<
   FeishuChatService,
   {
     readonly createChat: (
-      params: CreateChatParams,
+      params: CreateChatParams
     ) => Effect.Effect<ChatResult, Error>;
     readonly addBotToChat: (chatId: string) => Effect.Effect<void, Error>;
-    readonly pinMessage: (
-      messageId: string,
-    ) => Effect.Effect<void, Error>;
+    readonly pinMessage: (messageId: string) => Effect.Effect<void, Error>;
   }
 >() {}
 
 export const FeishuChatServiceLive = Layer.effect(
   FeishuChatService,
   Effect.map(FeishuAuthService, (auth) => ({
+    addBotToChat: (chatId: string) =>
+      Effect.tryPromise({
+        try: () =>
+          auth.client.im.chatMembers.create({
+            path: { chat_id: chatId },
+            data: { id_list: [] },
+          }),
+        catch: (error) =>
+          new Error(
+            `Failed to add bot to chat: ${error instanceof Error ? error.message : String(error)}`
+          ),
+      }).pipe(Effect.asVoid),
+
     createChat: (params: CreateChatParams) =>
       Effect.tryPromise({
         try: async () => {
@@ -48,22 +60,9 @@ export const FeishuChatServiceLive = Layer.effect(
         },
         catch: (error) =>
           new Error(
-            `Failed to create chat: ${error instanceof Error ? error.message : String(error)}`,
+            `Failed to create chat: ${error instanceof Error ? error.message : String(error)}`
           ),
       }),
-
-    addBotToChat: (chatId: string) =>
-      Effect.tryPromise({
-        try: () =>
-          auth.client.im.chatMembers.create({
-            path: { chat_id: chatId },
-            data: { id_list: [] },
-          }),
-        catch: (error) =>
-          new Error(
-            `Failed to add bot to chat: ${error instanceof Error ? error.message : String(error)}`,
-          ),
-      }).pipe(Effect.asVoid),
 
     pinMessage: (messageId: string) =>
       Effect.tryPromise({
@@ -73,8 +72,8 @@ export const FeishuChatServiceLive = Layer.effect(
           }),
         catch: (error) =>
           new Error(
-            `Failed to pin message: ${error instanceof Error ? error.message : String(error)}`,
+            `Failed to pin message: ${error instanceof Error ? error.message : String(error)}`
           ),
       }).pipe(Effect.asVoid),
-  })),
+  }))
 );

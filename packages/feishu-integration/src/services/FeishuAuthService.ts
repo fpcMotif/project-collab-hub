@@ -1,5 +1,5 @@
-import { Context, Effect, Layer } from "effect";
 import * as lark from "@larksuiteoapi/node-sdk";
+import { Context, Effect, Layer } from "effect";
 
 export interface FeishuAuthConfig {
   readonly appId: string;
@@ -24,6 +24,10 @@ export const FeishuAuthServiceLive = (config: FeishuAuthConfig) =>
 
     getTenantAccessToken: () =>
       Effect.tryPromise({
+        catch: (error) =>
+          new Error(
+            `Failed to get tenant access token: ${error instanceof Error ? error.message : String(error)}`
+          ),
         try: async () => {
           const resp = await fetch(
             "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
@@ -34,7 +38,7 @@ export const FeishuAuthServiceLive = (config: FeishuAuthConfig) =>
                 app_id: config.appId,
                 app_secret: config.appSecret,
               }),
-            },
+            }
           );
           const data = (await resp.json()) as {
             tenant_access_token: string;
@@ -46,9 +50,5 @@ export const FeishuAuthServiceLive = (config: FeishuAuthConfig) =>
           }
           return data.tenant_access_token;
         },
-        catch: (error) =>
-          new Error(
-            `Failed to get tenant access token: ${error instanceof Error ? error.message : String(error)}`,
-          ),
       }),
   });

@@ -61,14 +61,21 @@ export function SavedViewsBar({
               className="rounded-full p-0.5 hover:bg-black/5"
               aria-label={`删除视图 ${view.name}`}
             >
-              <svg className="h-3 w-3" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
+              <svg
+                className="h-3 w-3"
+                viewBox="0 0 12 12"
+                fill="currentColor"
+                aria-hidden="true"
+              >
                 <path d="M3.17 3.17a.75.75 0 011.06 0L6 4.94l1.77-1.77a.75.75 0 111.06 1.06L7.06 6l1.77 1.77a.75.75 0 11-1.06 1.06L6 7.06 4.23 8.83a.75.75 0 01-1.06-1.06L4.94 6 3.17 4.23a.75.75 0 010-1.06z" />
               </svg>
             </button>
           </span>
         );
       })}
-      {savedViews.length === 0 && <span className="text-xs text-gray-400">暂无已保存视图</span>}
+      {savedViews.length === 0 && (
+        <span className="text-xs text-gray-400">暂无已保存视图</span>
+      )}
     </div>
   );
 }

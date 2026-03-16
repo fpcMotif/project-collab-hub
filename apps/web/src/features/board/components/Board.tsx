@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback } from "react";
+
 import { useConvexEnabled } from "@/providers/ConvexClientProvider";
+
 import { useBoardFilters } from "../hooks/useBoardFilters";
 import { useBoardSavedViews } from "../hooks/useBoardSavedViews";
 import { useConvexBoardData } from "../hooks/useConvexBoardData";
@@ -14,10 +16,17 @@ export function Board() {
   const savedViewsState = useBoardSavedViews();
 
   if (convexEnabled) {
-    return <ConnectedBoard boardState={boardState} savedViewsState={savedViewsState} />;
+    return (
+      <ConnectedBoard
+        boardState={boardState}
+        savedViewsState={savedViewsState}
+      />
+    );
   }
 
-  return <MockBoard boardState={boardState} savedViewsState={savedViewsState} />;
+  return (
+    <MockBoard boardState={boardState} savedViewsState={savedViewsState} />
+  );
 }
 
 interface SharedBoardState {

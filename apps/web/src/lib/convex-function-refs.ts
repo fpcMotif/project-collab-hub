@@ -1,8 +1,9 @@
 import type { ProjectStatus } from "@collab-hub/shared";
 import { makeFunctionReference } from "convex/server";
+
 import type { BoardProjectRecord, Priority } from "@/features/board/types";
-import type { ProjectDetailData } from "@/features/project-detail/types";
 import type { ConvexProjectTemplateDoc } from "@/features/project-create/types";
+import type { ProjectDetailData } from "@/features/project-detail/types";
 
 export type ProjectDetailQueryArgs = Record<string, string> & {
   projectId: string;
@@ -35,7 +36,10 @@ export type ResolveApprovalArgs = Record<string, string | undefined> & {
   idempotencyKey?: string;
 };
 
-export type CreateCommentArgs = Record<string, string | string[] | undefined> & {
+export type CreateCommentArgs = Record<
+  string,
+  string | string[] | undefined
+> & {
   projectId: string;
   authorId: string;
   body: string;
@@ -55,8 +59,10 @@ export type ListProjectTemplatesArgs = Record<string, boolean | undefined> & {
   activeOnly?: boolean;
 };
 
-export interface CreateProjectFromTemplateArgs
-  extends Record<string, string | number | undefined> {
+export interface CreateProjectFromTemplateArgs extends Record<
+  string,
+  string | number | undefined
+> {
   templateId: string;
   name: string;
   description: string;
@@ -78,14 +84,35 @@ export interface CreateProjectFromTemplateResult {
 }
 
 export const convexFunctionRefs = {
-  listBoardProjects: makeFunctionReference<"query", {}, BoardProjectRecord[]>(
-    "board:listBoardProjects",
+  createComment: makeFunctionReference<"mutation", CreateCommentArgs, string>(
+    "comments:create"
+  ),
+  createProjectFromTemplate: makeFunctionReference<
+    "mutation",
+    CreateProjectFromTemplateArgs,
+    CreateProjectFromTemplateResult
+  >("projects:createFromTemplate"),
+  deleteComment: makeFunctionReference<"mutation", DeleteCommentArgs, void>(
+    "comments:softDelete"
   ),
   getProjectDetail: makeFunctionReference<
     "query",
     ProjectDetailQueryArgs,
     ProjectDetailData | null
   >("board:getProjectDetail"),
+  listBoardProjects: makeFunctionReference<"query", {}, BoardProjectRecord[]>(
+    "board:listBoardProjects"
+  ),
+  listProjectTemplates: makeFunctionReference<
+    "query",
+    ListProjectTemplatesArgs,
+    ConvexProjectTemplateDoc[]
+  >("projectTemplates:list"),
+  resolveApprovalGate: makeFunctionReference<
+    "mutation",
+    ResolveApprovalArgs,
+    void
+  >("approvalGates:resolve"),
   transitionProjectStage: makeFunctionReference<
     "mutation",
     TransitionProjectStageArgs,
@@ -96,23 +123,4 @@ export const convexFunctionRefs = {
     UpdateWorkItemStatusArgs,
     void
   >("workItems:updateStatus"),
-  resolveApprovalGate: makeFunctionReference<"mutation", ResolveApprovalArgs, void>(
-    "approvalGates:resolve",
-  ),
-  createComment: makeFunctionReference<"mutation", CreateCommentArgs, string>(
-    "comments:create",
-  ),
-  deleteComment: makeFunctionReference<"mutation", DeleteCommentArgs, void>(
-    "comments:softDelete",
-  ),
-  listProjectTemplates: makeFunctionReference<
-    "query",
-    ListProjectTemplatesArgs,
-    ConvexProjectTemplateDoc[]
-  >("projectTemplates:list"),
-  createProjectFromTemplate: makeFunctionReference<
-    "mutation",
-    CreateProjectFromTemplateArgs,
-    CreateProjectFromTemplateResult
-  >("projects:createFromTemplate"),
 } as const;
