@@ -1,11 +1,10 @@
+import { FeishuError } from "../errors/feishu-error.js";
+
 export interface FeishuApiResponse<TData> {
   readonly code?: number;
   readonly msg?: string;
   readonly data?: TData;
 }
-
-const toErrorCause = (error: unknown): Error =>
-  error instanceof Error ? error : new Error(String(error));
 
 const getFeishuFailureMessage = (
   response: Pick<FeishuApiResponse<unknown>, "code" | "msg">
@@ -30,11 +29,10 @@ const getFeishuFailureMessage = (
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-export const wrapFeishuError = (prefix: string, error: unknown): Error =>
-  new Error(
-    `${prefix}: ${error instanceof Error ? error.message : String(error)}`,
-    { cause: toErrorCause(error) }
-  );
+export const wrapFeishuError = (prefix: string, error: unknown): FeishuError =>
+  new FeishuError({
+    message: `${prefix}: ${error instanceof Error ? error.message : String(error)}`,
+  });
 
 export const assertFeishuSuccess = <TData>(
   response: FeishuApiResponse<TData>
@@ -43,7 +41,7 @@ export const assertFeishuSuccess = <TData>(
     return;
   }
 
-  throw new Error(getFeishuFailureMessage(response));
+  throw new FeishuError({ message: getFeishuFailureMessage(response) });
 };
 
 export const getFeishuData = <TData>(
@@ -52,7 +50,7 @@ export const getFeishuData = <TData>(
   assertFeishuSuccess(response);
 
   if (response.data === undefined || response.data === null) {
-    throw new Error("No data in response");
+    throw new FeishuError({ message: "No data in response" });
   }
 
   return response.data;
@@ -64,7 +62,7 @@ export const getFeishuObjectData = (
   const data = getFeishuData(response);
 
   if (!isRecord(data)) {
-    throw new Error("Expected object data in response");
+    throw new FeishuError({ message: "Expected object data in response" });
   }
 
   return data;

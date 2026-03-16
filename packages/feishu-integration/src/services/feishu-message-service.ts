@@ -1,6 +1,6 @@
 import { Context, Effect, Layer } from "effect";
 
-import { FeishuError } from "../errors/feishu-error.js";
+import type { FeishuError } from "../errors/feishu-error.js";
 import { FeishuAuthService } from "./feishu-auth-service.js";
 import { assertFeishuSuccess, wrapFeishuError } from "./feishu-response.js";
 
@@ -37,7 +37,7 @@ export const FeishuMessageServiceLive = Layer.effect(
         readonly content: string;
         readonly failurePrefix: string;
         readonly messageType: "interactive" | "text";
-      }): Effect.Effect<void, Error> =>
+      }): Effect.Effect<void, FeishuError> =>
         Effect.tryPromise({
           catch: (error) => wrapFeishuError(params.failurePrefix, error),
           try: async () => {

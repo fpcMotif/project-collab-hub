@@ -21,7 +21,9 @@ export class FeishuChatService extends Context.Tag("FeishuChatService")<
       params: CreateChatParams
     ) => Effect.Effect<ChatResult, FeishuError>;
     readonly addBotToChat: (chatId: string) => Effect.Effect<void, FeishuError>;
-    readonly pinMessage: (messageId: string) => Effect.Effect<void, FeishuError>;
+    readonly pinMessage: (
+      messageId: string
+    ) => Effect.Effect<void, FeishuError>;
   }
 >() {}
 

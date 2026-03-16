@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
 import { query, mutation } from "./_generated/server";
+import { sanitizeLogInput } from "./lib/feishu-webhook";
 
 export const listByProject = query({
   args: { projectId: v.id("projects") },
@@ -47,6 +48,39 @@ export const logSystemEvent = mutation({
     return ctx.db.insert("auditEvents", {
       ...args,
       actorId: "system",
+    });
+  },
+});
+
+export const logIntegrationEvent = mutation({
+  args: {
+    action: v.string(),
+    actorId: v.string(),
+    changeSummary: v.string(),
+    idempotencyKey: v.optional(v.string()),
+    objectId: v.string(),
+    objectType: v.string(),
+    projectId: v.optional(v.id("projects")),
+    sourceEntry: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    if (args.idempotencyKey) {
+      const existing = await ctx.db
+        .query("auditEvents")
+        .withIndex("by_idempotency_key", (q) =>
+          q.eq("idempotencyKey", args.idempotencyKey)
+        )
+        .first();
+
+      if (existing) {
+        return existing._id;
+      }
+    }
+
+    return ctx.db.insert("auditEvents", {
+      ...args,
+      changeSummary: sanitizeLogInput(args.changeSummary),
+      objectId: sanitizeLogInput(args.objectId),
     });
   },
 });
