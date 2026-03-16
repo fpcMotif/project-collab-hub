@@ -3,7 +3,7 @@ export { WorkItem, WorkItemStatus, WorkItemPriority } from "./schemas/task";
 export {
   DepartmentTrack,
   DepartmentTrackStatus,
-} from "./schemas/departmentTrack";
+} from "./schemas/department-track";
 export { ApprovalGate, ApprovalStatus } from "./schemas/approval";
 export { Comment, Mention, CommentTargetScope } from "./schemas/comment";
 export {

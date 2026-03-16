@@ -43,66 +43,6 @@ const approvalStatus = v.union(
 );
 
 export default defineSchema({
-  // ── Core ──────────────────────────────────────────────────────────────
-
-  projects: defineTable({
-    createdBy: v.string(),
-    customerName: v.optional(v.string()),
-    departmentId: v.string(),
-    description: v.string(),
-    endDate: v.optional(v.number()),
-    name: v.string(),
-    ownerId: v.string(),
-    priority: v.optional(workItemPriority),
-    slaDeadline: v.optional(v.number()),
-    sourceEntry: v.union(
-      v.literal("workbench"),
-      v.literal("message_shortcut"),
-      v.literal("api")
-    ),
-    startDate: v.optional(v.number()),
-    status: projectStatus,
-    templateId: v.optional(v.string()),
-    templateVersion: v.optional(v.number()),
-  })
-    .index("by_status", ["status"])
-    .index("by_owner", ["ownerId"])
-    .index("by_department", ["departmentId"]),
-
-  departmentTracks: defineTable({
-    blockReason: v.optional(v.string()),
-    collaboratorIds: v.optional(v.array(v.string())),
-    departmentId: v.string(),
-    departmentName: v.string(),
-    dueDate: v.optional(v.number()),
-    isRequired: v.boolean(),
-    ownerId: v.optional(v.string()),
-    projectId: v.id("projects"),
-    status: departmentTrackStatus,
-  })
-    .index("by_project", ["projectId"])
-    .index("by_department", ["departmentId"])
-    .index("by_status", ["status"]),
-
-  workItems: defineTable({
-    assigneeId: v.optional(v.string()),
-    collaboratorIds: v.optional(v.array(v.string())),
-    completedAt: v.optional(v.number()),
-    departmentTrackId: v.optional(v.id("departmentTracks")),
-    description: v.string(),
-    dueDate: v.optional(v.number()),
-    priority: workItemPriority,
-    projectId: v.id("projects"),
-    status: workItemStatus,
-    title: v.string(),
-  })
-    .index("by_project", ["projectId"])
-    .index("by_department_track", ["departmentTrackId"])
-    .index("by_assignee", ["assigneeId"])
-    .index("by_status", ["status"]),
-
-  // ── Feishu Integration Bindings ───────────────────────────────────────
-
   approvalGates: defineTable({
     applicantId: v.string(),
     approvalCode: v.string(),
@@ -121,42 +61,19 @@ export default defineSchema({
     .index("by_instance_code", ["instanceCode"])
     .index("by_status", ["status"]),
 
-  feishuTaskBindings: defineTable({
-    feishuTaskGuid: v.string(),
-    feishuTaskStatus: v.string(),
-    lastSyncedAt: v.number(),
-    projectId: v.id("projects"),
-    syncDirection: v.union(v.literal("app_created"), v.literal("manual_link")),
-    workItemId: v.id("workItems"),
-  })
-    .index("by_work_item", ["workItemId"])
-    .index("by_feishu_task", ["feishuTaskGuid"])
-    .index("by_project", ["projectId"]),
-
-  chatBindings: defineTable({
-    botAddedAt: v.optional(v.number()),
-    chatType: v.union(v.literal("auto_created"), v.literal("manual_bound")),
-    feishuChatId: v.string(),
-    pinnedMessageId: v.optional(v.string()),
-    projectId: v.id("projects"),
+  auditEvents: defineTable({
+    action: v.string(),
+    actorId: v.string(),
+    changeSummary: v.string(),
+    idempotencyKey: v.optional(v.string()),
+    objectId: v.string(),
+    objectType: v.string(),
+    projectId: v.optional(v.id("projects")),
+    sourceEntry: v.optional(v.string()),
   })
     .index("by_project", ["projectId"])
-    .index("by_chat", ["feishuChatId"]),
-
-  docBindings: defineTable({
-    docType: v.union(
-      v.literal("doc"),
-      v.literal("wiki"),
-      v.literal("sheet"),
-      v.literal("base")
-    ),
-    feishuDocToken: v.string(),
-    projectId: v.id("projects"),
-    purpose: v.optional(v.string()),
-    title: v.string(),
-  })
-    .index("by_project", ["projectId"])
-    .index("by_doc_token", ["feishuDocToken"]),
+    .index("by_actor", ["actorId"])
+    .index("by_idempotency_key", ["idempotencyKey"]),
 
   baseBindings: defineTable({
     baseAppToken: v.string(),
@@ -169,7 +86,15 @@ export default defineSchema({
     .index("by_project", ["projectId"])
     .index("by_record", ["recordId"]),
 
-  // ── Comments & Mentions ───────────────────────────────────────────────
+  chatBindings: defineTable({
+    botAddedAt: v.optional(v.number()),
+    chatType: v.union(v.literal("auto_created"), v.literal("manual_bound")),
+    feishuChatId: v.string(),
+    pinnedMessageId: v.optional(v.string()),
+    projectId: v.id("projects"),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_chat", ["feishuChatId"]),
 
   comments: defineTable({
     authorId: v.string(),
@@ -189,6 +114,48 @@ export default defineSchema({
   })
     .index("by_project", ["projectId"])
     .index("by_parent", ["parentCommentId"]),
+
+  departmentTracks: defineTable({
+    blockReason: v.optional(v.string()),
+    collaboratorIds: v.optional(v.array(v.string())),
+    departmentId: v.string(),
+    departmentName: v.string(),
+    dueDate: v.optional(v.number()),
+    isRequired: v.boolean(),
+    ownerId: v.optional(v.string()),
+    projectId: v.id("projects"),
+    status: departmentTrackStatus,
+  })
+    .index("by_project", ["projectId"])
+    .index("by_department", ["departmentId"])
+    .index("by_status", ["status"]),
+
+  docBindings: defineTable({
+    docType: v.union(
+      v.literal("doc"),
+      v.literal("wiki"),
+      v.literal("sheet"),
+      v.literal("base")
+    ),
+    feishuDocToken: v.string(),
+    projectId: v.id("projects"),
+    purpose: v.optional(v.string()),
+    title: v.string(),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_doc_token", ["feishuDocToken"]),
+
+  feishuTaskBindings: defineTable({
+    feishuTaskGuid: v.string(),
+    feishuTaskStatus: v.string(),
+    lastSyncedAt: v.number(),
+    projectId: v.id("projects"),
+    syncDirection: v.union(v.literal("app_created"), v.literal("manual_link")),
+    workItemId: v.id("workItems"),
+  })
+    .index("by_work_item", ["workItemId"])
+    .index("by_feishu_task", ["feishuTaskGuid"])
+    .index("by_project", ["projectId"]),
 
   mentions: defineTable({
     commentId: v.id("comments"),
@@ -231,8 +198,6 @@ export default defineSchema({
     .index("by_project", ["projectId"])
     .index("by_recipient", ["recipientId"])
     .index("by_status", ["status"]),
-
-  // ── Configuration ──────────────────────────────────────────────────────
 
   projectTemplates: defineTable({
     approvalGates: v.array(
@@ -281,19 +246,44 @@ export default defineSchema({
     .index("by_active", ["isActive"])
     .index("by_name", ["name"]),
 
-  // ── Audit & Events ────────────────────────────────────────────────────
+  projects: defineTable({
+    createdBy: v.string(),
+    customerName: v.optional(v.string()),
+    departmentId: v.string(),
+    description: v.string(),
+    endDate: v.optional(v.number()),
+    name: v.string(),
+    ownerId: v.string(),
+    priority: v.optional(workItemPriority),
+    slaDeadline: v.optional(v.number()),
+    sourceEntry: v.union(
+      v.literal("workbench"),
+      v.literal("message_shortcut"),
+      v.literal("api")
+    ),
+    startDate: v.optional(v.number()),
+    status: projectStatus,
+    templateId: v.optional(v.string()),
+    templateVersion: v.optional(v.number()),
+  })
+    .index("by_status", ["status"])
+    .index("by_owner", ["ownerId"])
+    .index("by_department", ["departmentId"]),
 
-  auditEvents: defineTable({
-    action: v.string(),
-    actorId: v.string(),
-    changeSummary: v.string(),
-    idempotencyKey: v.optional(v.string()),
-    objectId: v.string(),
-    objectType: v.string(),
-    projectId: v.optional(v.id("projects")),
-    sourceEntry: v.optional(v.string()),
+  workItems: defineTable({
+    assigneeId: v.optional(v.string()),
+    collaboratorIds: v.optional(v.array(v.string())),
+    completedAt: v.optional(v.number()),
+    departmentTrackId: v.optional(v.id("departmentTracks")),
+    description: v.string(),
+    dueDate: v.optional(v.number()),
+    priority: workItemPriority,
+    projectId: v.id("projects"),
+    status: workItemStatus,
+    title: v.string(),
   })
     .index("by_project", ["projectId"])
-    .index("by_actor", ["actorId"])
-    .index("by_idempotency_key", ["idempotencyKey"]),
+    .index("by_department_track", ["departmentTrackId"])
+    .index("by_assignee", ["assigneeId"])
+    .index("by_status", ["status"]),
 });

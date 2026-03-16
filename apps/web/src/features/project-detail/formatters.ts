@@ -11,18 +11,18 @@ const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
   year: "numeric",
 });
 
-export function formatDate(value?: number | null) {
+export const formatDate = (value?: number | null) => {
   if (!value) {
     return "—";
   }
 
   return dateFormatter.format(value);
-}
+};
 
-export function formatDateTime(value?: number | null) {
+export const formatDateTime = (value?: number | null) => {
   if (!value) {
     return "—";
   }
 
   return dateTimeFormatter.format(value);
-}
+};

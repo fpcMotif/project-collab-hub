@@ -4,10 +4,10 @@ import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
-import { useMockProjectStore } from "@/features/board/hooks/useMockProjectStore";
+import { useMockProjectStore } from "@/features/board/hooks/use-mock-project-store";
 import type { BoardProjectRecord } from "@/features/board/types";
 import { convexFunctionRefs } from "@/lib/convex-function-refs";
-import { useConvexEnabled } from "@/providers/ConvexClientProvider";
+import { useConvexEnabled } from "@/providers/convex-client-provider";
 
 import { MOCK_PROJECT_TEMPLATES } from "../mock-templates";
 import type {
@@ -15,25 +15,23 @@ import type {
   ProjectCreateFormValues,
   ProjectTemplateOption,
 } from "../types";
-import { ProjectCreateForm } from "./ProjectCreateForm";
+import { ProjectCreateForm } from "./project-create-form";
 
 const CREATE_ACTOR_ID = "web_app.user";
 
-function toProjectTemplateOption(
+const toProjectTemplateOption = (
   template: ConvexProjectTemplateDoc
-): ProjectTemplateOption {
-  return {
-    approvalGates: template.approvalGates,
-    defaultPriority: template.defaultPriority,
-    departments: template.departments,
-    description: template.description,
-    id: template._id,
-    name: template.name,
-    version: template.version,
-  };
-}
+): ProjectTemplateOption => ({
+  approvalGates: template.approvalGates,
+  defaultPriority: template.defaultPriority,
+  departments: template.departments,
+  description: template.description,
+  id: template._id,
+  name: template.name,
+  version: template.version,
+});
 
-function createProjectId() {
+const createProjectId = () => {
   if (
     typeof crypto !== "undefined" &&
     typeof crypto.randomUUID === "function"
@@ -42,41 +40,44 @@ function createProjectId() {
   }
 
   return `P-${Date.now().toString(36).toUpperCase()}`;
-}
+};
 
-function createMockProjectRecord(
+const createMockProjectRecord = (
   values: ProjectCreateFormValues,
   template: ProjectTemplateOption
-): BoardProjectRecord {
-  return {
-    customerName: values.customerName.trim() || "未填写客户",
-    departmentTracks: template.departments.map((department) => ({
-      departmentName: department.departmentName,
-      status: department.isRequired ? "not_started" : "not_required",
-    })),
-    id: createProjectId(),
-    name: values.name.trim(),
-    overdueTaskCount: 0,
-    ownerName: values.ownerId.trim(),
-    pendingApprovalCount: 0,
-    priority: values.priority,
-    slaRisk: "on_time",
-    status: "new",
-    templateType: template.name,
-  };
-}
+): BoardProjectRecord => ({
+  customerName: values.customerName.trim() || "未填写客户",
+  departmentTracks: template.departments.map((department) => ({
+    departmentName: department.departmentName,
+    status: department.isRequired ? "not_started" : "not_required",
+  })),
+  id: createProjectId(),
+  name: values.name.trim(),
+  overdueTaskCount: 0,
+  ownerName: values.ownerId.trim(),
+  pendingApprovalCount: 0,
+  priority: values.priority,
+  slaRisk: "on_time",
+  status: "new",
+  templateType: template.name,
+});
 
-export function ProjectCreateScreen() {
-  const convexEnabled = useConvexEnabled();
+const ProjectCreateLoading = () => (
+  <div className="min-h-screen bg-gray-100 p-6">
+    <div className="mx-auto max-w-5xl animate-pulse space-y-4">
+      <div className="h-10 w-64 rounded bg-gray-200" />
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
+        <div className="h-[560px] rounded-xl bg-gray-200" />
+        <div className="space-y-4">
+          <div className="h-48 rounded-xl bg-gray-200" />
+          <div className="h-48 rounded-xl bg-gray-200" />
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
-  if (convexEnabled) {
-    return <ConnectedProjectCreateScreen />;
-  }
-
-  return <MockProjectCreateScreen />;
-}
-
-function ConnectedProjectCreateScreen() {
+const ConnectedProjectCreateScreen = () => {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const templatesQuery = useQuery(convexFunctionRefs.listProjectTemplates, {
@@ -130,9 +131,9 @@ function ConnectedProjectCreateScreen() {
       }}
     />
   );
-}
+};
 
-function MockProjectCreateScreen() {
+const MockProjectCreateScreen = () => {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { addProject } = useMockProjectStore();
@@ -141,7 +142,7 @@ function MockProjectCreateScreen() {
     <ProjectCreateForm
       templates={MOCK_PROJECT_TEMPLATES}
       isSubmitting={isSubmitting}
-      onSubmit={async (values) => {
+      onSubmit={(values) => {
         const template = MOCK_PROJECT_TEMPLATES.find(
           (item) => item.id === values.templateId
         );
@@ -161,21 +162,14 @@ function MockProjectCreateScreen() {
       }}
     />
   );
-}
+};
 
-function ProjectCreateLoading() {
-  return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="mx-auto max-w-5xl animate-pulse space-y-4">
-        <div className="h-10 w-64 rounded bg-gray-200" />
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
-          <div className="h-[560px] rounded-xl bg-gray-200" />
-          <div className="space-y-4">
-            <div className="h-48 rounded-xl bg-gray-200" />
-            <div className="h-48 rounded-xl bg-gray-200" />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+export const ProjectCreateScreen = () => {
+  const convexEnabled = useConvexEnabled();
+
+  if (convexEnabled) {
+    return <ConnectedProjectCreateScreen />;
+  }
+
+  return <MockProjectCreateScreen />;
+};

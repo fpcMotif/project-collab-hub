@@ -36,7 +36,7 @@ interface StageAdvanceHintProps {
   stageAdvance: StageAdvanceState;
 }
 
-export function StageAdvanceHint({ stageAdvance }: StageAdvanceHintProps) {
+export const StageAdvanceHint = ({ stageAdvance }: StageAdvanceHintProps) => {
   const styles = TONE_STYLES[stageAdvance.tone];
 
   return (
@@ -58,4 +58,4 @@ export function StageAdvanceHint({ stageAdvance }: StageAdvanceHintProps) {
       </p>
     </div>
   );
-}
+};

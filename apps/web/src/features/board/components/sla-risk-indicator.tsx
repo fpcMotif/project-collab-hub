@@ -7,7 +7,7 @@ interface SlaRiskIndicatorProps {
   risk: SlaRisk;
 }
 
-export function SlaRiskIndicator({ risk }: SlaRiskIndicatorProps) {
+export const SlaRiskIndicator = ({ risk }: SlaRiskIndicatorProps) => {
   const style = SLA_RISK_STYLES[risk];
 
   return (
@@ -24,4 +24,4 @@ export function SlaRiskIndicator({ risk }: SlaRiskIndicatorProps) {
       {style.label}
     </span>
   );
-}
+};

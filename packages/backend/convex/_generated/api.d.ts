@@ -8,6 +8,12 @@
  * @module
  */
 
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
+
 import type * as approvalGates from "../approvalGates.js";
 import type * as auditEvents from "../auditEvents.js";
 import type * as board from "../board.js";
@@ -15,15 +21,9 @@ import type * as comments from "../comments.js";
 import type * as departmentTracks from "../departmentTracks.js";
 import type * as http from "../http.js";
 import type * as notifications from "../notifications.js";
-import type * as projectTemplates from "../projectTemplates.js";
 import type * as projects from "../projects.js";
+import type * as projectTemplates from "../projectTemplates.js";
 import type * as workItems from "../workItems.js";
-
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
 
 declare const fullApi: ApiFromModules<{
   approvalGates: typeof approvalGates;

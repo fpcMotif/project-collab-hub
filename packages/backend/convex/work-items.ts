@@ -4,7 +4,7 @@ import { query, mutation } from "./_generated/server";
 
 export const listByProject = query({
   args: { projectId: v.id("projects") },
-  handler: async (ctx, args) =>
+  handler: (ctx, args) =>
     ctx.db
       .query("workItems")
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
@@ -13,7 +13,7 @@ export const listByProject = query({
 
 export const listByAssignee = query({
   args: { assigneeId: v.string() },
-  handler: async (ctx, args) =>
+  handler: (ctx, args) =>
     ctx.db
       .query("workItems")
       .withIndex("by_assignee", (q) => q.eq("assigneeId", args.assigneeId))

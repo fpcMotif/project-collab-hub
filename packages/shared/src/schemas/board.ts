@@ -127,9 +127,9 @@ export const DEPARTMENT_TRACK_STATUSES = [
 /** Statuses that block a project from advancing past a gate */
 export const BLOCKING_STATUSES = ["blocked", "waiting_approval"] as const;
 
-export function getNextProjectStatus(
+export const getNextProjectStatus = (
   currentStatus: string
-): (typeof BOARD_FLOW_SEQUENCE)[number] | null {
+): (typeof BOARD_FLOW_SEQUENCE)[number] | null => {
   const index = BOARD_FLOW_SEQUENCE.indexOf(
     currentStatus as (typeof BOARD_FLOW_SEQUENCE)[number]
   );
@@ -139,12 +139,12 @@ export function getNextProjectStatus(
   }
 
   return BOARD_FLOW_SEQUENCE[index + 1];
-}
+};
 
-function isForwardStageTransition(
+const isForwardStageTransition = (
   currentStatus: string,
   targetStatus: string
-): boolean {
+): boolean => {
   const currentIndex = BOARD_FLOW_SEQUENCE.indexOf(
     currentStatus as (typeof BOARD_FLOW_SEQUENCE)[number]
   );
@@ -155,7 +155,7 @@ function isForwardStageTransition(
   return (
     currentIndex !== -1 && targetIndex !== -1 && targetIndex > currentIndex
   );
-}
+};
 
 /**
  * Check whether a project can transition to the target stage.
@@ -169,12 +169,12 @@ function isForwardStageTransition(
  *   - zero pending required approvals
  *   - all required department tracks completed
  */
-export function canAdvanceStage(
+export const canAdvanceStage = (
   currentStatus: string,
   targetStatus: string,
   requiredTrackStatuses: readonly string[],
   pendingRequiredApprovalCount = 0
-): { allowed: boolean; reason?: string } {
+): { allowed: boolean; reason?: string } => {
   const allowedTargets = STAGE_TRANSITIONS[currentStatus];
   if (!allowedTargets || !allowedTargets.includes(targetStatus)) {
     return {
@@ -220,4 +220,4 @@ export function canAdvanceStage(
   }
 
   return { allowed: true };
-}
+};

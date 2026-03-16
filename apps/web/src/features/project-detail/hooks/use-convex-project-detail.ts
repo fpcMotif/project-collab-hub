@@ -9,7 +9,7 @@ import type { WorkItemStatus } from "../types";
 
 const ACTOR_ID = "web_app.user";
 
-export function useConvexProjectDetail(projectId: string) {
+export const useConvexProjectDetail = (projectId: string) => {
   const detail = useQuery(convexFunctionRefs.getProjectDetail, { projectId });
   const createCommentMutation = useMutation(convexFunctionRefs.createComment);
   const deleteCommentMutation = useMutation(convexFunctionRefs.deleteComment);
@@ -95,4 +95,4 @@ export function useConvexProjectDetail(projectId: string) {
     resolveApproval,
     updateWorkItemStatus,
   } as const;
-}
+};

@@ -8,9 +8,9 @@ import type {
   BoardMoveResult,
   BoardSavedView,
 } from "../types";
-import { BoardColumn } from "./BoardColumn";
-import { FilterBar } from "./filters/FilterBar";
-import { SavedViewsBar } from "./filters/SavedViewsBar";
+import { BoardColumn } from "./board-column";
+import { FilterBar } from "./filters/filter-bar";
+import { SavedViewsBar } from "./filters/saved-views-bar";
 
 interface BoardWorkspaceProps {
   columns: BoardColumnViewModel[];
@@ -44,7 +44,7 @@ interface BoardNotice {
   message: string;
 }
 
-export function BoardWorkspace({
+export const BoardWorkspace = ({
   columns,
   ownerOptions,
   customerOptions,
@@ -63,7 +63,7 @@ export function BoardWorkspace({
   onSaveCurrentView,
   onDeleteView,
   onMoveProject,
-}: BoardWorkspaceProps) {
+}: BoardWorkspaceProps) => {
   const [mobileColumnIdx, setMobileColumnIdx] = useState(0);
   const [draggedProjectId, setDraggedProjectId] = useState<string | null>(null);
   const [dropTargetColumnId, setDropTargetColumnId] = useState<string | null>(
@@ -184,7 +184,9 @@ export function BoardWorkspace({
                 setDropTargetColumnId(null);
               }
             }}
-            onDrop={() => void handleDropOnColumn(column.id)}
+            onDrop={() => {
+              handleDropOnColumn(column.id);
+            }}
             onCardDragStart={setDraggedProjectId}
             onCardDragEnd={resetDragState}
           />
@@ -202,4 +204,4 @@ export function BoardWorkspace({
       </div>
     </div>
   );
-}
+};

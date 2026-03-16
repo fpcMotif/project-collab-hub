@@ -17,11 +17,11 @@ export const list = query({
       )
     ),
   },
-  handler: async (ctx, args) => {
+  handler: (ctx, args) => {
     if (args.status) {
       return ctx.db
         .query("projects")
-        .withIndex("by_status", (q) => q.eq("status", args.status!))
+        .withIndex("by_status", (q) => q.eq("status", args.status))
         .collect();
     }
     return ctx.db.query("projects").collect();
@@ -30,7 +30,7 @@ export const list = query({
 
 export const getById = query({
   args: { id: v.id("projects") },
-  handler: async (ctx, args) => ctx.db.get(args.id),
+  handler: (ctx, args) => ctx.db.get(args.id),
 });
 
 export const create = mutation({

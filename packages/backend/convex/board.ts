@@ -1,5 +1,7 @@
 import { v } from "convex/values";
 
+import type { Doc } from "./_generated/dataModel";
+import type { QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
 
 const projectStatus = v.union(
@@ -36,7 +38,7 @@ const STAGE_TRANSITIONS: Record<string, readonly string[]> = {
 
 const BLOCKING_TRACK_STATUSES = new Set(["blocked", "waiting_approval"]);
 
-function isForwardTransition(currentStatus: string, targetStatus: string) {
+const isForwardTransition = (currentStatus: string, targetStatus: string) => {
   const currentIndex = FORWARD_FLOW.indexOf(
     currentStatus as (typeof FORWARD_FLOW)[number]
   );
@@ -47,14 +49,14 @@ function isForwardTransition(currentStatus: string, targetStatus: string) {
   return (
     currentIndex !== -1 && targetIndex !== -1 && targetIndex > currentIndex
   );
-}
+};
 
-function canTransitionProject(
+const canTransitionProject = (
   currentStatus: string,
   targetStatus: string,
   requiredTrackStatuses: readonly string[],
   pendingRequiredApprovalCount: number
-) {
+) => {
   const allowedTargets = STAGE_TRANSITIONS[currentStatus];
   if (!allowedTargets || !allowedTargets.includes(targetStatus)) {
     return {
@@ -95,12 +97,12 @@ function canTransitionProject(
   }
 
   return { allowed: true } as const;
-}
+};
 
-function deriveSlaRisk(
+const deriveSlaRisk = (
   slaDeadline: number | undefined,
   overdueTaskCount: number
-) {
+) => {
   if (overdueTaskCount > 0) {
     return "overdue" as const;
   }
@@ -111,9 +113,12 @@ function deriveSlaRisk(
 
   const riskThresholdMs = 1000 * 60 * 60 * 24 * 3;
   return slaDeadline <= Date.now() + riskThresholdMs ? "at_risk" : "on_time";
-}
+};
 
-async function buildBoardProjectRecord(ctx: any, project: any) {
+const buildBoardProjectRecord = async (
+  ctx: QueryCtx,
+  project: Doc<"projects">
+) => {
   const [departmentTracks, workItems, approvalGates, template] =
     await Promise.all([
       ctx.db
@@ -159,7 +164,7 @@ async function buildBoardProjectRecord(ctx: any, project: any) {
     status: project.status,
     templateType: template?.name ?? "默认模板",
   };
-}
+};
 
 export const listBoardProjects = query({
   args: {},

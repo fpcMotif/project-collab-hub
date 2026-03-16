@@ -1,26 +1,16 @@
 "use client";
 
-import { useConvexEnabled } from "@/providers/ConvexClientProvider";
+import { useConvexEnabled } from "@/providers/convex-client-provider";
 
-import { useConvexProjectDetail } from "../hooks/useConvexProjectDetail";
-import { useMockProjectDetailState } from "../hooks/useMockProjectDetailState";
+import { useConvexProjectDetail } from "../hooks/use-convex-project-detail";
+import { useMockProjectDetailState } from "../hooks/use-mock-project-detail-state";
 import {
   ProjectDetailLoading,
   ProjectDetailNotFound,
   ProjectDetailView,
-} from "./ProjectDetailView";
+} from "./project-detail-view";
 
-export function ProjectDetailScreen({ projectId }: { projectId: string }) {
-  const convexEnabled = useConvexEnabled();
-
-  if (convexEnabled) {
-    return <ConnectedProjectDetailScreen projectId={projectId} />;
-  }
-
-  return <MockProjectDetailScreen projectId={projectId} />;
-}
-
-function ConnectedProjectDetailScreen({ projectId }: { projectId: string }) {
+const ConnectedProjectDetailScreen = ({ projectId }: { projectId: string }) => {
   const detailState = useConvexProjectDetail(projectId);
 
   if (detailState.isLoading) {
@@ -40,9 +30,9 @@ function ConnectedProjectDetailScreen({ projectId }: { projectId: string }) {
       onResolveApproval={detailState.resolveApproval}
     />
   );
-}
+};
 
-function MockProjectDetailScreen({ projectId }: { projectId: string }) {
+const MockProjectDetailScreen = ({ projectId }: { projectId: string }) => {
   const detailState = useMockProjectDetailState(projectId);
 
   if (!detailState.detail) {
@@ -58,4 +48,14 @@ function MockProjectDetailScreen({ projectId }: { projectId: string }) {
       onResolveApproval={detailState.resolveApproval}
     />
   );
-}
+};
+
+export const ProjectDetailScreen = ({ projectId }: { projectId: string }) => {
+  const convexEnabled = useConvexEnabled();
+
+  if (convexEnabled) {
+    return <ConnectedProjectDetailScreen projectId={projectId} />;
+  }
+
+  return <MockProjectDetailScreen projectId={projectId} />;
+};

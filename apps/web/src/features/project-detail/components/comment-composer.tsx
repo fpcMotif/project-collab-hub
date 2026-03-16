@@ -13,11 +13,11 @@ interface CommentComposerProps {
   ) => Promise<{ ok: boolean; message?: string }>;
 }
 
-export function CommentComposer({
+export const CommentComposer = ({
   members,
   disabled = false,
   onSubmit,
-}: CommentComposerProps) {
+}: CommentComposerProps) => {
   const [body, setBody] = useState("");
   const [memberQuery, setMemberQuery] = useState("");
   const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
@@ -132,7 +132,9 @@ export function CommentComposer({
         )}
         <button
           type="button"
-          onClick={() => void handleSubmit()}
+          onClick={() => {
+            handleSubmit();
+          }}
           disabled={disabled || isSubmitting || body.trim().length === 0}
           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
         >
@@ -141,4 +143,4 @@ export function CommentComposer({
       </div>
     </div>
   );
-}
+};

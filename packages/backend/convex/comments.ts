@@ -4,7 +4,7 @@ import { query, mutation } from "./_generated/server";
 
 export const listByProject = query({
   args: { projectId: v.id("projects") },
-  handler: async (ctx, args) =>
+  handler: (ctx, args) =>
     ctx.db
       .query("comments")
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))

@@ -7,7 +7,9 @@ import type { BoardFilterState, BoardSavedView } from "../types";
 const STORAGE_EVENT = "project-collab-hub.board.saved-views.updated";
 const STORAGE_KEY = "project-collab-hub.board.saved-views";
 const EMPTY_VIEWS: BoardSavedView[] = [];
-const NOOP = () => undefined;
+const NOOP = () => {
+  /* noop */
+};
 
 let cachedRaw: null | string | undefined;
 let cachedViews: BoardSavedView[] = EMPTY_VIEWS;
@@ -80,12 +82,12 @@ const createViewId = () => {
   return `view-${Date.now()}`;
 };
 
-const subscribe = (callback: () => void) => {
+const subscribe = (listener: () => void) => {
   if (typeof window === "undefined") {
     return NOOP;
   }
 
-  const handleChange = () => callback();
+  const handleChange = () => listener();
 
   window.addEventListener("storage", handleChange);
   window.addEventListener(STORAGE_EVENT, handleChange);

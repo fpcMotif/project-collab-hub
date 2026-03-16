@@ -37,45 +37,33 @@ const STAGE_TONE_SORT_WEIGHT: Record<StageAdvanceTone, number> = {
   terminal: 3,
 };
 
-export function getColumnNameByStatus(status: string | null) {
-  return (
-    BOARD_COLUMNS.find((column) => column.projectStatus === status)?.name ??
-    null
-  );
-}
+export const getColumnNameByStatus = (status: string | null) =>
+  BOARD_COLUMNS.find((column) => column.projectStatus === status)?.name ?? null;
 
-export function getProjectStatusByColumnId(columnId: string) {
-  return (
-    BOARD_COLUMNS.find((column) => column.id === columnId)?.projectStatus ??
-    null
-  );
-}
+export const getProjectStatusByColumnId = (columnId: string) =>
+  BOARD_COLUMNS.find((column) => column.id === columnId)?.projectStatus ?? null;
 
-export function getApprovalStatus(
+export const getApprovalStatus = (
   project: BoardProjectRecord
-): ApprovalStatusFilter {
-  return project.pendingApprovalCount > 0 ? "pending" : "clear";
-}
+): ApprovalStatusFilter =>
+  project.pendingApprovalCount > 0 ? "pending" : "clear";
 
-export function getOverdueStatus(
+export const getOverdueStatus = (
   project: BoardProjectRecord
-): OverdueStatusFilter {
-  return project.overdueTaskCount > 0 ? "overdue" : "normal";
-}
+): OverdueStatusFilter => (project.overdueTaskCount > 0 ? "overdue" : "normal");
 
-function formatBlockedDepartments(blockedTracks: DepartmentTrackSummary[]) {
-  return blockedTracks
+const formatBlockedDepartments = (blockedTracks: DepartmentTrackSummary[]) =>
+  blockedTracks
     .map((track) =>
       track.blockReason
         ? `${track.departmentName}（${track.blockReason}）`
         : track.departmentName
     )
     .join("、");
-}
 
-export function buildStageAdvanceState(
+export const buildStageAdvanceState = (
   project: BoardProjectRecord
-): StageAdvanceState {
+): StageAdvanceState => {
   const nextStatus = getNextProjectStatus(project.status);
   const nextColumnName = getColumnNameByStatus(nextStatus);
   const nextColumnId =
@@ -171,12 +159,12 @@ export function buildStageAdvanceState(
     summary: `当前不可推进到「${nextColumnName}」`,
     tone: "blocked",
   };
-}
+};
 
-export function getProjectMoveDecision(
+export const getProjectMoveDecision = (
   project: BoardProjectRecord,
   targetStatus: string
-) {
+) => {
   if (project.status === targetStatus) {
     return { message: "项目已处于目标阶段", ok: true } as const;
   }
@@ -196,10 +184,10 @@ export function getProjectMoveDecision(
     message: decision.allowed ? "阶段迁移成功" : decision.reason,
     ok: decision.allowed,
   } as const;
-}
+};
 
-function sortCards(cards: BoardProjectCard[]) {
-  return [...cards].toSorted(
+const sortCards = (cards: BoardProjectCard[]) =>
+  [...cards].toSorted(
     (left, right) =>
       STAGE_TONE_SORT_WEIGHT[left.stageAdvance.tone] -
         STAGE_TONE_SORT_WEIGHT[right.stageAdvance.tone] ||
@@ -210,12 +198,11 @@ function sortCards(cards: BoardProjectCard[]) {
         PRIORITY_SORT_WEIGHT[right.priority] ||
       left.name.localeCompare(right.name, "zh-Hans-CN")
   );
-}
 
-export function buildBoardViewData(
+export const buildBoardViewData = (
   projects: BoardProjectRecord[],
   filters: BoardFilterState
-) {
+) => {
   let filtered = projects;
 
   if (filters.department) {
@@ -315,4 +302,4 @@ export function buildBoardViewData(
     totalProjectCount: projects.length,
     visibleProjectCount: filtered.length,
   } as const;
-}
+};

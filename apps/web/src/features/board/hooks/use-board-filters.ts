@@ -66,22 +66,19 @@ const parseOverdueStatus = (
   return value as OverdueStatusFilter;
 };
 
-const parseTextFilter = (value: string | null): null | string => {
-  return value && value.trim().length > 0 ? value : null;
-};
+const parseTextFilter = (value: string | null): null | string =>
+  value && value.trim().length > 0 ? value : null;
 
-const parseFilters = (params: URLSearchParams): BoardFilterState => {
-  return {
-    approvalStatus: parseApprovalStatus(params.get("approvalStatus")),
-    customer: parseTextFilter(params.get("customer")),
-    department: parseTextFilter(params.get("department")),
-    overdueStatus: parseOverdueStatus(params.get("overdueStatus")),
-    owner: parseTextFilter(params.get("owner")),
-    priority: parsePriority(params.get("priority")),
-    slaRisk: parseSlaRisk(params.get("slaRisk")),
-    templateType: parseTextFilter(params.get("templateType")),
-  };
-};
+const parseFilters = (params: URLSearchParams): BoardFilterState => ({
+  approvalStatus: parseApprovalStatus(params.get("approvalStatus")),
+  customer: parseTextFilter(params.get("customer")),
+  department: parseTextFilter(params.get("department")),
+  overdueStatus: parseOverdueStatus(params.get("overdueStatus")),
+  owner: parseTextFilter(params.get("owner")),
+  priority: parsePriority(params.get("priority")),
+  slaRisk: parseSlaRisk(params.get("slaRisk")),
+  templateType: parseTextFilter(params.get("templateType")),
+});
 
 const buildUrl = (pathname: string, params: URLSearchParams): string => {
   const queryString = params.toString();

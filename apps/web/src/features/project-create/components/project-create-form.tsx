@@ -16,24 +16,39 @@ interface ProjectCreateFormProps {
   ) => Promise<{ ok: boolean; projectId?: string; message?: string }>;
 }
 
-function createInitialValues(templateId: string): ProjectCreateFormValues {
-  return {
-    customerName: "",
-    departmentId: "",
-    description: "",
-    name: "",
-    ownerId: "",
-    priority: "medium",
-    slaDeadline: "",
-    templateId,
-  };
-}
+const Field = ({
+  label,
+  className,
+  children,
+}: {
+  label: string;
+  className?: string;
+  children: ReactNode;
+}) => (
+  <label className={className}>
+    <span className="mb-1.5 block text-sm font-medium text-gray-700">
+      {label}
+    </span>
+    {children}
+  </label>
+);
 
-export function ProjectCreateForm({
+const createInitialValues = (templateId: string): ProjectCreateFormValues => ({
+  customerName: "",
+  departmentId: "",
+  description: "",
+  name: "",
+  ownerId: "",
+  priority: "medium",
+  slaDeadline: "",
+  templateId,
+});
+
+export const ProjectCreateForm = ({
   templates,
   isSubmitting = false,
   onSubmit,
-}: ProjectCreateFormProps) {
+}: ProjectCreateFormProps) => {
   const [values, setValues] = useState<ProjectCreateFormValues>(() =>
     createInitialValues(templates[0]?.id ?? "")
   );
@@ -223,7 +238,9 @@ export function ProjectCreateForm({
                 !values.ownerId.trim() ||
                 !values.departmentId
               }
-              onClick={() => void handleSubmit()}
+              onClick={() => {
+                handleSubmit();
+              }}
               className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
             >
               {isSubmitting ? "创建中…" : "创建项目"}
@@ -298,23 +315,4 @@ export function ProjectCreateForm({
       </main>
     </div>
   );
-}
-
-function Field({
-  label,
-  className,
-  children,
-}: {
-  label: string;
-  className?: string;
-  children: ReactNode;
-}) {
-  return (
-    <label className={className}>
-      <span className="mb-1.5 block text-sm font-medium text-gray-700">
-        {label}
-      </span>
-      {children}
-    </label>
-  );
-}
+};

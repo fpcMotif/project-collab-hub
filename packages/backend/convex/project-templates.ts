@@ -4,7 +4,7 @@ import { query, mutation } from "./_generated/server";
 
 export const list = query({
   args: { activeOnly: v.optional(v.boolean()) },
-  handler: async (ctx, args) => {
+  handler: (ctx, args) => {
     if (args.activeOnly) {
       return ctx.db
         .query("projectTemplates")
@@ -17,7 +17,7 @@ export const list = query({
 
 export const getById = query({
   args: { id: v.id("projectTemplates") },
-  handler: async (ctx, args) => ctx.db.get(args.id),
+  handler: (ctx, args) => ctx.db.get(args.id),
 });
 
 export const create = mutation({

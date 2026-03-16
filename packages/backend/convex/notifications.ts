@@ -4,7 +4,7 @@ import { query, mutation, internalMutation } from "./_generated/server";
 
 export const listPending = query({
   args: {},
-  handler: async (ctx) =>
+  handler: (ctx) =>
     ctx.db
       .query("notificationDeliveries")
       .withIndex("by_status", (q) => q.eq("status", "pending"))
@@ -29,7 +29,7 @@ export const create = mutation({
     projectId: v.id("projects"),
     recipientId: v.string(),
   },
-  handler: async (ctx, args) =>
+  handler: (ctx, args) =>
     ctx.db.insert("notificationDeliveries", {
       ...args,
       retryCount: 0,

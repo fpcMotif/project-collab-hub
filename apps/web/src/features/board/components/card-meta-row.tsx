@@ -5,10 +5,10 @@ interface CardMetaRowProps {
   overdueTaskCount: number;
 }
 
-export function CardMetaRow({
+export const CardMetaRow = ({
   pendingApprovalCount,
   overdueTaskCount,
-}: CardMetaRowProps) {
+}: CardMetaRowProps) => {
   if (pendingApprovalCount === 0 && overdueTaskCount === 0) {
     return null;
   }
@@ -43,4 +43,4 @@ export function CardMetaRow({
       )}
     </div>
   );
-}
+};
