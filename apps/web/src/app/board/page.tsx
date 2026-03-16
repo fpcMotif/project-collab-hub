@@ -1,3 +1,5 @@
+"use client";
+
 import dynamic from "next/dynamic";
 import Link from "next/link";
 
@@ -26,9 +28,6 @@ const Board = dynamic(
   { loading: BoardSkeleton, ssr: false }
 );
 
-export const metadata = {
-  title: "看板 - Project Collab Hub",
-};
 
 const BoardPage = () => (
   <div className="flex h-screen flex-col bg-gray-100">

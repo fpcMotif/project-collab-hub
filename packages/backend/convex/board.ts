@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import type { QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 
 const projectStatus = v.union(
   v.literal("new"),
@@ -119,8 +120,7 @@ const buildBoardProjectRecord = async (
   ctx: QueryCtx,
   project: Doc<"projects">
 ) => {
-  const [departmentTracks, workItems, approvalGates, template] =
-    await Promise.all([
+  const [departmentTracks, workItems, approvalGates, template] = await Promise.all([
       ctx.db
         .query("departmentTracks")
         .withIndex("by_project", (q) => q.eq("projectId", project._id))
@@ -134,9 +134,10 @@ const buildBoardProjectRecord = async (
         .withIndex("by_project", (q) => q.eq("projectId", project._id))
         .collect(),
       project.templateId
-        ? ctx.db.get(project.templateId)
+        ? ctx.db.get(project.templateId as any)
         : Promise.resolve(null),
-    ]);
+    ] as const);
+
 
   const overdueTaskCount = workItems.filter(
     (item) =>
@@ -162,7 +163,7 @@ const buildBoardProjectRecord = async (
     priority: project.priority ?? "medium",
     slaRisk: deriveSlaRisk(project.slaDeadline, overdueTaskCount),
     status: project.status,
-    templateType: template?.name ?? "默认模板",
+    templateType: (template as any)?.name ?? "默认模板",
   };
 };
 
@@ -245,15 +246,15 @@ export const getProjectDetail = query({
       departmentTracks.map((track) => [track._id, track])
     );
 
-    const commentMentionsByCommentId = new Map(
+    const commentMentionsByCommentId = new Map<Id<"comments">, any[]>(
       await Promise.all(
-        comments.map(async (comment) => [
-          comment._id,
-          await ctx.db
+        comments.map(async (comment) => {
+          const mentions = await ctx.db
             .query("mentions")
             .withIndex("by_comment", (q) => q.eq("commentId", comment._id))
-            .collect(),
-        ])
+            .collect();
+          return [comment._id, mentions] as const;
+        })
       )
     );
 
@@ -305,7 +306,7 @@ export const getProjectDetail = query({
         mentionedUserIds:
           commentMentionsByCommentId
             .get(comment._id)
-            ?.map((mention) => mention.mentionedUserId) ?? [],
+            ?.map((mention: any) => mention.mentionedUserId) ?? [],
         parentCommentId: comment.parentCommentId ?? null,
         targetScope: comment.targetScope,
       })),

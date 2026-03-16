@@ -21,7 +21,7 @@ export const list = query({
     if (args.status) {
       return ctx.db
         .query("projects")
-        .withIndex("by_status", (q) => q.eq("status", args.status))
+        .withIndex("by_status", (q) => q.eq("status", args.status as any))
         .collect();
     }
     return ctx.db.query("projects").collect();
