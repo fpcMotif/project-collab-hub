@@ -10,10 +10,13 @@ import type {
   ProjectDetailWorkItem,
 } from "./types";
 
-const buildDepartmentTracks = (project: BoardProjectRecord): ProjectDetailDepartmentTrack[] =>
+const buildDepartmentTracks = (
+  project: BoardProjectRecord
+): ProjectDetailDepartmentTrack[] =>
   project.departmentTracks.map((track, index) => ({
     blockReason: track.blockReason,
-    collaboratorIds: project.ownerName === "未分配" ? [] : [`协作人-${index + 1}`],
+    collaboratorIds:
+      project.ownerName === "未分配" ? [] : [`协作人-${index + 1}`],
     departmentId: `dept-${index + 1}`,
     departmentName: track.departmentName,
     dueDate: Date.now() + (index + 1) * 1000 * 60 * 60 * 24,
@@ -26,7 +29,7 @@ const buildDepartmentTracks = (project: BoardProjectRecord): ProjectDetailDepart
   }));
 
 const mapTrackStatusToWorkItemStatus = (
-  trackStatus: string,
+  trackStatus: string
 ): "done" | "in_progress" | "in_review" | "todo" => {
   if (trackStatus === "done") {
     return "done";
@@ -42,7 +45,7 @@ const mapTrackStatusToWorkItemStatus = (
 
 const buildWorkItems = (
   project: BoardProjectRecord,
-  departmentTracks: ProjectDetailDepartmentTrack[],
+  departmentTracks: ProjectDetailDepartmentTrack[]
 ): ProjectDetailWorkItem[] =>
   departmentTracks
     .filter((track) => track.isRequired)
@@ -50,7 +53,8 @@ const buildWorkItems = (
     .map((track, index) => ({
       assigneeId: track.ownerId,
       collaboratorIds: track.collaboratorIds,
-      completedAt: track.status === "done" ? Date.now() - 1000 * 60 * 60 * 6 : undefined,
+      completedAt:
+        track.status === "done" ? Date.now() - 1000 * 60 * 60 * 6 : undefined,
       departmentName: track.departmentName,
       departmentTrackId: track.id,
       description: `${project.name} - ${track.departmentName}执行项`,
@@ -65,9 +69,11 @@ const buildWorkItems = (
 
 const buildApprovals = (
   project: BoardProjectRecord,
-  departmentTracks: ProjectDetailDepartmentTrack[],
+  departmentTracks: ProjectDetailDepartmentTrack[]
 ): ProjectDetailApproval[] => {
-  const pendingDepartment = departmentTracks.find((track) => track.pendingApprovalCount > 0);
+  const pendingDepartment = departmentTracks.find(
+    (track) => track.pendingApprovalCount > 0
+  );
 
   return [
     {
@@ -76,8 +82,13 @@ const buildApprovals = (
       departmentName: pendingDepartment?.departmentName ?? null,
       id: `${project.id}-approval-1`,
       instanceCode:
-        project.pendingApprovalCount > 0 ? `INST-${project.id}-1` : `INST-${project.id}-0`,
-      resolvedAt: project.pendingApprovalCount > 0 ? undefined : Date.now() - 1000 * 60 * 60 * 12,
+        project.pendingApprovalCount > 0
+          ? `INST-${project.id}-1`
+          : `INST-${project.id}-0`,
+      resolvedAt:
+        project.pendingApprovalCount > 0
+          ? undefined
+          : Date.now() - 1000 * 60 * 60 * 12,
       resolvedBy: project.pendingApprovalCount > 0 ? null : "审批人-01",
       status: project.pendingApprovalCount > 0 ? "pending" : "approved",
       title: `${project.name} 启动审批`,
@@ -112,7 +123,9 @@ const buildComments = (project: BoardProjectRecord): ProjectDetailComment[] => [
   },
 ];
 
-const buildTimeline = (project: BoardProjectRecord): ProjectDetailTimelineEvent[] => [
+const buildTimeline = (
+  project: BoardProjectRecord
+): ProjectDetailTimelineEvent[] => [
   {
     action: "project.created",
     actorId: project.ownerName,
@@ -135,7 +148,9 @@ const buildTimeline = (project: BoardProjectRecord): ProjectDetailTimelineEvent[
   },
 ];
 
-export const createInitialMockProjectDetail = (project: BoardProjectRecord): ProjectDetailData => {
+export const createInitialMockProjectDetail = (
+  project: BoardProjectRecord
+): ProjectDetailData => {
   const departmentTracks = buildDepartmentTracks(project);
 
   return {
@@ -194,7 +209,7 @@ export const createInitialMockProjectDetail = (project: BoardProjectRecord): Pro
 
 export const getMockProjectDetail = (
   projectId: string,
-  projects: BoardProjectRecord[],
+  projects: BoardProjectRecord[]
 ): ProjectDetailData | null => {
   const project = projects.find((item) => item.id === projectId);
   if (!project) {
