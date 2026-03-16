@@ -15,14 +15,12 @@ interface SharedBoardState {
   savedViewsState: ReturnType<typeof useBoardSavedViews>;
 }
 
-const ConnectedBoard = ({
-  boardState,
-  savedViewsState,
-}: SharedBoardState) => {
+const ConnectedBoard = ({ boardState, savedViewsState }: SharedBoardState) => {
   const data = useConvexBoardData(boardState.filters);
   const handleSaveCurrentView = useCallback(
     (name: string) => {
-      return savedViewsState.saveView(name, boardState.filters);
+      savedViewsState.saveView(name, boardState.filters);
+      return true;
     },
     [boardState.filters, savedViewsState]
   );
@@ -35,7 +33,9 @@ const ConnectedBoard = ({
       onApplyView={boardState.replaceFilters}
       onClearAll={boardState.clearAll}
       onClearFilter={boardState.clearFilter}
-      onDeleteView={savedViewsState.deleteView}
+      onDeleteView={(name) => {
+        savedViewsState.deleteView(name);
+      }}
       onFilterChange={boardState.setFilter}
       onMoveProject={data.moveProject}
       onSaveCurrentView={handleSaveCurrentView}
@@ -47,7 +47,8 @@ const MockBoard = ({ boardState, savedViewsState }: SharedBoardState) => {
   const data = useMockBoardData(boardState.filters);
   const handleSaveCurrentView = useCallback(
     (name: string) => {
-      return savedViewsState.saveView(name, boardState.filters);
+      savedViewsState.saveView(name, boardState.filters);
+      return true;
     },
     [boardState.filters, savedViewsState]
   );
@@ -60,7 +61,9 @@ const MockBoard = ({ boardState, savedViewsState }: SharedBoardState) => {
       onApplyView={boardState.replaceFilters}
       onClearAll={boardState.clearAll}
       onClearFilter={boardState.clearFilter}
-      onDeleteView={savedViewsState.deleteView}
+      onDeleteView={(name) => {
+        savedViewsState.deleteView(name);
+      }}
       onFilterChange={boardState.setFilter}
       onMoveProject={data.moveProject}
       onSaveCurrentView={handleSaveCurrentView}

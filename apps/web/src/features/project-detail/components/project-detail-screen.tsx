@@ -1,14 +1,14 @@
 "use client";
 
-import { useConvexEnabled } from "@/providers/ConvexClientProvider";
+import { useConvexEnabled } from "@/providers/convex-client-provider";
 
-import { useConvexProjectDetail } from "../hooks/useConvexProjectDetail";
-import { useMockProjectDetailState } from "../hooks/useMockProjectDetailState";
+import { useConvexProjectDetail } from "../hooks/use-convex-project-detail";
+import { useMockProjectDetailState } from "../hooks/use-mock-project-detail-state";
 import {
   ProjectDetailLoading,
   ProjectDetailNotFound,
   ProjectDetailView,
-} from "./ProjectDetailView";
+} from "./project-detail-view";
 
 export function ProjectDetailScreen({ projectId }: { projectId: string }) {
   const convexEnabled = useConvexEnabled();

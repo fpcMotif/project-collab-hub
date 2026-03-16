@@ -118,15 +118,15 @@ async function buildBoardProjectRecord(ctx: any, project: any) {
     await Promise.all([
       ctx.db
         .query("departmentTracks")
-        .withIndex("by_project", (q) => q.eq("projectId", project._id))
+        .withIndex("by_project", (q: any) => q.eq("projectId", project._id))
         .collect(),
       ctx.db
         .query("workItems")
-        .withIndex("by_project", (q) => q.eq("projectId", project._id))
+        .withIndex("by_project", (q: any) => q.eq("projectId", project._id))
         .collect(),
       ctx.db
         .query("approvalGates")
-        .withIndex("by_project", (q) => q.eq("projectId", project._id))
+        .withIndex("by_project", (q: any) => q.eq("projectId", project._id))
         .collect(),
       project.templateId
         ? ctx.db.get(project.templateId)
@@ -134,7 +134,7 @@ async function buildBoardProjectRecord(ctx: any, project: any) {
     ]);
 
   const overdueTaskCount = workItems.filter(
-    (item) =>
+    (item: any) =>
       item.status !== "done" &&
       item.dueDate !== undefined &&
       item.dueDate < Date.now()
@@ -142,7 +142,7 @@ async function buildBoardProjectRecord(ctx: any, project: any) {
 
   return {
     customerName: project.customerName ?? "未填写客户",
-    departmentTracks: departmentTracks.map((track) => ({
+    departmentTracks: departmentTracks.map((track: any) => ({
       blockReason: track.blockReason,
       departmentName: track.departmentName,
       status: track.isRequired ? track.status : "not_required",
@@ -152,7 +152,7 @@ async function buildBoardProjectRecord(ctx: any, project: any) {
     overdueTaskCount,
     ownerName: project.ownerId,
     pendingApprovalCount: approvalGates.filter(
-      (gate) => gate.status === "pending"
+      (gate: any) => gate.status === "pending"
     ).length,
     priority: project.priority ?? "medium",
     slaRisk: deriveSlaRisk(project.slaDeadline, overdueTaskCount),
@@ -195,40 +195,40 @@ export const getProjectDetail = query({
       buildBoardProjectRecord(ctx, project),
       ctx.db
         .query("departmentTracks")
-        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+        .withIndex("by_project", (q: any) => q.eq("projectId", args.projectId))
         .collect(),
       ctx.db
         .query("workItems")
-        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+        .withIndex("by_project", (q: any) => q.eq("projectId", args.projectId))
         .collect(),
       ctx.db
         .query("approvalGates")
-        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+        .withIndex("by_project", (q: any) => q.eq("projectId", args.projectId))
         .collect(),
       ctx.db
         .query("comments")
-        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+        .withIndex("by_project", (q: any) => q.eq("projectId", args.projectId))
         .collect(),
       ctx.db
         .query("auditEvents")
-        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+        .withIndex("by_project", (q: any) => q.eq("projectId", args.projectId))
         .order("desc")
         .collect(),
       ctx.db
         .query("chatBindings")
-        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+        .withIndex("by_project", (q: any) => q.eq("projectId", args.projectId))
         .collect(),
       ctx.db
         .query("docBindings")
-        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+        .withIndex("by_project", (q: any) => q.eq("projectId", args.projectId))
         .collect(),
       ctx.db
         .query("baseBindings")
-        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+        .withIndex("by_project", (q: any) => q.eq("projectId", args.projectId))
         .collect(),
       ctx.db
         .query("feishuTaskBindings")
-        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+        .withIndex("by_project", (q: any) => q.eq("projectId", args.projectId))
         .collect(),
     ]);
 
@@ -237,23 +237,23 @@ export const getProjectDetail = query({
     );
 
     const departmentTrackById = new Map(
-      departmentTracks.map((track) => [track._id, track])
+      departmentTracks.map((track: any) => [track._id, track])
     );
 
-    const commentMentionsByCommentId = new Map(
-      await Promise.all(
-        comments.map(async (comment) => [
-          comment._id,
-          await ctx.db
-            .query("mentions")
-            .withIndex("by_comment", (q) => q.eq("commentId", comment._id))
-            .collect(),
-        ])
-      )
+    const mentionsPromises = comments.map(async (comment) => {
+      const mentions = await ctx.db
+        .query("mentions")
+        .withIndex("by_comment", (q: any) => q.eq("commentId", comment._id))
+        .collect();
+      return [comment._id, mentions] as const;
+    });
+
+    const commentMentionsByCommentId = new Map<string, any>(
+      await Promise.all(mentionsPromises)
     );
 
     return {
-      approvals: approvalGates.map((gate) => ({
+      approvals: approvalGates.map((gate: any) => ({
         applicantId: gate.applicantId,
         approvalCode: gate.approvalCode,
         departmentName: gate.departmentTrackId
@@ -300,11 +300,11 @@ export const getProjectDetail = query({
         mentionedUserIds:
           commentMentionsByCommentId
             .get(comment._id)
-            ?.map((mention) => mention.mentionedUserId) ?? [],
+            ?.map((mention: any) => mention.mentionedUserId) ?? [],
         parentCommentId: comment.parentCommentId ?? null,
         targetScope: comment.targetScope,
       })),
-      departmentTracks: departmentTracks.map((track) => ({
+      departmentTracks: departmentTracks.map((track: any) => ({
         blockReason: track.blockReason,
         collaboratorIds: track.collaboratorIds ?? [],
         departmentId: track.departmentId,
@@ -314,11 +314,11 @@ export const getProjectDetail = query({
         isRequired: track.isRequired,
         ownerId: track.ownerId,
         pendingApprovalCount: approvalGates.filter(
-          (gate) =>
+          (gate: any) =>
             gate.departmentTrackId === track._id && gate.status === "pending"
         ).length,
         relatedWorkItemCount: workItems.filter(
-          (item) => item.departmentTrackId === track._id
+          (item: any) => item.departmentTrackId === track._id
         ).length,
         status: track.status,
       })),
@@ -341,7 +341,7 @@ export const getProjectDetail = query({
         objectType: event.objectType,
         sourceEntry: event.sourceEntry,
       })),
-      workItems: workItems.map((item) => {
+      workItems: workItems.map((item: any) => {
         const binding = taskBindingByWorkItemId.get(item._id);
         return {
           assigneeId: item.assigneeId,
@@ -393,11 +393,11 @@ export const transitionProjectStage = mutation({
     const [departmentTracks, approvalGates] = await Promise.all([
       ctx.db
         .query("departmentTracks")
-        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+        .withIndex("by_project", (q: any) => q.eq("projectId", args.projectId))
         .collect(),
       ctx.db
         .query("approvalGates")
-        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+        .withIndex("by_project", (q: any) => q.eq("projectId", args.projectId))
         .collect(),
     ]);
 
@@ -405,9 +405,9 @@ export const transitionProjectStage = mutation({
       project.status,
       args.targetStatus,
       departmentTracks
-        .filter((track) => track.isRequired)
-        .map((track) => track.status),
-      approvalGates.filter((gate) => gate.status === "pending").length
+        .filter((track: any) => track.isRequired)
+        .map((track: any) => track.status),
+      approvalGates.filter((gate: any) => gate.status === "pending").length
     );
 
     if (!decision.allowed) {

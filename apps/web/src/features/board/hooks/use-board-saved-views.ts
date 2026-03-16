@@ -7,7 +7,7 @@ import type { BoardFilterState, BoardSavedView } from "../types";
 const STORAGE_EVENT = "project-collab-hub.board.saved-views.updated";
 const STORAGE_KEY = "project-collab-hub.board.saved-views";
 const EMPTY_VIEWS: BoardSavedView[] = [];
-const NOOP = () => undefined;
+const NOOP = () => {};
 
 let cachedRaw: null | string | undefined;
 let cachedViews: BoardSavedView[] = EMPTY_VIEWS;

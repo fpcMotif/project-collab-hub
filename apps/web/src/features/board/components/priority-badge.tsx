@@ -7,7 +7,7 @@ interface PriorityBadgeProps {
   priority: Priority;
 }
 
-export function PriorityBadge({ priority }: PriorityBadgeProps) {
+export const PriorityBadge = ({ priority }: PriorityBadgeProps) => {
   return (
     <span
       className={cn(
@@ -18,4 +18,4 @@ export function PriorityBadge({ priority }: PriorityBadgeProps) {
       {PRIORITY_LABELS[priority]}
     </span>
   );
-}
+};

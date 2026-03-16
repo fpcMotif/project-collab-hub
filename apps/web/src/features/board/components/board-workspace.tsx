@@ -8,9 +8,9 @@ import type {
   BoardMoveResult,
   BoardSavedView,
 } from "../types";
-import { BoardColumn } from "./BoardColumn";
-import { FilterBar } from "./filters/FilterBar";
-import { SavedViewsBar } from "./filters/SavedViewsBar";
+import { BoardColumn } from "./board-column";
+import { FilterBar } from "./filters/filter-bar";
+import { SavedViewsBar } from "./filters/saved-views-bar";
 
 interface BoardWorkspaceProps {
   columns: BoardColumnViewModel[];
@@ -31,8 +31,8 @@ interface BoardWorkspaceProps {
   onApplyView: (filters: BoardFilterState) => void;
   onClearFilter: (key: keyof BoardFilterState) => void;
   onClearAll: () => void;
-  onSaveCurrentView: () => void;
-  onDeleteView: (id: string) => void;
+  onSaveCurrentView: (name: string) => boolean;
+  onDeleteView: (name: string) => void;
   onMoveProject: (
     projectId: string,
     targetColumnId: string

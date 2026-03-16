@@ -3,7 +3,7 @@ import type { DragEventHandler } from "react";
 import { cn } from "@/lib/cn";
 
 import type { BoardColumnViewModel } from "../types";
-import { ProjectCard } from "./ProjectCard";
+import { ProjectCard } from "./project-card";
 
 interface BoardColumnProps {
   column: BoardColumnViewModel;

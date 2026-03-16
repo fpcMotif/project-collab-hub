@@ -92,7 +92,7 @@ export const convexFunctionRefs = {
     CreateProjectFromTemplateArgs,
     CreateProjectFromTemplateResult
   >("projects:createFromTemplate"),
-  deleteComment: makeFunctionReference<"mutation", DeleteCommentArgs, void>(
+  deleteComment: makeFunctionReference<"mutation", DeleteCommentArgs, null>(
     "comments:softDelete"
   ),
   getProjectDetail: makeFunctionReference<
@@ -100,9 +100,11 @@ export const convexFunctionRefs = {
     ProjectDetailQueryArgs,
     ProjectDetailData | null
   >("board:getProjectDetail"),
-  listBoardProjects: makeFunctionReference<"query", {}, BoardProjectRecord[]>(
-    "board:listBoardProjects"
-  ),
+  listBoardProjects: makeFunctionReference<
+    "query",
+    Record<string, never>,
+    BoardProjectRecord[]
+  >("board:listBoardProjects"),
   listProjectTemplates: makeFunctionReference<
     "query",
     ListProjectTemplatesArgs,
@@ -111,7 +113,7 @@ export const convexFunctionRefs = {
   resolveApprovalGate: makeFunctionReference<
     "mutation",
     ResolveApprovalArgs,
-    void
+    null
   >("approvalGates:resolve"),
   transitionProjectStage: makeFunctionReference<
     "mutation",
@@ -121,6 +123,6 @@ export const convexFunctionRefs = {
   updateWorkItemStatus: makeFunctionReference<
     "mutation",
     UpdateWorkItemStatusArgs,
-    void
+    null
   >("workItems:updateStatus"),
 } as const;

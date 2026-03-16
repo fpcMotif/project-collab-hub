@@ -36,9 +36,9 @@ export const FeishuMessageServiceLive = Layer.effect(
         try: () =>
           auth.client.im.message.create({
             data: {
-              receive_id: params.chatId,
-              msg_type: "interactive",
               content: JSON.stringify(params.card),
+              msg_type: "interactive",
+              receive_id: params.chatId,
             },
             params: { receive_id_type: "chat_id" },
           }),
@@ -53,9 +53,9 @@ export const FeishuMessageServiceLive = Layer.effect(
         try: () =>
           auth.client.im.message.create({
             data: {
-              receive_id: params.chatId,
-              msg_type: "text",
               content: JSON.stringify({ text: params.text }),
+              msg_type: "text",
+              receive_id: params.chatId,
             },
             params: { receive_id_type: "chat_id" },
           }),

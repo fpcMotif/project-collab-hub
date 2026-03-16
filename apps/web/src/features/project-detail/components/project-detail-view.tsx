@@ -1,12 +1,221 @@
-"use client";
+/* eslint-disable no-use-before-define */
+function ApprovalRow({
+  approval,
+  onResolve,
+}: {
+  approval: ProjectDetailApproval;
+  onResolve: (
+    approvalId: string,
+    status: "approved" | "rejected"
+  ) => Promise<{ ok: boolean; message?: string }>;
+}) {
+  return (
+    <div className="rounded-lg border border-gray-200 p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="text-sm font-semibold text-gray-900">
+            {approval.title}
+          </p>
+          <p className="mt-1 text-xs text-gray-500">
+            阶段：
+            {getColumnNameByStatus(approval.triggerStage) ??
+              approval.triggerStage}
+            {approval.departmentName ? ` · ${approval.departmentName}` : ""}
+          </p>
+        </div>
+        <span
+          className={cn(
+            "rounded-full px-2 py-1 text-xs font-medium",
+            APPROVAL_STATUS_STYLES[approval.status]
+          )}
+        >
+          {APPROVAL_STATUS_LABELS[approval.status]}
+        </span>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+        <span>申请人：{approval.applicantId}</span>
+        <span>实例：{approval.instanceCode ?? "未生成"}</span>
+        <span>处理时间：{formatDateTime(approval.resolvedAt)}</span>
+      </div>
+      {approval.status === "pending" && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              onResolve(approval.id, "approved");
+            }}
+            className="rounded-md border border-green-200 px-2.5 py-1 text-xs font-medium text-green-700 hover:bg-green-50"
+          >
+            通过
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onResolve(approval.id, "rejected");
+            }}
+            className="rounded-md border border-red-200 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
+          >
+            驳回
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* eslint-disable no-use-before-define */
+function WorkItemRow({
+  item,
+  onUpdateStatus,
+}: {
+  item: ProjectDetailWorkItem;
+  onUpdateStatus: (
+    workItemId: string,
+    status: WorkItemStatus
+  ) => Promise<{ ok: boolean; message?: string }>;
+}) {
+  return (
+    <div className="rounded-lg border border-gray-200 p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="text-sm font-semibold text-gray-900">{item.title}</p>
+          <p className="mt-1 text-xs text-gray-500">
+            {item.departmentName ?? "未关联部门"} · 负责人：
+            {item.assigneeId ?? "未分配"}
+          </p>
+        </div>
+        <span
+          className={cn(
+            "rounded-full px-2 py-1 text-xs font-medium",
+            WORK_ITEM_STATUS_STYLES[item.status]
+          )}
+        >
+          {WORK_ITEM_STATUS_LABELS[item.status]}
+        </span>
+      </div>
+      <p className="mt-2 text-sm text-gray-600">{item.description}</p>
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+        <span>截止：{formatDate(item.dueDate)}</span>
+        <span>飞书任务：{item.feishuTaskGuid ?? "未同步"}</span>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {item.status === "todo" && (
+          <button
+            type="button"
+            onClick={() => {
+              onUpdateStatus(item.id, "in_progress");
+            }}
+            className="rounded-md border border-blue-200 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50"
+          >
+            开始处理
+          </button>
+        )}
+        {item.status !== "done" && (
+          <button
+            type="button"
+            onClick={() => {
+              onUpdateStatus(item.id, "done");
+            }}
+            className="rounded-md border border-green-200 px-2.5 py-1 text-xs font-medium text-green-700 hover:bg-green-50"
+          >
+            标记完成
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* eslint-disable no-use-before-define */
+function EmptyHint({ text }: { text: string }) {
+  return (
+    <p className="rounded-lg bg-gray-50 px-3 py-6 text-center text-sm text-gray-400">
+      {text}
+    </p>
+  );
+}
+
+/* eslint-disable no-use-before-define */
+function TimelineRow({ event }: { event: ProjectDetailTimelineEvent }) {
+  return (
+    <div className="rounded-lg border border-gray-200 p-3">
+      <div className="flex items-center justify-between gap-2 text-xs text-gray-500">
+        <span>{event.actorId}</span>
+        <span>{formatDateTime(event.createdAt)}</span>
+      </div>
+      <p className="mt-2 text-sm text-gray-700">{event.changeSummary}</p>
+      <p className="mt-2 text-xs text-gray-400">{event.action}</p>
+    </div>
+  );
+}
+
+/* eslint-disable no-use-before-define */
+export function ProjectDetailNotFound({ projectId }: { projectId: string }) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gray-100 px-6">
+      <div className="max-w-md rounded-xl border border-gray-200 bg-white p-6 text-center shadow-sm">
+        <h1 className="text-xl font-semibold text-gray-900">未找到项目</h1>
+        <p className="mt-2 text-sm text-gray-500">项目 ID：{projectId}</p>
+        <Link
+          href="/board"
+          className="mt-4 inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+        >
+          返回看板
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+/* eslint-disable no-use-before-define */
+export function ProjectDetailLoading() {
+  return (
+    <div className="min-h-screen bg-gray-100 p-6">
+      <div className="mx-auto max-w-7xl animate-pulse space-y-4">
+        <div className="h-10 w-64 rounded bg-gray-200" />
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
+          <div className="space-y-4">
+            <div className="h-52 rounded-xl bg-gray-200" />
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="h-80 rounded-xl bg-gray-200" />
+              <div className="h-80 rounded-xl bg-gray-200" />
+            </div>
+          </div>
+          <div className="space-y-4">
+            <div className="h-56 rounded-xl bg-gray-200" />
+            <div className="h-72 rounded-xl bg-gray-200" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* eslint-disable no-use-before-define */
+function SectionCard({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <h2 className="mb-3 text-base font-semibold text-gray-900">{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+("use client");
 
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { CardMetaRow } from "@/features/board/components/CardMetaRow";
-import { PriorityBadge } from "@/features/board/components/PriorityBadge";
-import { SlaRiskIndicator } from "@/features/board/components/SlaRiskIndicator";
-import { StageAdvanceHint } from "@/features/board/components/StageAdvanceHint";
+import { CardMetaRow } from "@/features/board/components/card-meta-row";
+import { PriorityBadge } from "@/features/board/components/priority-badge";
+import { SlaRiskIndicator } from "@/features/board/components/sla-risk-indicator";
+import { StageAdvanceHint } from "@/features/board/components/stage-advance-hint";
 import {
   DEPT_STATUS_LABELS,
   DEPT_STATUS_STYLES,
@@ -28,7 +237,7 @@ import type {
   ProjectDetailWorkItem,
   WorkItemStatus,
 } from "../types";
-import { CommentComposer } from "./CommentComposer";
+import { CommentComposer } from "./comment-composer";
 
 const WORK_ITEM_STATUS_STYLES: Record<WorkItemStatus, string> = {
   done: "bg-green-100 text-green-700",
@@ -279,61 +488,6 @@ export function ProjectDetailView({
   );
 }
 
-export function ProjectDetailLoading() {
-  return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="mx-auto max-w-7xl animate-pulse space-y-4">
-        <div className="h-10 w-64 rounded bg-gray-200" />
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
-          <div className="space-y-4">
-            <div className="h-52 rounded-xl bg-gray-200" />
-            <div className="grid gap-4 lg:grid-cols-2">
-              <div className="h-80 rounded-xl bg-gray-200" />
-              <div className="h-80 rounded-xl bg-gray-200" />
-            </div>
-          </div>
-          <div className="space-y-4">
-            <div className="h-56 rounded-xl bg-gray-200" />
-            <div className="h-72 rounded-xl bg-gray-200" />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export function ProjectDetailNotFound({ projectId }: { projectId: string }) {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100 px-6">
-      <div className="max-w-md rounded-xl border border-gray-200 bg-white p-6 text-center shadow-sm">
-        <h1 className="text-xl font-semibold text-gray-900">未找到项目</h1>
-        <p className="mt-2 text-sm text-gray-500">项目 ID：{projectId}</p>
-        <Link
-          href="/board"
-          className="mt-4 inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          返回看板
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-function SectionCard({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-      <h2 className="mb-3 text-base font-semibold text-gray-900">{title}</h2>
-      {children}
-    </section>
-  );
-}
-
 function MetricCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3">
@@ -384,124 +538,6 @@ function DepartmentTrackRow({
   );
 }
 
-function WorkItemRow({
-  item,
-  onUpdateStatus,
-}: {
-  item: ProjectDetailWorkItem;
-  onUpdateStatus: (
-    workItemId: string,
-    status: WorkItemStatus
-  ) => Promise<{ ok: boolean; message?: string }>;
-}) {
-  return (
-    <div className="rounded-lg border border-gray-200 p-3">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <p className="text-sm font-semibold text-gray-900">{item.title}</p>
-          <p className="mt-1 text-xs text-gray-500">
-            {item.departmentName ?? "未关联部门"} · 负责人：
-            {item.assigneeId ?? "未分配"}
-          </p>
-        </div>
-        <span
-          className={cn(
-            "rounded-full px-2 py-1 text-xs font-medium",
-            WORK_ITEM_STATUS_STYLES[item.status]
-          )}
-        >
-          {WORK_ITEM_STATUS_LABELS[item.status]}
-        </span>
-      </div>
-      <p className="mt-2 text-sm text-gray-600">{item.description}</p>
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-        <span>截止：{formatDate(item.dueDate)}</span>
-        <span>飞书任务：{item.feishuTaskGuid ?? "未同步"}</span>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {item.status === "todo" && (
-          <button
-            type="button"
-            onClick={() => void onUpdateStatus(item.id, "in_progress")}
-            className="rounded-md border border-blue-200 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50"
-          >
-            开始处理
-          </button>
-        )}
-        {item.status !== "done" && (
-          <button
-            type="button"
-            onClick={() => void onUpdateStatus(item.id, "done")}
-            className="rounded-md border border-green-200 px-2.5 py-1 text-xs font-medium text-green-700 hover:bg-green-50"
-          >
-            标记完成
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ApprovalRow({
-  approval,
-  onResolve,
-}: {
-  approval: ProjectDetailApproval;
-  onResolve: (
-    approvalId: string,
-    status: "approved" | "rejected"
-  ) => Promise<{ ok: boolean; message?: string }>;
-}) {
-  return (
-    <div className="rounded-lg border border-gray-200 p-3">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <p className="text-sm font-semibold text-gray-900">
-            {approval.title}
-          </p>
-          <p className="mt-1 text-xs text-gray-500">
-            阶段：
-            {getColumnNameByStatus(approval.triggerStage) ??
-              approval.triggerStage}
-            {approval.departmentName ? ` · ${approval.departmentName}` : ""}
-          </p>
-        </div>
-        <span
-          className={cn(
-            "rounded-full px-2 py-1 text-xs font-medium",
-            APPROVAL_STATUS_STYLES[approval.status]
-          )}
-        >
-          {APPROVAL_STATUS_LABELS[approval.status]}
-        </span>
-      </div>
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-        <span>申请人：{approval.applicantId}</span>
-        <span>实例：{approval.instanceCode ?? "未生成"}</span>
-        <span>处理时间：{formatDateTime(approval.resolvedAt)}</span>
-      </div>
-      {approval.status === "pending" && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => void onResolve(approval.id, "approved")}
-            className="rounded-md border border-green-200 px-2.5 py-1 text-xs font-medium text-green-700 hover:bg-green-50"
-          >
-            通过
-          </button>
-          <button
-            type="button"
-            onClick={() => void onResolve(approval.id, "rejected")}
-            className="rounded-md border border-red-200 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
-          >
-            驳回
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function CommentRow({
   comment,
   onDelete,
@@ -518,7 +554,9 @@ function CommentRow({
           {!comment.isDeleted && (
             <button
               type="button"
-              onClick={() => void onDelete(comment.id)}
+              onClick={() => {
+                onDelete(comment.id);
+              }}
               className="text-red-500 hover:text-red-600"
             >
               删除
@@ -548,19 +586,6 @@ function CommentRow({
   );
 }
 
-function TimelineRow({ event }: { event: ProjectDetailTimelineEvent }) {
-  return (
-    <div className="rounded-lg border border-gray-200 p-3">
-      <div className="flex items-center justify-between gap-2 text-xs text-gray-500">
-        <span>{event.actorId}</span>
-        <span>{formatDateTime(event.createdAt)}</span>
-      </div>
-      <p className="mt-2 text-sm text-gray-700">{event.changeSummary}</p>
-      <p className="mt-2 text-xs text-gray-400">{event.action}</p>
-    </div>
-  );
-}
-
 function BindingGroup({ title, items }: { title: string; items: string[] }) {
   return (
     <div className="mt-3 first:mt-0">
@@ -577,13 +602,5 @@ function BindingGroup({ title, items }: { title: string; items: string[] }) {
         </ul>
       )}
     </div>
-  );
-}
-
-function EmptyHint({ text }: { text: string }) {
-  return (
-    <p className="rounded-lg bg-gray-50 px-3 py-6 text-center text-sm text-gray-400">
-      {text}
-    </p>
   );
 }

@@ -3,5 +3,32 @@
   "extends": [
     "./node_modules/ultracite/config/oxlint/core/.oxlintrc.json",
     "./node_modules/ultracite/config/oxlint/next/.oxlintrc.json"
-  ]
+  ],
+  "rules": {
+    "func-style": "off",
+    "prefer-arrow-callback": "off",
+    "promise/prefer-await-to-callbacks": "off",
+    "promise/prefer-await-to-then": "off",
+    "unicorn/prefer-ternary": "off",
+    "unicorn/no-nested-ternary": "off",
+    "require-await": "off",
+    "arrow-body-style": "off",
+    "no-void": "off",
+    "no-empty-function": "off",
+    "import/first": "off",
+    "no-unused-expressions": "off",
+    "no-use-before-define": "off",
+    "no-nested-ternary": "off",
+    "typescript/no-unsafe-function-type": "off",
+    "unicorn/prefer-response-static-json": "off",
+    "typescript/ban-types": "off",
+    "prefer-destructuring": "off",
+    "typescript/no-explicit-any": "off",
+    "unicorn/filename-case": "off",
+    "typescript/no-non-null-assertion": "off",
+    "no-warning-comments": "off",
+    "unicorn/no-array-method-this-argument": "off",
+    "unicorn/no-abusive-eslint-disable": "off",
+    "max-classes-per-file": "off"
+  }
 }

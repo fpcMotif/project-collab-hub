@@ -11,8 +11,8 @@ import type {
   Priority,
   SlaRisk,
 } from "../../types";
-import { ActiveFilterTags } from "./ActiveFilterTags";
-import { FilterSelect } from "./FilterSelect";
+import { ActiveFilterTags } from "./active-filter-tags";
+import { FilterSelect } from "./filter-select";
 
 interface FilterBarProps {
   filters: BoardFilterState;

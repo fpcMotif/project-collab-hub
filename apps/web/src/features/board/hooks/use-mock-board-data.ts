@@ -38,6 +38,7 @@ export const useMockBoardData = (filters: BoardFilterState) => {
         return { message: decision.message, ok: false };
       }
 
+      await Promise.resolve();
       replaceProjects(
         projects.map((item) =>
           item.id === projectId ? { ...item, status: targetStatus } : item

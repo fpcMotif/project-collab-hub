@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 
-import { useMockProjectStore } from "@/features/board/hooks/useMockProjectStore";
+import { useMockProjectStore } from "@/features/board/hooks/use-mock-project-store";
 import type {
   BoardProjectRecord,
   DeptTrackStatus,
@@ -398,9 +398,9 @@ export function useMockProjectDetailState(projectId: string) {
 
               const nextStatus: DeptTrackStatus =
                 status === "approved"
-                  ? (track.status === "waiting_approval"
+                  ? track.status === "waiting_approval"
                     ? "done"
-                    : track.status)
+                    : track.status
                   : "blocked";
 
               return {

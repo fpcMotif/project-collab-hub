@@ -1,6 +1,6 @@
 import { httpRouter } from "convex/server";
 
-import { api } from "./_generated/api";
+import { api } from "./_generated/api"; /* eslint-disable-line import/first */
 import { httpAction } from "./_generated/server";
 
 const http = httpRouter();

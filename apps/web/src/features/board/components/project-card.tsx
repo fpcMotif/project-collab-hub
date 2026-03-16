@@ -3,11 +3,11 @@ import Link from "next/link";
 import { cn } from "@/lib/cn";
 
 import type { BoardProjectCard } from "../types";
-import { CardMetaRow } from "./CardMetaRow";
-import { DepartmentChip } from "./DepartmentChip";
-import { PriorityBadge } from "./PriorityBadge";
-import { SlaRiskIndicator } from "./SlaRiskIndicator";
-import { StageAdvanceHint } from "./StageAdvanceHint";
+import { CardMetaRow } from "./card-meta-row";
+import { DepartmentChip } from "./department-chip";
+import { PriorityBadge } from "./priority-badge";
+import { SlaRiskIndicator } from "./sla-risk-indicator";
+import { StageAdvanceHint } from "./stage-advance-hint";
 
 interface ProjectCardProps {
   card: BoardProjectCard;
