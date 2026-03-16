@@ -199,10 +199,13 @@ export default defineSchema({
     notificationDeliveryId: v.optional(v.id("notificationDeliveries")),
   })
     .index("by_comment", ["commentId"])
-    .index("by_mentioned_user", ["mentionedUserId"]),
+    .index("by_mentioned_user", ["mentionedUserId"])
+    .index("by_comment_and_user", ["commentId", "mentionedUserId"])
+    .index("by_notification_delivery", ["notificationDeliveryId"]),
 
   notificationDeliveries: defineTable({
     projectId: v.id("projects"),
+    commentId: v.optional(v.id("comments")),
     recipientId: v.string(),
     channel: v.union(
       v.literal("group_chat"),
@@ -230,7 +233,8 @@ export default defineSchema({
   })
     .index("by_project", ["projectId"])
     .index("by_recipient", ["recipientId"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_comment_recipient_type", ["commentId", "recipientId", "messageType"]),
 
   // ── Configuration ──────────────────────────────────────────────────────
 
