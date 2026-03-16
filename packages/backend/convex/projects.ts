@@ -70,7 +70,7 @@ export const create = mutation({
       v.literal("api")
     ),
     startDate: v.optional(v.number()),
-    templateId: v.optional(v.string()),
+    templateId: v.optional(v.id("projectTemplates")),
     templateVersion: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -100,6 +100,7 @@ export const createFromTemplate = mutation({
     departmentId: v.string(),
     description: v.string(),
     endDate: v.optional(v.number()),
+    externalRef: v.optional(v.string()),
     name: v.string(),
     ownerId: v.string(),
     priority: v.optional(
@@ -120,6 +121,36 @@ export const createFromTemplate = mutation({
     templateId: v.id("projectTemplates"),
   },
   handler: async (ctx, args) => {
+    const idempotencyKey = args.externalRef
+      ? `project:create_from_template:${args.sourceEntry}:${args.externalRef}`
+      : null;
+
+    if (idempotencyKey) {
+      const existingCreateEvent = await ctx.db
+        .query("auditEvents")
+        .withIndex("by_idempotency_key", (q) =>
+          q.eq("idempotencyKey", idempotencyKey)
+        )
+        .first();
+
+      if (existingCreateEvent?.projectId) {
+        const existingProject = await ctx.db.get(existingCreateEvent.projectId);
+
+        if (existingProject) {
+          const existingTemplate = existingProject.templateId
+            ? await ctx.db.get(existingProject.templateId)
+            : null;
+
+          return {
+            projectId: existingProject._id,
+            templateName: existingTemplate?.name ?? "Unknown template",
+            templateVersion:
+              existingProject.templateVersion ?? existingTemplate?.version ?? 0,
+          };
+        }
+      }
+    }
+
     const template = await ctx.db.get(args.templateId);
     if (!template) {
       throw new Error(`Template ${args.templateId} not found`);
@@ -157,6 +188,7 @@ export const createFromTemplate = mutation({
       action: "project.created",
       actorId: args.createdBy,
       changeSummary: `Project "${args.name}" created from template "${template.name}" (v${template.version})`,
+      idempotencyKey: idempotencyKey ?? undefined,
       objectId: projectId,
       objectType: "project",
       projectId,

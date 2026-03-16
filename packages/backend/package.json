@@ -12,6 +12,7 @@
     "effect": "^3"
   },
   "devDependencies": {
+    "@types/bun": "latest",
     "typescript": "^5"
   }
 }

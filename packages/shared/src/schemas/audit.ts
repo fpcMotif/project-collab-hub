@@ -4,10 +4,9 @@ export class AuditEvent extends Schema.Class<AuditEvent>("AuditEvent")({
   action: Schema.String,
   actorId: Schema.String,
   changeSummary: Schema.String,
-  decision: Schema.optionalWith(
-    Schema.Literal("allowed", "rejected"),
-    { as: "Option" }
-  ),
+  decision: Schema.optionalWith(Schema.Literal("allowed", "rejected"), {
+    as: "Option",
+  }),
   decisionReason: Schema.optionalWith(Schema.String, { as: "Option" }),
   fromStage: Schema.optionalWith(Schema.String, { as: "Option" }),
   id: Schema.String,

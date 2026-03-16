@@ -65,9 +65,7 @@ export default defineSchema({
     action: v.string(),
     actorId: v.string(),
     changeSummary: v.string(),
-    decision: v.optional(
-      v.union(v.literal("allowed"), v.literal("rejected"))
-    ),
+    decision: v.optional(v.union(v.literal("allowed"), v.literal("rejected"))),
     decisionReason: v.optional(v.string()),
     fromStage: v.optional(projectStatus),
     idempotencyKey: v.optional(v.string()),
@@ -150,6 +148,24 @@ export default defineSchema({
   })
     .index("by_project", ["projectId"])
     .index("by_doc_token", ["feishuDocToken"]),
+
+  feishuEventReceipts: defineTable({
+    eventId: v.string(),
+    eventType: v.string(),
+    lastError: v.optional(v.string()),
+    lastProcessedAt: v.number(),
+    payload: v.string(),
+    reason: v.optional(v.string()),
+    retryCount: v.number(),
+    status: v.union(
+      v.literal("processed"),
+      v.literal("ignored"),
+      v.literal("pending_retry")
+    ),
+    taskGuid: v.optional(v.string()),
+  })
+    .index("by_event_id", ["eventId"])
+    .index("by_status", ["status"]),
 
   feishuTaskBindings: defineTable({
     feishuTaskGuid: v.string(),
@@ -270,7 +286,7 @@ export default defineSchema({
     ),
     startDate: v.optional(v.number()),
     status: projectStatus,
-    templateId: v.optional(v.string()),
+    templateId: v.optional(v.id("projectTemplates")),
     templateVersion: v.optional(v.number()),
   })
     .index("by_status", ["status"])
