@@ -1,155 +1,235 @@
-import { describe, expect, it, mock } from "bun:test";
+import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
+
 import { Effect, Layer } from "effect";
-import { FeishuAuthService } from "./FeishuAuthService.js";
-import { FeishuTaskService, FeishuTaskServiceLive } from "./FeishuTaskService.js";
+
+import { FeishuAuthService } from "./feishu-auth-service.js";
+import {
+  FeishuTaskService,
+  FeishuTaskServiceLive,
+} from "./feishu-task-service.js";
+
+const createTaskParams = {
+  description: "Test Description",
+  dueTimestamp: "1678886400",
+  memberIds: ["user-1", "user-2"],
+  originHref: "https://example.com/task",
+  originTitle: "Origin Title",
+  summary: "Test Summary",
+} as const;
+
+let dateNowSpy: ReturnType<typeof spyOn> | undefined;
+
+afterEach(() => {
+  dateNowSpy?.mockRestore();
+  dateNowSpy = undefined;
+});
+
+const createTestLayer = ({
+  createRequest = mock().mockResolvedValue({
+    code: 0,
+    data: {
+      task: {
+        guid: "mock-task-guid-123",
+      },
+    },
+  }),
+  patchRequest = mock().mockResolvedValue({ code: 0, data: {} }),
+  getRequest = mock().mockResolvedValue({
+    code: 0,
+    data: {
+      guid: "mock-task-guid-123",
+      summary: "Test Summary",
+    },
+  }),
+}: {
+  readonly createRequest?: ReturnType<typeof mock>;
+  readonly patchRequest?: ReturnType<typeof mock>;
+  readonly getRequest?: ReturnType<typeof mock>;
+} = {}) =>
+  Layer.provide(
+    FeishuTaskServiceLive,
+    Layer.succeed(FeishuAuthService, {
+      client: {
+        task: {
+          v2: {
+            task: {
+              create: createRequest,
+              get: getRequest,
+              patch: patchRequest,
+            },
+          },
+        },
+      },
+      getTenantAccessToken: () => Effect.succeed("mock-token"),
+    } as unknown as FeishuAuthService)
+  );
+
+const runCreateTask = (testLayer: ReturnType<typeof createTestLayer>) =>
+  Effect.runPromise(
+    FeishuTaskService.pipe(
+      Effect.andThen((service) => service.createTask(createTaskParams)),
+      Effect.provide(testLayer)
+    )
+  );
+
+const runCompleteTask = (testLayer: ReturnType<typeof createTestLayer>) =>
+  Effect.runPromise(
+    FeishuTaskService.pipe(
+      Effect.andThen((service) => service.completeTask("mock-task-guid-123")),
+      Effect.provide(testLayer)
+    )
+  );
+
+const runGetTask = (testLayer: ReturnType<typeof createTestLayer>) =>
+  Effect.runPromise(
+    FeishuTaskService.pipe(
+      Effect.andThen((service) => service.getTask("mock-task-guid-123")),
+      Effect.provide(testLayer)
+    )
+  );
 
 describe("FeishuTaskService", () => {
   describe("createTask", () => {
-    it("should successfully create a task and return the taskGuid", async () => {
-      // Create a mock FeishuAuthService
-      const mockCreate = mock().mockResolvedValue({
+    it("creates a task and returns the task guid", async () => {
+      const createRequest = mock().mockResolvedValue({
+        code: 0,
         data: {
           task: {
             guid: "mock-task-guid-123",
           },
         },
       });
+      const testLayer = createTestLayer({ createRequest });
 
-      const mockAuthService = {
-        client: {
-          task: {
-            v2: {
-              task: {
-                create: mockCreate,
-              },
-            },
-          },
-        },
-        getTenantAccessToken: () => Effect.succeed("mock-token"),
-      } as unknown as FeishuAuthService;
+      const result = await runCreateTask(testLayer);
 
-      // Provide the mock auth service to the layer
-      const AuthLayer = Layer.succeed(FeishuAuthService, mockAuthService);
-      const TestLayer = Layer.provide(FeishuTaskServiceLive, AuthLayer);
-
-      // Call createTask via Effect.flatMap
-      const program = Effect.flatMap(FeishuTaskService, (service) =>
-        service.createTask({
-          summary: "Test Summary",
-          description: "Test Description",
-          dueTimestamp: "1678886400",
-          memberIds: ["user-1", "user-2"],
-          originHref: "https://example.com/task",
-          originTitle: "Origin Title",
-        })
-      );
-
-      const result = await Effect.runPromise(Effect.provide(program, TestLayer));
-
-      // Verify result
       expect(result).toEqual({ taskGuid: "mock-task-guid-123" });
-
-      // Verify mock was called with correct parameters
-      expect(mockCreate).toHaveBeenCalledTimes(1);
-      expect(mockCreate).toHaveBeenCalledWith({
+      expect(createRequest).toHaveBeenCalledTimes(1);
+      expect(createRequest).toHaveBeenCalledWith({
         data: {
-          summary: "Test Summary",
           description: "Test Description",
           due: {
-            timestamp: "1678886400",
             is_all_day: true,
-          },
-          origin: {
-            platform_i18n_name: { en_us: "Project Collab Hub" },
-            href: { url: "https://example.com/task", title: "Origin Title" },
+            timestamp: "1678886400",
           },
           members: [
-            { id: "user-1", type: "user", role: "assignee" },
-            { id: "user-2", type: "user", role: "assignee" },
+            { id: "user-1", role: "assignee", type: "user" },
+            { id: "user-2", role: "assignee", type: "user" },
           ],
+          origin: {
+            href: { title: "Origin Title", url: "https://example.com/task" },
+            platform_i18n_name: { en_us: "Project Collab Hub" },
+          },
+          summary: "Test Summary",
         },
       });
     });
 
-    it("should throw an error if the response has no task guid", async () => {
-      // Create a mock FeishuAuthService
-      const mockCreate = mock().mockResolvedValue({
+    it("fails when the response is missing the task guid", async () => {
+      const createRequest = mock().mockResolvedValue({
+        code: 0,
+        data: { task: {} },
+      });
+      const testLayer = createTestLayer({ createRequest });
+
+      await expect(runCreateTask(testLayer)).rejects.toThrow(
+        "Failed to create Feishu task: No task guid in response"
+      );
+    });
+
+    it("fails when Feishu returns a non-zero code", async () => {
+      const createRequest = mock().mockResolvedValue({
+        code: 403,
+        msg: "permission denied",
+      });
+      const testLayer = createTestLayer({ createRequest });
+
+      await expect(runCreateTask(testLayer)).rejects.toThrow(
+        "Failed to create Feishu task: Feishu API failed with code 403: permission denied"
+      );
+    });
+
+    it("fails when the API call throws", async () => {
+      const createRequest = mock().mockRejectedValue(new Error("API Error"));
+      const testLayer = createTestLayer({ createRequest });
+
+      await expect(runCreateTask(testLayer)).rejects.toThrow(
+        "Failed to create Feishu task: API Error"
+      );
+    });
+  });
+
+  describe("completeTask", () => {
+    it("completes a task with the expected payload", async () => {
+      const patchRequest = mock().mockResolvedValue({ code: 0, data: {} });
+      const testLayer = createTestLayer({ patchRequest });
+      dateNowSpy = spyOn(Date, "now").mockReturnValue(1_700_000_000_000);
+
+      await expect(runCompleteTask(testLayer)).resolves.toBeUndefined();
+      expect(patchRequest).toHaveBeenCalledWith({
         data: {
-          task: {
-            // No guid
-          },
+          task: { completed_at: "1700000000" },
+          update_fields: ["completed_at"],
         },
+        path: { task_guid: "mock-task-guid-123" },
       });
-
-      const mockAuthService = {
-        client: {
-          task: {
-            v2: {
-              task: {
-                create: mockCreate,
-              },
-            },
-          },
-        },
-        getTenantAccessToken: () => Effect.succeed("mock-token"),
-      } as unknown as FeishuAuthService;
-
-      // Provide the mock auth service to the layer
-      const AuthLayer = Layer.succeed(FeishuAuthService, mockAuthService);
-      const TestLayer = Layer.provide(FeishuTaskServiceLive, AuthLayer);
-
-      // Call createTask
-      const program = Effect.flatMap(FeishuTaskService, (service) =>
-        service.createTask({
-          summary: "Test Summary",
-          description: "Test Description",
-          dueTimestamp: "1678886400",
-          memberIds: ["user-1"],
-          originHref: "https://example.com/task",
-          originTitle: "Origin Title",
-        })
-      );
-
-      // Verify result
-      await expect(Effect.runPromise(Effect.provide(program, TestLayer))).rejects.toThrow("Failed to create Feishu task: No task guid in response");
     });
 
-    it("should throw an error if the API call fails", async () => {
-      // Create a mock FeishuAuthService
-      // Wrap mock rejection so it doesn't fail globally
-      const mockCreate = mock().mockImplementation(() => Promise.reject(new Error("API Error")));
+    it("fails when Feishu rejects task completion", async () => {
+      const patchRequest = mock().mockResolvedValue({
+        code: 403,
+        msg: "forbidden",
+      });
+      const testLayer = createTestLayer({ patchRequest });
 
-      const mockAuthService = {
-        client: {
-          task: {
-            v2: {
-              task: {
-                create: mockCreate,
-              },
-            },
-          },
-        },
-        getTenantAccessToken: () => Effect.succeed("mock-token"),
-      } as unknown as FeishuAuthService;
-
-      // Provide the mock auth service to the layer
-      const AuthLayer = Layer.succeed(FeishuAuthService, mockAuthService);
-      const TestLayer = Layer.provide(FeishuTaskServiceLive, AuthLayer);
-
-      // Call createTask
-      const program = Effect.flatMap(FeishuTaskService, (service) =>
-        service.createTask({
-          summary: "Test Summary",
-          description: "Test Description",
-          dueTimestamp: "1678886400",
-          memberIds: ["user-1"],
-          originHref: "https://example.com/task",
-          originTitle: "Origin Title",
-        })
+      await expect(runCompleteTask(testLayer)).rejects.toThrow(
+        "Failed to complete Feishu task: Feishu API failed with code 403: forbidden"
       );
+    });
+  });
 
-      // Verify result
-      await expect(Effect.runPromise(Effect.provide(program, TestLayer))).rejects.toThrow("Failed to create Feishu task: API Error");
+  describe("getTask", () => {
+    it("returns the task data when Feishu succeeds", async () => {
+      const getRequest = mock().mockResolvedValue({
+        code: 0,
+        data: { guid: "mock-task-guid-123", summary: "Test Summary" },
+      });
+      const testLayer = createTestLayer({ getRequest });
+
+      await expect(runGetTask(testLayer)).resolves.toEqual({
+        guid: "mock-task-guid-123",
+        summary: "Test Summary",
+      });
+    });
+
+    it("fails when Feishu returns a non-zero task response", async () => {
+      const getRequest = mock().mockResolvedValue({
+        code: 403,
+        msg: "permission denied",
+      });
+      const testLayer = createTestLayer({ getRequest });
+
+      await expect(runGetTask(testLayer)).rejects.toThrow(
+        "Failed to get Feishu task: Feishu API failed with code 403: permission denied"
+      );
+    });
+
+    it("fails when Feishu returns no task data", async () => {
+      const getRequest = mock().mockResolvedValue({ code: 0 });
+      const testLayer = createTestLayer({ getRequest });
+
+      await expect(runGetTask(testLayer)).rejects.toThrow(
+        "Failed to get Feishu task: No data in response"
+      );
+    });
+
+    it("fails when Feishu returns non-object task data", async () => {
+      const getRequest = mock().mockResolvedValue({ code: 0, data: "invalid" });
+      const testLayer = createTestLayer({ getRequest });
+
+      await expect(runGetTask(testLayer)).rejects.toThrow(
+        "Failed to get Feishu task: Expected object data in response"
+      );
     });
   });
 });

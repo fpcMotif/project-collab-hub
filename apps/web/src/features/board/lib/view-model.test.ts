@@ -178,6 +178,18 @@ describe("buildStageAdvanceState", () => {
     expect(state.tone).toBe("attention");
     expect(state.allowed).toBe(false);
   });
+  it("returns 'blocked' tone when tracks are waiting approval", () => {
+    const project = makeProject({
+      departmentTracks: [
+        { departmentName: "法务部", status: "waiting_approval" },
+      ],
+      status: "new",
+    });
+    const state = buildStageAdvanceState(project);
+    expect(state.tone).toBe("blocked");
+    expect(state.allowed).toBe(false);
+    expect(state.detail).toContain("法务部");
+  });
 });
 
 // ── getProjectMoveDecision ─────────────────────────────────────────
@@ -318,5 +330,52 @@ describe("buildBoardViewData", () => {
     // Both are tone "ready" (no tracks), so sort by slaRisk: overdue < on_time
     expect(newColumn.cards[0].id).toBe("urgent-overdue");
     expect(newColumn.cards[1].id).toBe("low-priority");
+  });
+  it("sorts blocked cards by overdue count before pending approvals", () => {
+    const projects = [
+      makeProject({
+        departmentTracks: [{ departmentName: "采购部", status: "blocked" }],
+        id: "higher-overdue",
+        overdueTaskCount: 3,
+        pendingApprovalCount: 0,
+        slaRisk: "at_risk",
+      }),
+      makeProject({
+        departmentTracks: [{ departmentName: "采购部", status: "blocked" }],
+        id: "higher-approvals",
+        overdueTaskCount: 1,
+        pendingApprovalCount: 5,
+        slaRisk: "at_risk",
+      }),
+      makeProject({
+        departmentTracks: [{ departmentName: "采购部", status: "blocked" }],
+        id: "lower-approvals",
+        overdueTaskCount: 1,
+        pendingApprovalCount: 1,
+        slaRisk: "at_risk",
+      }),
+    ];
+    const data = buildBoardViewData(projects, EMPTY_FILTERS);
+    const newColumn = requireColumn(data.columns, "new");
+    expect(newColumn.cards.map((card) => card.id)).toEqual([
+      "higher-overdue",
+      "higher-approvals",
+      "lower-approvals",
+    ]);
+  });
+
+  it("sorts fully tied ready cards by priority then name", () => {
+    const projects = [
+      makeProject({ id: "low-b", name: "B项目", priority: "low" }),
+      makeProject({ id: "high-c", name: "C项目", priority: "high" }),
+      makeProject({ id: "low-a", name: "A项目", priority: "low" }),
+    ];
+    const data = buildBoardViewData(projects, EMPTY_FILTERS);
+    const newColumn = requireColumn(data.columns, "new");
+    expect(newColumn.cards.map((card) => card.id)).toEqual([
+      "high-c",
+      "low-a",
+      "low-b",
+    ]);
   });
 });

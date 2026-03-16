@@ -2,6 +2,7 @@ import { Context, Effect, Layer } from "effect";
 
 import { FeishuError } from "../errors/feishu-error.js";
 import { FeishuAuthService } from "./feishu-auth-service.js";
+import { assertFeishuSuccess, wrapFeishuError } from "./feishu-response.js";
 
 export interface SendTextMessageParams {
   readonly chatId: string;
@@ -28,40 +29,48 @@ export class FeishuMessageService extends Context.Tag("FeishuMessageService")<
 export const FeishuMessageServiceLive = Layer.effect(
   FeishuMessageService,
   FeishuAuthService.pipe(
-    Effect.map((auth) => ({
-      sendCard: (params: SendCardMessageParams) =>
-        Effect.tryPromise({
-          catch: (error) =>
-            new FeishuError({
-              message: `Failed to send card message: ${error instanceof Error ? error.message : String(error)}`,
-            }),
-          try: () =>
-            auth.client.im.message.create({
-              data: {
-                content: JSON.stringify(params.card),
-                msg_type: "interactive",
-                receive_id: params.chatId,
-              },
-              params: { receive_id_type: "chat_id" },
-            }),
-        }).pipe(Effect.asVoid),
+    Effect.map((auth) => {
+      const chatIdReceiveParams = { receive_id_type: "chat_id" } as const;
 
-      sendText: (params: SendTextMessageParams) =>
+      const sendMessage = (params: {
+        readonly chatId: string;
+        readonly content: string;
+        readonly failurePrefix: string;
+        readonly messageType: "interactive" | "text";
+      }): Effect.Effect<void, Error> =>
         Effect.tryPromise({
-          catch: (error) =>
-            new FeishuError({
-              message: `Failed to send text message: ${error instanceof Error ? error.message : String(error)}`,
-            }),
-          try: () =>
-            auth.client.im.message.create({
+          catch: (error) => wrapFeishuError(params.failurePrefix, error),
+          try: async () => {
+            const response = await auth.client.im.message.create({
               data: {
-                content: JSON.stringify({ text: params.text }),
-                msg_type: "text",
+                content: params.content,
+                msg_type: params.messageType,
                 receive_id: params.chatId,
               },
-              params: { receive_id_type: "chat_id" },
-            }),
-        }).pipe(Effect.asVoid),
-    }))
+              params: chatIdReceiveParams,
+            });
+
+            assertFeishuSuccess(response);
+          },
+        });
+
+      return {
+        sendCard: (params: SendCardMessageParams) =>
+          sendMessage({
+            chatId: params.chatId,
+            content: JSON.stringify(params.card),
+            failurePrefix: "Failed to send card message",
+            messageType: "interactive",
+          }),
+
+        sendText: (params: SendTextMessageParams) =>
+          sendMessage({
+            chatId: params.chatId,
+            content: JSON.stringify({ text: params.text }),
+            failurePrefix: "Failed to send text message",
+            messageType: "text",
+          }),
+      };
+    })
   )
 );

@@ -98,6 +98,27 @@ describe("canAdvanceStage", () => {
     const result = canAdvanceStage("done", "new", ["done"], 0);
     expect(result.allowed).toBe(false);
   });
+  it("allows reopening from delivering to executing without rechecking gate state", () => {
+    const result = canAdvanceStage("delivering", "executing", ["blocked"], 4);
+    expect(result).toEqual({ allowed: true });
+  });
+
+  it("treats not_started tracks as incomplete for forward transitions", () => {
+    const result = canAdvanceStage(
+      "new",
+      "assessment",
+      ["not_started", "done"],
+      0
+    );
+    expect(result.allowed).toBe(false);
+    expect(result.reason).toContain("not complete");
+  });
+
+  it("rejects transitions from cancelled as a terminal state", () => {
+    const result = canAdvanceStage("cancelled", "new", ["done"], 0);
+    expect(result.allowed).toBe(false);
+    expect(result.reason).toContain("not permitted");
+  });
 });
 
 describe("BOARD_COLUMNS", () => {
@@ -113,7 +134,7 @@ describe("BOARD_COLUMNS", () => {
       (col) => col.projectStatus === "cancelled"
     );
     expect(cancelled).toBeDefined();
-    expect(cancelled!.id).toBe("COL-CANCEL");
+    expect(cancelled?.id).toBe("COL-CANCEL");
   });
 
   it("has unique column IDs", () => {
@@ -139,7 +160,9 @@ describe("STAGE_TRANSITIONS", () => {
 
   it("every forward status allows cancellation except terminal states", () => {
     for (const status of BOARD_FLOW_SEQUENCE) {
-      if (status === "done") {continue;}
+      if (status === "done") {
+        continue;
+      }
       expect(
         STAGE_TRANSITIONS[status],
         `"${status}" should allow cancellation`

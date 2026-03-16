@@ -2,6 +2,11 @@ import { Context, Effect, Layer } from "effect";
 
 import { FeishuError } from "../errors/feishu-error.js";
 import { FeishuAuthService } from "./feishu-auth-service.js";
+import {
+  getFeishuData,
+  getFeishuObjectData,
+  wrapFeishuError,
+} from "./feishu-response.js";
 
 export interface CreateApprovalInstanceParams {
   readonly approvalCode: string;
@@ -32,25 +37,24 @@ export const FeishuApprovalServiceLive = Layer.effect(
       createInstance: (params: CreateApprovalInstanceParams) =>
         Effect.tryPromise({
           catch: (error) =>
-            new FeishuError({
-              message: `Failed to create approval instance: ${error instanceof Error ? error.message : String(error)}`,
-            }),
+            wrapFeishuError("Failed to create approval instance", error),
           try: async () => {
-            const resp = await auth.client.approval.instance.create({
+            const response = await auth.client.approval.instance.create({
               data: {
                 approval_code: params.approvalCode,
                 form: params.formData,
                 open_id: params.applicantId,
               },
             });
-            const instanceCode = (
-              resp?.data as { instance_code?: string } | undefined
-            )?.instance_code;
+            const data = getFeishuData(response);
+            const instanceCode = data.instance_code;
+
             if (!instanceCode) {
               throw new FeishuError({
                 message: "No instance_code in response",
               });
             }
+
             return { instanceCode };
           },
         }),
@@ -58,14 +62,13 @@ export const FeishuApprovalServiceLive = Layer.effect(
       getInstance: (instanceCode: string) =>
         Effect.tryPromise({
           catch: (error) =>
-            new FeishuError({
-              message: `Failed to get approval instance: ${error instanceof Error ? error.message : String(error)}`,
-            }),
+            wrapFeishuError("Failed to get approval instance", error),
           try: async () => {
-            const resp = await auth.client.approval.instance.get({
+            const response = await auth.client.approval.instance.get({
               path: { instance_id: instanceCode },
             });
-            return (resp?.data as Record<string, unknown>) ?? {};
+
+            return getFeishuObjectData(response);
           },
         }),
     }))

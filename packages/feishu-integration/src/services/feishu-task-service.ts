@@ -2,6 +2,12 @@ import { Context, Effect, Layer } from "effect";
 
 import { FeishuError } from "../errors/feishu-error.js";
 import { FeishuAuthService } from "./feishu-auth-service.js";
+import {
+  assertFeishuSuccess,
+  getFeishuData,
+  getFeishuObjectData,
+  wrapFeishuError,
+} from "./feishu-response.js";
 
 export interface CreateFeishuTaskParams {
   readonly summary: string;
@@ -36,27 +42,26 @@ export const FeishuTaskServiceLive = Layer.effect(
       completeTask: (taskGuid: string) =>
         Effect.tryPromise({
           catch: (error) =>
-            new FeishuError({
-              message: `Failed to complete Feishu task: ${error instanceof Error ? error.message : String(error)}`,
-            }),
-          try: () =>
-            auth.client.task.v2.task.patch({
+            wrapFeishuError("Failed to complete Feishu task", error),
+          try: async () => {
+            const response = await auth.client.task.v2.task.patch({
               data: {
                 task: { completed_at: String(Math.floor(Date.now() / 1000)) },
                 update_fields: ["completed_at"],
               },
               path: { task_guid: taskGuid },
-            }),
-        }).pipe(Effect.asVoid),
+            });
+
+            assertFeishuSuccess(response);
+          },
+        }),
 
       createTask: (params: CreateFeishuTaskParams) =>
         Effect.tryPromise({
           catch: (error) =>
-            new FeishuError({
-              message: `Failed to create Feishu task: ${error instanceof Error ? error.message : String(error)}`,
-            }),
+            wrapFeishuError("Failed to create Feishu task", error),
           try: async () => {
-            const resp = await auth.client.task.v2.task.create({
+            const response = await auth.client.task.v2.task.create({
               data: {
                 description: params.description,
                 due: {
@@ -75,28 +80,28 @@ export const FeishuTaskServiceLive = Layer.effect(
                 summary: params.summary,
               },
             });
-            const taskGuid = (resp?.data as { task?: { guid?: string } })?.task
-              ?.guid;
+            const data = getFeishuData(response);
+            const taskGuid = data.task?.guid;
+
             if (!taskGuid) {
               throw new FeishuError({
                 message: "No task guid in response",
               });
             }
+
             return { taskGuid };
           },
         }),
 
       getTask: (taskGuid: string) =>
         Effect.tryPromise({
-          catch: (error) =>
-            new FeishuError({
-              message: `Failed to get Feishu task: ${error instanceof Error ? error.message : String(error)}`,
-            }),
+          catch: (error) => wrapFeishuError("Failed to get Feishu task", error),
           try: async () => {
-            const resp = await auth.client.task.v2.task.get({
+            const response = await auth.client.task.v2.task.get({
               path: { task_guid: taskGuid },
             });
-            return (resp?.data as Record<string, unknown>) ?? {};
+
+            return getFeishuObjectData(response);
           },
         }),
     }))
