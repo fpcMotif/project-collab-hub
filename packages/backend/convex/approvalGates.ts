@@ -1,9 +1,43 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { requireProjectAccess } from "./authz";
+import { insertAuditEvent, withAuditSource } from "./auditEvents";
+
+const roleValidator = v.optional(
+  v.union(
+    v.literal("admin"),
+    v.literal("project_manager"),
+    v.literal("editor"),
+    v.literal("member"),
+    v.literal("viewer"),
+    v.literal("guest"),
+  ),
+);
 
 export const listByProject = query({
-  args: { projectId: v.id("projects") },
+  args: {
+    projectId: v.id("projects"),
+    actorId: v.string(),
+    actorDepartmentId: v.optional(v.string()),
+    actorRole: roleValidator,
+    sourceEntry: v.optional(v.string()),
+    sourceIp: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
+    await requireProjectAccess(
+      ctx,
+      {
+        projectId: args.projectId,
+        actorId: args.actorId,
+        actorDepartmentId: args.actorDepartmentId,
+        actorRole: args.actorRole,
+        sourceEntry: args.sourceEntry,
+        sourceIp: args.sourceIp,
+      },
+      "read",
+      "approvalGate.listByProject",
+    );
+
     return ctx.db
       .query("approvalGates")
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
@@ -40,22 +74,42 @@ export const create = mutation({
     approvalCode: v.string(),
     title: v.string(),
     applicantId: v.string(),
+    applicantDepartmentId: v.optional(v.string()),
+    applicantRole: roleValidator,
     snapshotData: v.optional(v.string()),
     templateVersion: v.optional(v.number()),
+    sourceEntry: v.optional(v.string()),
+    sourceIp: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireProjectAccess(
+      ctx,
+      {
+        projectId: args.projectId,
+        actorId: args.applicantId,
+        actorDepartmentId: args.applicantDepartmentId,
+        actorRole: args.applicantRole,
+        sourceEntry: args.sourceEntry,
+        sourceIp: args.sourceIp,
+      },
+      "write",
+      "approvalGate.create",
+    );
+
+    const { applicantDepartmentId, applicantRole, sourceEntry, sourceIp, ...insertArgs } = args;
     const gateId = await ctx.db.insert("approvalGates", {
-      ...args,
+      ...insertArgs,
       status: "pending",
     });
 
-    await ctx.db.insert("auditEvents", {
+    await insertAuditEvent(ctx, {
       projectId: args.projectId,
       actorId: args.applicantId,
       action: "approval_gate.created",
       objectType: "approval_gate",
       objectId: gateId,
       changeSummary: `Approval "${args.title}" created for stage ${args.triggerStage}`,
+      ...withAuditSource(args),
     });
 
     return gateId;
@@ -68,7 +122,11 @@ export const resolve = mutation({
     instanceCode: v.string(),
     status: v.union(v.literal("approved"), v.literal("rejected")),
     resolvedBy: v.string(),
+    resolverDepartmentId: v.optional(v.string()),
+    resolverRole: roleValidator,
     idempotencyKey: v.optional(v.string()),
+    sourceEntry: v.optional(v.string()),
+    sourceIp: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     if (args.idempotencyKey) {
@@ -88,6 +146,20 @@ export const resolve = mutation({
       throw new Error(`ApprovalGate ${args.id} not found`);
     }
 
+    await requireProjectAccess(
+      ctx,
+      {
+        projectId: gate.projectId,
+        actorId: args.resolvedBy,
+        actorDepartmentId: args.resolverDepartmentId,
+        actorRole: args.resolverRole,
+        sourceEntry: args.sourceEntry,
+        sourceIp: args.sourceIp,
+      },
+      "write",
+      "approvalGate.resolve",
+    );
+
     await ctx.db.patch(args.id, {
       instanceCode: args.instanceCode,
       status: args.status,
@@ -95,7 +167,7 @@ export const resolve = mutation({
       resolvedBy: args.resolvedBy,
     });
 
-    await ctx.db.insert("auditEvents", {
+    await insertAuditEvent(ctx, {
       projectId: gate.projectId,
       actorId: args.resolvedBy,
       action: `approval_gate.${args.status}`,
@@ -103,6 +175,7 @@ export const resolve = mutation({
       objectId: args.id,
       changeSummary: `Approval "${gate.title}" ${args.status}`,
       idempotencyKey: args.idempotencyKey,
+      ...withAuditSource(args),
     });
   },
 });

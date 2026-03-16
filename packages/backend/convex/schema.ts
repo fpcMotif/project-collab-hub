@@ -291,6 +291,7 @@ export default defineSchema({
     objectId: v.string(),
     changeSummary: v.string(),
     sourceEntry: v.optional(v.string()),
+    sourceIp: v.optional(v.string()),
     idempotencyKey: v.optional(v.string()),
   })
     .index("by_project", ["projectId"])

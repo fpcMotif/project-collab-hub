@@ -1,5 +1,18 @@
 import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
+import { canReadProject } from "./authz";
+import { insertAuditEvent, withAuditSource } from "./auditEvents";
+
+const roleValidator = v.optional(
+  v.union(
+    v.literal("admin"),
+    v.literal("project_manager"),
+    v.literal("editor"),
+    v.literal("member"),
+    v.literal("viewer"),
+    v.literal("guest"),
+  ),
+);
 
 export const listPending = query({
   args: {},
@@ -15,6 +28,9 @@ export const create = mutation({
   args: {
     projectId: v.id("projects"),
     recipientId: v.string(),
+    recipientDepartmentId: v.optional(v.string()),
+    recipientRole: roleValidator,
+    senderId: v.optional(v.string()),
     channel: v.union(
       v.literal("group_chat"),
       v.literal("private_chat"),
@@ -28,10 +44,45 @@ export const create = mutation({
       v.literal("risk_alert"),
     ),
     payload: v.string(),
+    sourceEntry: v.optional(v.string()),
+    sourceIp: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const project = await ctx.db.get(args.projectId);
+    if (!project) {
+      throw new Error(`Project ${args.projectId} not found`);
+    }
+
+    const hasAccess = canReadProject(project, {
+      projectId: args.projectId,
+      actorId: args.recipientId,
+      actorDepartmentId: args.recipientDepartmentId,
+      actorRole: args.recipientRole,
+    });
+
+    const payload =
+      args.messageType === "mention" && !hasAccess
+        ? "你被@提及，但当前无项目权限。请申请访问后查看详情。"
+        : args.payload;
+
+    if (args.messageType === "mention" && !hasAccess) {
+      await insertAuditEvent(ctx, {
+        projectId: args.projectId,
+        actorId: args.senderId ?? "system",
+        action: "notification.payload_clipped",
+        objectType: "notification",
+        objectId: args.recipientId,
+        changeSummary: `Mention payload clipped for ${args.recipientId} due to missing permission`,
+        ...withAuditSource(args),
+      });
+    }
+
+    const { recipientDepartmentId, recipientRole, senderId, sourceEntry, sourceIp, ...deliveryArgs } =
+      args;
+
     return ctx.db.insert("notificationDeliveries", {
-      ...args,
+      ...deliveryArgs,
+      payload,
       status: "pending",
       retryCount: 0,
     });

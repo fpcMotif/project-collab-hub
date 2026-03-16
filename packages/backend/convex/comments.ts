@@ -1,13 +1,64 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { insertAuditEvent, withAuditSource } from "./auditEvents";
+import { canReadProject, requireProjectAccess } from "./authz";
+
+const roleValidator = v.optional(
+  v.union(
+    v.literal("admin"),
+    v.literal("project_manager"),
+    v.literal("editor"),
+    v.literal("member"),
+    v.literal("viewer"),
+    v.literal("guest"),
+  ),
+);
 
 export const listByProject = query({
-  args: { projectId: v.id("projects") },
+  args: {
+    projectId: v.id("projects"),
+    actorId: v.string(),
+    actorDepartmentId: v.optional(v.string()),
+    actorRole: roleValidator,
+    sourceEntry: v.optional(v.string()),
+    sourceIp: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
-    return ctx.db
+    const project = await ctx.db.get(args.projectId);
+    if (!project) {
+      throw new Error(`Project ${args.projectId} not found`);
+    }
+
+    const comments = await ctx.db
       .query("comments")
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
       .collect();
+
+    const canRead = canReadProject(project, {
+      projectId: args.projectId,
+      actorId: args.actorId,
+      actorDepartmentId: args.actorDepartmentId,
+      actorRole: args.actorRole,
+    });
+
+    if (canRead) {
+      return comments;
+    }
+
+    await insertAuditEvent(ctx, {
+      projectId: args.projectId,
+      actorId: args.actorId,
+      action: "authz.denied",
+      objectType: "comment",
+      objectId: `project:${args.projectId}`,
+      changeSummary: "Denied comment body visibility for project",
+      ...withAuditSource(args),
+    });
+
+    return comments.map((comment) => ({
+      ...comment,
+      body: "[REDACTED: no project permission]",
+    }));
   },
 });
 
@@ -18,6 +69,8 @@ export const create = mutation({
     workItemId: v.optional(v.id("workItems")),
     parentCommentId: v.optional(v.id("comments")),
     authorId: v.string(),
+    authorDepartmentId: v.optional(v.string()),
+    authorRole: roleValidator,
     body: v.string(),
     targetScope: v.union(
       v.literal("project"),
@@ -25,9 +78,26 @@ export const create = mutation({
       v.literal("work_item"),
     ),
     mentionedUserIds: v.optional(v.array(v.string())),
+    sourceEntry: v.optional(v.string()),
+    sourceIp: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { mentionedUserIds, ...commentArgs } = args;
+    await requireProjectAccess(
+      ctx,
+      {
+        projectId: args.projectId,
+        actorId: args.authorId,
+        actorDepartmentId: args.authorDepartmentId,
+        actorRole: args.authorRole,
+        sourceEntry: args.sourceEntry,
+        sourceIp: args.sourceIp,
+      },
+      "write",
+      "comment.create",
+    );
+
+    const { mentionedUserIds, authorDepartmentId, authorRole, sourceEntry, sourceIp, ...commentArgs } =
+      args;
 
     const commentId = await ctx.db.insert("comments", {
       ...commentArgs,
@@ -47,13 +117,14 @@ export const create = mutation({
       }
     }
 
-    await ctx.db.insert("auditEvents", {
+    await insertAuditEvent(ctx, {
       projectId: args.projectId,
       actorId: args.authorId,
       action: "comment.created",
       objectType: "comment",
       objectId: commentId,
       changeSummary: `Comment added on ${args.targetScope}`,
+      ...withAuditSource(args),
     });
 
     return commentId;
@@ -64,6 +135,10 @@ export const softDelete = mutation({
   args: {
     id: v.id("comments"),
     actorId: v.string(),
+    actorDepartmentId: v.optional(v.string()),
+    actorRole: roleValidator,
+    sourceEntry: v.optional(v.string()),
+    sourceIp: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const comment = await ctx.db.get(args.id);
@@ -71,18 +146,33 @@ export const softDelete = mutation({
       throw new Error(`Comment ${args.id} not found`);
     }
 
+    await requireProjectAccess(
+      ctx,
+      {
+        projectId: comment.projectId,
+        actorId: args.actorId,
+        actorDepartmentId: args.actorDepartmentId,
+        actorRole: args.actorRole,
+        sourceEntry: args.sourceEntry,
+        sourceIp: args.sourceIp,
+      },
+      "write",
+      "comment.softDelete",
+    );
+
     await ctx.db.patch(args.id, {
       isDeleted: true,
       deletedAt: Date.now(),
     });
 
-    await ctx.db.insert("auditEvents", {
+    await insertAuditEvent(ctx, {
       projectId: comment.projectId,
       actorId: args.actorId,
       action: "comment.deleted",
       objectType: "comment",
       objectId: args.id,
       changeSummary: "Comment soft-deleted",
+      ...withAuditSource(args),
     });
   },
 });

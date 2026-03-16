@@ -1,9 +1,43 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { insertAuditEvent, withAuditSource } from "./auditEvents";
+import { requireProjectAccess } from "./authz";
+
+const roleValidator = v.optional(
+  v.union(
+    v.literal("admin"),
+    v.literal("project_manager"),
+    v.literal("editor"),
+    v.literal("member"),
+    v.literal("viewer"),
+    v.literal("guest"),
+  ),
+);
 
 export const listByProject = query({
-  args: { projectId: v.id("projects") },
+  args: {
+    projectId: v.id("projects"),
+    actorId: v.string(),
+    actorDepartmentId: v.optional(v.string()),
+    actorRole: roleValidator,
+    sourceEntry: v.optional(v.string()),
+    sourceIp: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
+    await requireProjectAccess(
+      ctx,
+      {
+        projectId: args.projectId,
+        actorId: args.actorId,
+        actorDepartmentId: args.actorDepartmentId,
+        actorRole: args.actorRole,
+        sourceEntry: args.sourceEntry,
+        sourceIp: args.sourceIp,
+      },
+      "read",
+      "workItem.listByProject",
+    );
+
     return ctx.db
       .query("workItems")
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
@@ -37,21 +71,40 @@ export const create = mutation({
     collaboratorIds: v.optional(v.array(v.string())),
     dueDate: v.optional(v.number()),
     createdBy: v.string(),
+    creatorDepartmentId: v.optional(v.string()),
+    creatorRole: roleValidator,
+    sourceEntry: v.optional(v.string()),
+    sourceIp: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { createdBy, ...insertArgs } = args;
+    await requireProjectAccess(
+      ctx,
+      {
+        projectId: args.projectId,
+        actorId: args.createdBy,
+        actorDepartmentId: args.creatorDepartmentId,
+        actorRole: args.creatorRole,
+        sourceEntry: args.sourceEntry,
+        sourceIp: args.sourceIp,
+      },
+      "write",
+      "workItem.create",
+    );
+
+    const { createdBy, creatorDepartmentId, creatorRole, sourceEntry, sourceIp, ...insertArgs } = args;
     const workItemId = await ctx.db.insert("workItems", {
       ...insertArgs,
       status: "todo",
     });
 
-    await ctx.db.insert("auditEvents", {
+    await insertAuditEvent(ctx, {
       projectId: args.projectId,
       actorId: createdBy,
       action: "work_item.created",
       objectType: "work_item",
       objectId: workItemId,
       changeSummary: `Work item "${args.title}" created`,
+      ...withAuditSource(args),
     });
 
     return workItemId;
@@ -68,12 +121,30 @@ export const updateStatus = mutation({
       v.literal("done"),
     ),
     actorId: v.string(),
+    actorDepartmentId: v.optional(v.string()),
+    actorRole: roleValidator,
+    sourceEntry: v.optional(v.string()),
+    sourceIp: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const item = await ctx.db.get(args.id);
     if (!item) {
       throw new Error(`WorkItem ${args.id} not found`);
     }
+
+    await requireProjectAccess(
+      ctx,
+      {
+        projectId: item.projectId,
+        actorId: args.actorId,
+        actorDepartmentId: args.actorDepartmentId,
+        actorRole: args.actorRole,
+        sourceEntry: args.sourceEntry,
+        sourceIp: args.sourceIp,
+      },
+      "write",
+      "workItem.updateStatus",
+    );
 
     const patch: Record<string, unknown> = { status: args.status };
     if (args.status === "done") {
@@ -82,13 +153,14 @@ export const updateStatus = mutation({
 
     await ctx.db.patch(args.id, patch);
 
-    await ctx.db.insert("auditEvents", {
+    await insertAuditEvent(ctx, {
       projectId: item.projectId,
       actorId: args.actorId,
       action: "work_item.status_changed",
       objectType: "work_item",
       objectId: args.id,
       changeSummary: `"${item.title}" status changed from ${item.status} to ${args.status}`,
+      ...withAuditSource(args),
     });
   },
 });
