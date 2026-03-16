@@ -7,14 +7,8 @@ import { CardMetaRow } from "@/features/board/components/card-meta-row";
 import { PriorityBadge } from "@/features/board/components/priority-badge";
 import { SlaRiskIndicator } from "@/features/board/components/sla-risk-indicator";
 import { StageAdvanceHint } from "@/features/board/components/stage-advance-hint";
-import {
-  DEPT_STATUS_LABELS,
-  DEPT_STATUS_STYLES,
-} from "@/features/board/constants";
-import {
-  buildStageAdvanceState,
-  getColumnNameByStatus,
-} from "@/features/board/lib/view-model";
+import { DEPT_STATUS_LABELS, DEPT_STATUS_STYLES } from "@/features/board/constants";
+import { buildStageAdvanceState, getColumnNameByStatus } from "@/features/board/lib/view-model";
 import { cn } from "@/lib/cn";
 
 import { formatDate, formatDateTime } from "../formatters";
@@ -62,18 +56,16 @@ interface ProjectDetailViewProps {
   detail: ProjectDetailData;
   onCreateComment: (
     body: string,
-    mentionedUserIds: string[]
+    mentionedUserIds: string[],
   ) => Promise<{ ok: boolean; message?: string }>;
-  onDeleteComment: (
-    commentId: string
-  ) => Promise<{ ok: boolean; message?: string }>;
+  onDeleteComment: (commentId: string) => Promise<{ ok: boolean; message?: string }>;
   onUpdateWorkItemStatus: (
     workItemId: string,
-    status: WorkItemStatus
+    status: WorkItemStatus,
   ) => Promise<{ ok: boolean; message?: string }>;
   onResolveApproval: (
     approvalId: string,
-    status: "approved" | "rejected"
+    status: "approved" | "rejected",
   ) => Promise<{ ok: boolean; message?: string }>;
 }
 
@@ -83,30 +75,15 @@ const getProjectMemberOptions = (detail: ProjectDetailData) =>
       [
         detail.project.ownerName,
         detail.project.createdBy,
-        ...detail.departmentTracks.flatMap((track) => [
-          track.ownerId,
-          ...track.collaboratorIds,
-        ]),
-        ...detail.workItems.flatMap((item) => [
-          item.assigneeId,
-          ...item.collaboratorIds,
-        ]),
-        ...detail.approvals.flatMap((approval) => [
-          approval.applicantId,
-          approval.resolvedBy,
-        ]),
+        ...detail.departmentTracks.flatMap((track) => [track.ownerId, ...track.collaboratorIds]),
+        ...detail.workItems.flatMap((item) => [item.assigneeId, ...item.collaboratorIds]),
+        ...detail.approvals.flatMap((approval) => [approval.applicantId, approval.resolvedBy]),
         ...detail.timeline.map((event) => event.actorId),
-      ].filter((value): value is string => Boolean(value) && value !== "未分配")
+      ].filter((value): value is string => Boolean(value) && value !== "未分配"),
     ),
   ].toSorted((left, right) => left.localeCompare(right, "zh-Hans-CN"));
 
-const SectionCard = ({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) => (
+const SectionCard = ({ title, children }: { title: string; children: ReactNode }) => (
   <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
     <h2 className="mb-3 text-base font-semibold text-gray-900">{title}</h2>
     {children}
@@ -120,17 +97,11 @@ const MetricCard = ({ label, value }: { label: string; value: string }) => (
   </div>
 );
 
-const DepartmentTrackRow = ({
-  track,
-}: {
-  track: ProjectDetailDepartmentTrack;
-}) => (
+const DepartmentTrackRow = ({ track }: { track: ProjectDetailDepartmentTrack }) => (
   <div className="rounded-lg border border-gray-200 p-3">
     <div className="flex items-start justify-between gap-2">
       <div>
-        <p className="text-sm font-semibold text-gray-900">
-          {track.departmentName}
-        </p>
+        <p className="text-sm font-semibold text-gray-900">{track.departmentName}</p>
         <p className="mt-1 text-xs text-gray-500">
           Owner：{track.ownerId ?? "未分配"} · 截止：
           {formatDate(track.dueDate)}
@@ -140,7 +111,7 @@ const DepartmentTrackRow = ({
         className={cn(
           "rounded-full px-2 py-1 text-xs font-medium",
           DEPT_STATUS_STYLES[track.status].bg,
-          DEPT_STATUS_STYLES[track.status].text
+          DEPT_STATUS_STYLES[track.status].text,
         )}
       >
         {DEPT_STATUS_LABELS[track.status]}
@@ -164,7 +135,7 @@ const WorkItemRow = ({
   item: ProjectDetailWorkItem;
   onUpdateStatus: (
     workItemId: string,
-    status: WorkItemStatus
+    status: WorkItemStatus,
   ) => Promise<{ ok: boolean; message?: string }>;
 }) => (
   <div className="rounded-lg border border-gray-200 p-3">
@@ -179,7 +150,7 @@ const WorkItemRow = ({
       <span
         className={cn(
           "rounded-full px-2 py-1 text-xs font-medium",
-          WORK_ITEM_STATUS_STYLES[item.status]
+          WORK_ITEM_STATUS_STYLES[item.status],
         )}
       >
         {WORK_ITEM_STATUS_LABELS[item.status]}
@@ -224,7 +195,7 @@ const ApprovalRow = ({
   approval: ProjectDetailApproval;
   onResolve: (
     approvalId: string,
-    status: "approved" | "rejected"
+    status: "approved" | "rejected",
   ) => Promise<{ ok: boolean; message?: string }>;
 }) => (
   <div className="rounded-lg border border-gray-200 p-3">
@@ -233,15 +204,14 @@ const ApprovalRow = ({
         <p className="text-sm font-semibold text-gray-900">{approval.title}</p>
         <p className="mt-1 text-xs text-gray-500">
           阶段：
-          {getColumnNameByStatus(approval.triggerStage) ??
-            approval.triggerStage}
+          {getColumnNameByStatus(approval.triggerStage) ?? approval.triggerStage}
           {approval.departmentName ? ` · ${approval.departmentName}` : ""}
         </p>
       </div>
       <span
         className={cn(
           "rounded-full px-2 py-1 text-xs font-medium",
-          APPROVAL_STATUS_STYLES[approval.status]
+          APPROVAL_STATUS_STYLES[approval.status],
         )}
       >
         {APPROVAL_STATUS_LABELS[approval.status]}
@@ -350,9 +320,7 @@ const BindingGroup = ({ title, items }: { title: string; items: string[] }) => (
 );
 
 const EmptyHint = ({ text }: { text: string }) => (
-  <p className="rounded-lg bg-gray-50 px-3 py-6 text-center text-sm text-gray-400">
-    {text}
-  </p>
+  <p className="rounded-lg bg-gray-50 px-3 py-6 text-center text-sm text-gray-400">{text}</p>
 );
 
 export const ProjectDetailView = ({
@@ -363,8 +331,7 @@ export const ProjectDetailView = ({
   onResolveApproval,
 }: ProjectDetailViewProps) => {
   const stageAdvance = buildStageAdvanceState(detail.project);
-  const currentStageName =
-    getColumnNameByStatus(detail.project.status) ?? detail.project.status;
+  const currentStageName = getColumnNameByStatus(detail.project.status) ?? detail.project.status;
   const projectMemberOptions = getProjectMemberOptions(detail);
 
   return (
@@ -372,15 +339,10 @@ export const ProjectDetailView = ({
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
           <div>
-            <Link
-              href="/board"
-              className="text-sm text-blue-600 hover:text-blue-700"
-            >
+            <Link href="/board" className="text-sm text-blue-600 hover:text-blue-700">
               ← 返回项目看板
             </Link>
-            <h1 className="mt-1 text-2xl font-bold text-gray-900">
-              {detail.project.name}
-            </h1>
+            <h1 className="mt-1 text-2xl font-bold text-gray-900">{detail.project.name}</h1>
             <p className="mt-1 text-sm text-gray-500">
               {detail.project.customerName} · {detail.project.ownerName}
             </p>
@@ -400,16 +362,12 @@ export const ProjectDetailView = ({
           <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="max-w-3xl">
-                <p className="text-sm leading-6 text-gray-600">
-                  {detail.project.description}
-                </p>
+                <p className="text-sm leading-6 text-gray-600">{detail.project.description}</p>
                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500">
                   <span>模板：{detail.project.templateType}</span>
                   <span>来源：{detail.project.sourceEntry}</span>
                   <span>创建人：{detail.project.createdBy}</span>
-                  <span>
-                    SLA 截止：{formatDate(detail.project.slaDeadline)}
-                  </span>
+                  <span>SLA 截止：{formatDate(detail.project.slaDeadline)}</span>
                 </div>
               </div>
               <CardMetaRow
@@ -418,18 +376,9 @@ export const ProjectDetailView = ({
               />
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-4">
-              <MetricCard
-                label="部门工作流"
-                value={String(detail.departmentTracks.length)}
-              />
-              <MetricCard
-                label="行动项"
-                value={String(detail.workItems.length)}
-              />
-              <MetricCard
-                label="审批门禁"
-                value={String(detail.approvals.length)}
-              />
+              <MetricCard label="部门工作流" value={String(detail.departmentTracks.length)} />
+              <MetricCard label="行动项" value={String(detail.workItems.length)} />
+              <MetricCard label="审批门禁" value={String(detail.approvals.length)} />
               <MetricCard label="评论" value={String(detail.comments.length)} />
             </div>
             <div className="mt-4">
@@ -449,15 +398,9 @@ export const ProjectDetailView = ({
             <SectionCard title="行动项">
               <div className="space-y-3">
                 {detail.workItems.map((item) => (
-                  <WorkItemRow
-                    key={item.id}
-                    item={item}
-                    onUpdateStatus={onUpdateWorkItemStatus}
-                  />
+                  <WorkItemRow key={item.id} item={item} onUpdateStatus={onUpdateWorkItemStatus} />
                 ))}
-                {detail.workItems.length === 0 && (
-                  <EmptyHint text="暂无行动项" />
-                )}
+                {detail.workItems.length === 0 && <EmptyHint text="暂无行动项" />}
               </div>
             </SectionCard>
           </div>
@@ -465,15 +408,9 @@ export const ProjectDetailView = ({
           <SectionCard title="审批门禁">
             <div className="space-y-3">
               {detail.approvals.map((approval) => (
-                <ApprovalRow
-                  key={approval.id}
-                  approval={approval}
-                  onResolve={onResolveApproval}
-                />
+                <ApprovalRow key={approval.id} approval={approval} onResolve={onResolveApproval} />
               ))}
-              {detail.approvals.length === 0 && (
-                <EmptyHint text="暂无审批门禁" />
-              )}
+              {detail.approvals.length === 0 && <EmptyHint text="暂无审批门禁" />}
             </div>
           </SectionCard>
         </section>
@@ -483,35 +420,26 @@ export const ProjectDetailView = ({
             <BindingGroup
               title="群聊"
               items={detail.bindings.chats.map(
-                (binding) => `${binding.chatType} · ${binding.feishuChatId}`
+                (binding) => `${binding.chatType} · ${binding.feishuChatId}`,
               )}
             />
             <BindingGroup
               title="文档"
-              items={detail.bindings.docs.map(
-                (binding) => `${binding.docType} · ${binding.title}`
-              )}
+              items={detail.bindings.docs.map((binding) => `${binding.docType} · ${binding.title}`)}
             />
             <BindingGroup
               title="Base"
               items={detail.bindings.bases.map(
-                (binding) => `${binding.tableId} · ${binding.recordId}`
+                (binding) => `${binding.tableId} · ${binding.recordId}`,
               )}
             />
           </SectionCard>
 
           <SectionCard title="评论线程">
             <div className="space-y-3">
-              <CommentComposer
-                members={projectMemberOptions}
-                onSubmit={onCreateComment}
-              />
+              <CommentComposer members={projectMemberOptions} onSubmit={onCreateComment} />
               {detail.comments.map((comment) => (
-                <CommentRow
-                  key={comment.id}
-                  comment={comment}
-                  onDelete={onDeleteComment}
-                />
+                <CommentRow key={comment.id} comment={comment} onDelete={onDeleteComment} />
               ))}
               {detail.comments.length === 0 && <EmptyHint text="暂无评论" />}
             </div>
@@ -522,9 +450,7 @@ export const ProjectDetailView = ({
               {detail.timeline.map((event) => (
                 <TimelineRow key={event.id} event={event} />
               ))}
-              {detail.timeline.length === 0 && (
-                <EmptyHint text="暂无时间线记录" />
-              )}
+              {detail.timeline.length === 0 && <EmptyHint text="暂无时间线记录" />}
             </div>
           </SectionCard>
         </aside>

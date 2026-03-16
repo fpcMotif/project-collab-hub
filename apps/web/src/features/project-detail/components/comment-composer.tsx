@@ -9,15 +9,11 @@ interface CommentComposerProps {
   disabled?: boolean;
   onSubmit: (
     body: string,
-    mentionedUserIds: string[]
+    mentionedUserIds: string[],
   ) => Promise<{ ok: boolean; message?: string }>;
 }
 
-export const CommentComposer = ({
-  members,
-  disabled = false,
-  onSubmit,
-}: CommentComposerProps) => {
+export const CommentComposer = ({ members, disabled = false, onSubmit }: CommentComposerProps) => {
   const [body, setBody] = useState("");
   const [memberQuery, setMemberQuery] = useState("");
   const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
@@ -118,17 +114,12 @@ export const CommentComposer = ({
       <div className="mt-3 flex items-center justify-between gap-3">
         {notice ? (
           <p
-            className={cn(
-              "text-sm",
-              noticeTone === "success" ? "text-green-700" : "text-red-600"
-            )}
+            className={cn("text-sm", noticeTone === "success" ? "text-green-700" : "text-red-600")}
           >
             {notice}
           </p>
         ) : (
-          <span className="text-xs text-gray-400">
-            评论会写入时间线，@ 将触发通知
-          </span>
+          <span className="text-xs text-gray-400">评论会写入时间线，@ 将触发通知</span>
         )}
         <button
           type="button"
