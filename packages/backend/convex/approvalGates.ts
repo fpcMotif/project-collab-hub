@@ -1,9 +1,18 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { assertProjectPermission } from "./authz";
 
 export const listByProject = query({
-  args: { projectId: v.id("projects") },
+  args: { projectId: v.id("projects"), actorId: v.string() },
   handler: async (ctx, args) => {
+    await assertProjectPermission(ctx, {
+      userId: args.actorId,
+      projectId: args.projectId,
+      action: "approval:read",
+      objectType: "approval_gate",
+      objectId: `project:${args.projectId}`,
+    });
+
     return ctx.db
       .query("approvalGates")
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
@@ -12,14 +21,24 @@ export const listByProject = query({
 });
 
 export const getByInstanceCode = query({
-  args: { instanceCode: v.string() },
+  args: { instanceCode: v.string(), actorId: v.string() },
   handler: async (ctx, args) => {
-    return ctx.db
+    const gate = await ctx.db
       .query("approvalGates")
-      .withIndex("by_instance_code", (q) =>
-        q.eq("instanceCode", args.instanceCode),
-      )
+      .withIndex("by_instance_code", (q) => q.eq("instanceCode", args.instanceCode))
       .first();
+
+    if (gate) {
+      await assertProjectPermission(ctx, {
+        userId: args.actorId,
+        projectId: gate.projectId,
+        action: "approval:read",
+        objectType: "approval_gate",
+        objectId: gate._id,
+      });
+    }
+
+    return gate;
   },
 });
 
@@ -44,6 +63,14 @@ export const create = mutation({
     templateVersion: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await assertProjectPermission(ctx, {
+      userId: args.applicantId,
+      projectId: args.projectId,
+      action: "approval:write",
+      objectType: "approval_gate",
+      objectId: `project:${args.projectId}`,
+    });
+
     const gateId = await ctx.db.insert("approvalGates", {
       ...args,
       status: "pending",
@@ -74,9 +101,7 @@ export const resolve = mutation({
     if (args.idempotencyKey) {
       const existing = await ctx.db
         .query("auditEvents")
-        .withIndex("by_idempotency_key", (q) =>
-          q.eq("idempotencyKey", args.idempotencyKey),
-        )
+        .withIndex("by_idempotency_key", (q) => q.eq("idempotencyKey", args.idempotencyKey))
         .first();
       if (existing) {
         return;
@@ -87,6 +112,14 @@ export const resolve = mutation({
     if (!gate) {
       throw new Error(`ApprovalGate ${args.id} not found`);
     }
+
+    await assertProjectPermission(ctx, {
+      userId: args.resolvedBy,
+      projectId: gate.projectId,
+      action: "approval:write",
+      objectType: "approval_gate",
+      objectId: args.id,
+    });
 
     await ctx.db.patch(args.id, {
       instanceCode: args.instanceCode,

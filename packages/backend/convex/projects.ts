@@ -1,5 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { assertProjectPermission, listAccessibleProjects } from "./authz";
 
 export const list = query({
   args: {
@@ -15,21 +16,31 @@ export const list = query({
         v.literal("cancelled"),
       ),
     ),
+    actorId: v.string(),
   },
   handler: async (ctx, args) => {
-    if (args.status) {
-      return ctx.db
-        .query("projects")
-        .withIndex("by_status", (q) => q.eq("status", args.status!))
-        .collect();
-    }
-    return ctx.db.query("projects").collect();
+    const projects = args.status
+      ? await ctx.db
+          .query("projects")
+          .withIndex("by_status", (q) => q.eq("status", args.status!))
+          .collect()
+      : await ctx.db.query("projects").collect();
+
+    return listAccessibleProjects(ctx, args.actorId, projects, "project:read");
   },
 });
 
 export const getById = query({
-  args: { id: v.id("projects") },
+  args: { id: v.id("projects"), actorId: v.string() },
   handler: async (ctx, args) => {
+    await assertProjectPermission(ctx, {
+      userId: args.actorId,
+      projectId: args.id,
+      action: "project:read",
+      objectType: "project",
+      objectId: args.id,
+    });
+
     return ctx.db.get(args.id);
   },
 });
@@ -62,9 +73,37 @@ export const create = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    const actorRoles = await ctx.db
+      .query("roleBindings")
+      .withIndex("by_user", (q) => q.eq("userId", args.createdBy))
+      .collect();
+    if (
+      !actorRoles.some((binding) =>
+        ["platform_admin", "workspace_admin", "owner"].includes(binding.role),
+      )
+    ) {
+      await ctx.db.insert("auditEvents", {
+        actorId: args.createdBy,
+        action: "permission.denied",
+        objectType: "project",
+        objectId: `project:${args.name}`,
+        changeSummary: `User ${args.createdBy} is not allowed to perform project:create`,
+        deniedReason: "missing_project_create_permission",
+      });
+      throw new Error("Permission denied: project:create");
+    }
+
     const projectId = await ctx.db.insert("projects", {
       ...args,
       status: "new",
+    });
+
+    await ctx.db.insert("projectMembers", {
+      projectId,
+      userId: args.ownerId,
+      role: "owner",
+      grantedBy: args.createdBy,
+      grantedAt: Date.now(),
     });
 
     await ctx.db.insert("auditEvents", {
@@ -101,6 +140,14 @@ export const updateStatus = mutation({
     if (!project) {
       throw new Error(`Project ${args.id} not found`);
     }
+
+    await assertProjectPermission(ctx, {
+      userId: args.actorId,
+      projectId: args.id,
+      action: "project:write",
+      objectType: "project",
+      objectId: args.id,
+    });
 
     const fromStatus = project.status;
     await ctx.db.patch(args.id, { status: args.status });

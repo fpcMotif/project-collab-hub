@@ -1,9 +1,18 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { assertProjectPermission, canAccessProject } from "./authz";
 
 export const listByProject = query({
-  args: { projectId: v.id("projects") },
+  args: { projectId: v.id("projects"), actorId: v.string() },
   handler: async (ctx, args) => {
+    await assertProjectPermission(ctx, {
+      userId: args.actorId,
+      projectId: args.projectId,
+      action: "comment:read",
+      objectType: "comment",
+      objectId: `project:${args.projectId}`,
+    });
+
     return ctx.db
       .query("comments")
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
@@ -27,6 +36,14 @@ export const create = mutation({
     mentionedUserIds: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
+    await assertProjectPermission(ctx, {
+      userId: args.authorId,
+      projectId: args.projectId,
+      action: "comment:write",
+      objectType: "comment",
+      objectId: `project:${args.projectId}`,
+    });
+
     const { mentionedUserIds, ...commentArgs } = args;
 
     const commentId = await ctx.db.insert("comments", {
@@ -37,12 +54,36 @@ export const create = mutation({
     if (mentionedUserIds && mentionedUserIds.length > 0) {
       const uniqueUserIds = [...new Set(mentionedUserIds)];
       for (const userId of uniqueUserIds) {
+        const canRead = await canAccessProject(ctx, userId, args.projectId, "comment:read");
+
+        const mentionPreview = canRead
+          ? args.body
+          : "你被@了，但当前无权限查看完整内容。请联系项目管理员申请访问权限。";
+
+        const payload = JSON.stringify({
+          commentId,
+          projectId: args.projectId,
+          preview: mentionPreview,
+          restricted: !canRead,
+        });
+
+        const notificationDeliveryId = await ctx.db.insert("notificationDeliveries", {
+          projectId: args.projectId,
+          recipientId: userId,
+          channel: "private_chat",
+          messageType: "mention",
+          status: "pending",
+          retryCount: 0,
+          payload,
+        });
+
         await ctx.db.insert("mentions", {
           commentId,
           projectId: args.projectId,
           mentionedUserId: userId,
           mentionedByUserId: args.authorId,
           notificationSent: false,
+          notificationDeliveryId,
         });
       }
     }
@@ -70,6 +111,14 @@ export const softDelete = mutation({
     if (!comment) {
       throw new Error(`Comment ${args.id} not found`);
     }
+
+    await assertProjectPermission(ctx, {
+      userId: args.actorId,
+      projectId: comment.projectId,
+      action: "comment:write",
+      objectType: "comment",
+      objectId: args.id,
+    });
 
     await ctx.db.patch(args.id, {
       isDeleted: true,

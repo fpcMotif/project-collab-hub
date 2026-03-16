@@ -1,9 +1,18 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { assertProjectPermission } from "./authz";
 
 export const listByProject = query({
-  args: { projectId: v.id("projects") },
+  args: { projectId: v.id("projects"), actorId: v.string() },
   handler: async (ctx, args) => {
+    await assertProjectPermission(ctx, {
+      userId: args.actorId,
+      projectId: args.projectId,
+      action: "work_item:read",
+      objectType: "work_item",
+      objectId: `project:${args.projectId}`,
+    });
+
     return ctx.db
       .query("workItems")
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
@@ -12,12 +21,30 @@ export const listByProject = query({
 });
 
 export const listByAssignee = query({
-  args: { assigneeId: v.string() },
+  args: { assigneeId: v.string(), actorId: v.string() },
   handler: async (ctx, args) => {
-    return ctx.db
+    const items = await ctx.db
       .query("workItems")
       .withIndex("by_assignee", (q) => q.eq("assigneeId", args.assigneeId))
       .collect();
+
+    const visibleItems: typeof items = [];
+    for (const item of items) {
+      try {
+        await assertProjectPermission(ctx, {
+          userId: args.actorId,
+          projectId: item.projectId,
+          action: "work_item:read",
+          objectType: "work_item",
+          objectId: item._id,
+        });
+        visibleItems.push(item);
+      } catch {
+        // permission denials are audited in helper; skip hidden item
+      }
+    }
+
+    return visibleItems;
   },
 });
 
@@ -39,6 +66,14 @@ export const create = mutation({
     createdBy: v.string(),
   },
   handler: async (ctx, args) => {
+    await assertProjectPermission(ctx, {
+      userId: args.createdBy,
+      projectId: args.projectId,
+      action: "work_item:write",
+      objectType: "work_item",
+      objectId: `project:${args.projectId}`,
+    });
+
     const { createdBy, ...insertArgs } = args;
     const workItemId = await ctx.db.insert("workItems", {
       ...insertArgs,
@@ -74,6 +109,14 @@ export const updateStatus = mutation({
     if (!item) {
       throw new Error(`WorkItem ${args.id} not found`);
     }
+
+    await assertProjectPermission(ctx, {
+      userId: args.actorId,
+      projectId: item.projectId,
+      action: "work_item:write",
+      objectType: "work_item",
+      objectId: args.id,
+    });
 
     const patch: Record<string, unknown> = { status: args.status };
     if (args.status === "done") {

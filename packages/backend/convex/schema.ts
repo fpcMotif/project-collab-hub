@@ -42,6 +42,14 @@ const approvalStatus = v.union(
   v.literal("cancelled"),
 );
 
+const roleType = v.union(
+  v.literal("platform_admin"),
+  v.literal("workspace_admin"),
+  v.literal("owner"),
+  v.literal("contributor"),
+  v.literal("viewer"),
+);
+
 export default defineSchema({
   // ── Core ──────────────────────────────────────────────────────────────
 
@@ -281,6 +289,51 @@ export default defineSchema({
     .index("by_active", ["isActive"])
     .index("by_name", ["name"]),
 
+  roleBindings: defineTable({
+    userId: v.string(),
+    role: roleType,
+    scopeType: v.union(v.literal("platform"), v.literal("workspace")),
+    scopeId: v.optional(v.string()),
+    createdBy: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_role", ["role"]),
+
+  projectMembers: defineTable({
+    projectId: v.id("projects"),
+    userId: v.string(),
+    role: v.union(v.literal("owner"), v.literal("contributor"), v.literal("viewer")),
+    grantedBy: v.string(),
+    grantedAt: v.number(),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_user", ["userId"])
+    .index("by_project_user", ["projectId", "userId"]),
+
+  departmentAuthorizations: defineTable({
+    departmentId: v.string(),
+    userId: v.string(),
+    permissions: v.array(v.string()),
+    grantedBy: v.string(),
+    grantedAt: v.number(),
+    expiresAt: v.optional(v.number()),
+  })
+    .index("by_department", ["departmentId"])
+    .index("by_department_user", ["departmentId", "userId"]),
+
+  policyConfigurations: defineTable({
+    policyKey: v.string(),
+    description: v.string(),
+    enabled: v.boolean(),
+    allowedRoles: v.array(roleType),
+    conditions: v.optional(v.string()),
+    updatedBy: v.string(),
+    updatedAt: v.number(),
+  })
+    .index("by_policy_key", ["policyKey"])
+    .index("by_enabled", ["enabled"]),
+
   // ── Audit & Events ────────────────────────────────────────────────────
 
   auditEvents: defineTable({
@@ -290,6 +343,7 @@ export default defineSchema({
     objectType: v.string(),
     objectId: v.string(),
     changeSummary: v.string(),
+    deniedReason: v.optional(v.string()),
     sourceEntry: v.optional(v.string()),
     idempotencyKey: v.optional(v.string()),
   })

@@ -1,5 +1,6 @@
 import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
+import { canAccessProject } from "./authz";
 
 export const listPending = query({
   args: {},
@@ -30,8 +31,27 @@ export const create = mutation({
     payload: v.string(),
   },
   handler: async (ctx, args) => {
+    let payload = args.payload;
+
+    if (args.messageType === "mention") {
+      const canReadProject = await canAccessProject(
+        ctx,
+        args.recipientId,
+        args.projectId,
+        "comment:read",
+      );
+
+      if (!canReadProject) {
+        payload = JSON.stringify({
+          restricted: true,
+          preview: "你被@了，但当前无权限查看完整内容。请联系项目管理员申请访问权限。",
+        });
+      }
+    }
+
     return ctx.db.insert("notificationDeliveries", {
       ...args,
+      payload,
       status: "pending",
       retryCount: 0,
     });
