@@ -163,7 +163,10 @@ export default defineSchema({
     baseAppToken: v.string(),
     tableId: v.string(),
     recordId: v.string(),
-    fieldOwnership: v.optional(v.string()),
+    projectionDirection: v.union(v.literal("app_to_base"), v.literal("bi_directional")),
+    fieldOwnership: v.optional(
+      v.union(v.literal("app_owned"), v.literal("base_owned"), v.literal("shared")),
+    ),
     lastSyncedAt: v.number(),
   })
     .index("by_project", ["projectId"])

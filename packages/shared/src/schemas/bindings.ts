@@ -36,6 +36,10 @@ export class BaseBinding extends Schema.Class<BaseBinding>("BaseBinding")({
   baseAppToken: Schema.String,
   tableId: Schema.String,
   recordId: Schema.String,
-  fieldOwnership: Schema.optionalWith(Schema.String, { as: "Option" }),
+  projectionDirection: Schema.Literal("app_to_base", "bi_directional"),
+  fieldOwnership: Schema.optionalWith(
+    Schema.Literal("app_owned", "base_owned", "shared"),
+    { as: "Option" },
+  ),
   lastSyncedAt: Schema.DateFromNumber,
 }) {}
