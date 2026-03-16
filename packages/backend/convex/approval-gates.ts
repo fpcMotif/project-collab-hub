@@ -11,6 +11,15 @@ export const listByProject = query({
       .collect(),
 });
 
+export const listPending = query({
+  args: {},
+  handler: (ctx) =>
+    ctx.db
+      .query("approvalGates")
+      .withIndex("by_status", (q) => q.eq("status", "pending"))
+      .collect(),
+});
+
 export const getByInstanceCode = query({
   args: { instanceCode: v.string() },
   handler: (ctx, args) =>
@@ -67,7 +76,11 @@ export const resolve = mutation({
     idempotencyKey: v.optional(v.string()),
     instanceCode: v.string(),
     resolvedBy: v.string(),
-    status: v.union(v.literal("approved"), v.literal("rejected")),
+    status: v.union(
+      v.literal("approved"),
+      v.literal("rejected"),
+      v.literal("cancelled")
+    ),
   },
   handler: async (ctx, args) => {
     if (args.idempotencyKey) {

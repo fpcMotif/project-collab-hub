@@ -19,7 +19,7 @@ const ConnectedBoard = ({ boardState, savedViewsState }: SharedBoardState) => {
   const data = useConvexBoardData(boardState.filters);
   const handleSaveCurrentView = useCallback(
     (name: string) => savedViewsState.saveView(name, boardState.filters),
-    [boardState.filters, savedViewsState],
+    [boardState.filters, savedViewsState]
   );
 
   return (
@@ -42,7 +42,7 @@ const MockBoard = ({ boardState, savedViewsState }: SharedBoardState) => {
   const data = useMockBoardData(boardState.filters);
   const handleSaveCurrentView = useCallback(
     (name: string) => savedViewsState.saveView(name, boardState.filters),
-    [boardState.filters, savedViewsState],
+    [boardState.filters, savedViewsState]
   );
 
   return (
@@ -67,8 +67,15 @@ export const Board = () => {
   const savedViewsState = useBoardSavedViews();
 
   if (convexEnabled) {
-    return <ConnectedBoard boardState={boardState} savedViewsState={savedViewsState} />;
+    return (
+      <ConnectedBoard
+        boardState={boardState}
+        savedViewsState={savedViewsState}
+      />
+    );
   }
 
-  return <MockBoard boardState={boardState} savedViewsState={savedViewsState} />;
+  return (
+    <MockBoard boardState={boardState} savedViewsState={savedViewsState} />
+  );
 };

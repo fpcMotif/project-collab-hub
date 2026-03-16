@@ -65,11 +65,17 @@ export default defineSchema({
     action: v.string(),
     actorId: v.string(),
     changeSummary: v.string(),
+    decision: v.optional(
+      v.union(v.literal("allowed"), v.literal("rejected"))
+    ),
+    decisionReason: v.optional(v.string()),
+    fromStage: v.optional(projectStatus),
     idempotencyKey: v.optional(v.string()),
     objectId: v.string(),
     objectType: v.string(),
     projectId: v.optional(v.id("projects")),
     sourceEntry: v.optional(v.string()),
+    toStage: v.optional(projectStatus),
   })
     .index("by_project", ["projectId"])
     .index("by_actor", ["actorId"])
@@ -183,6 +189,7 @@ export default defineSchema({
       v.literal("stage_change"),
       v.literal("risk_alert")
     ),
+    nextAttemptAt: v.optional(v.number()),
     payload: v.string(),
     projectId: v.id("projects"),
     recipientId: v.string(),

@@ -1,4 +1,8 @@
-import { BOARD_COLUMNS, canAdvanceStage, getNextProjectStatus } from "../constants";
+import {
+  BOARD_COLUMNS,
+  canAdvanceStage,
+  getNextProjectStatus,
+} from "../constants";
 import type {
   ApprovalStatusFilter,
   BoardColumnViewModel,
@@ -39,24 +43,32 @@ export const getColumnNameByStatus = (status: string | null) =>
 export const getProjectStatusByColumnId = (columnId: string) =>
   BOARD_COLUMNS.find((column) => column.id === columnId)?.projectStatus ?? null;
 
-export const getApprovalStatus = (project: BoardProjectRecord): ApprovalStatusFilter =>
+export const getApprovalStatus = (
+  project: BoardProjectRecord
+): ApprovalStatusFilter =>
   project.pendingApprovalCount > 0 ? "pending" : "clear";
 
-export const getOverdueStatus = (project: BoardProjectRecord): OverdueStatusFilter =>
-  project.overdueTaskCount > 0 ? "overdue" : "normal";
+export const getOverdueStatus = (
+  project: BoardProjectRecord
+): OverdueStatusFilter => (project.overdueTaskCount > 0 ? "overdue" : "normal");
 
 const formatBlockedDepartments = (blockedTracks: DepartmentTrackSummary[]) =>
   blockedTracks
     .map((track) =>
-      track.blockReason ? `${track.departmentName}（${track.blockReason}）` : track.departmentName,
+      track.blockReason
+        ? `${track.departmentName}（${track.blockReason}）`
+        : track.departmentName
     )
     .join("、");
 
-export const buildStageAdvanceState = (project: BoardProjectRecord): StageAdvanceState => {
+export const buildStageAdvanceState = (
+  project: BoardProjectRecord
+): StageAdvanceState => {
   const nextStatus = getNextProjectStatus(project.status);
   const nextColumnName = getColumnNameByStatus(nextStatus);
   const nextColumnId =
-    BOARD_COLUMNS.find((column) => column.projectStatus === nextStatus)?.id ?? null;
+    BOARD_COLUMNS.find((column) => column.projectStatus === nextStatus)?.id ??
+    null;
 
   if (!nextStatus || !nextColumnName) {
     return {
@@ -74,18 +86,20 @@ export const buildStageAdvanceState = (project: BoardProjectRecord): StageAdvanc
   }
 
   const requiredTracks = project.departmentTracks.filter(
-    (track) => track.status !== "not_required",
+    (track) => track.status !== "not_required"
   );
   const blockingTracks = requiredTracks.filter(
-    (track) => track.status === "blocked" || track.status === "waiting_approval",
+    (track) => track.status === "blocked" || track.status === "waiting_approval"
   );
-  const incompleteTracks = requiredTracks.filter((track) => track.status !== "done");
+  const incompleteTracks = requiredTracks.filter(
+    (track) => track.status !== "done"
+  );
 
   const stageDecision = canAdvanceStage(
     project.status,
     nextStatus,
     requiredTracks.map((track) => track.status),
-    project.pendingApprovalCount,
+    project.pendingApprovalCount
   );
 
   if (stageDecision.allowed) {
@@ -147,7 +161,10 @@ export const buildStageAdvanceState = (project: BoardProjectRecord): StageAdvanc
   };
 };
 
-export const getProjectMoveDecision = (project: BoardProjectRecord, targetStatus: string) => {
+export const getProjectMoveDecision = (
+  project: BoardProjectRecord,
+  targetStatus: string
+) => {
   if (project.status === targetStatus) {
     return { message: "项目已处于目标阶段", ok: true } as const;
   }
@@ -160,7 +177,7 @@ export const getProjectMoveDecision = (project: BoardProjectRecord, targetStatus
     project.status,
     targetStatus,
     requiredTracks,
-    project.pendingApprovalCount,
+    project.pendingApprovalCount
   );
 
   return {
@@ -177,38 +194,58 @@ const sortCards = (cards: BoardProjectCard[]) =>
       SLA_SORT_WEIGHT[left.slaRisk] - SLA_SORT_WEIGHT[right.slaRisk] ||
       right.overdueTaskCount - left.overdueTaskCount ||
       right.pendingApprovalCount - left.pendingApprovalCount ||
-      PRIORITY_SORT_WEIGHT[left.priority] - PRIORITY_SORT_WEIGHT[right.priority] ||
-      left.name.localeCompare(right.name, "zh-Hans-CN"),
+      PRIORITY_SORT_WEIGHT[left.priority] -
+        PRIORITY_SORT_WEIGHT[right.priority] ||
+      left.name.localeCompare(right.name, "zh-Hans-CN")
   );
 
-export const buildBoardViewData = (projects: BoardProjectRecord[], filters: BoardFilterState) => {
+export const buildBoardViewData = (
+  projects: BoardProjectRecord[],
+  filters: BoardFilterState
+) => {
   let filtered = projects;
 
   if (filters.department) {
     filtered = filtered.filter((project) =>
-      project.departmentTracks.some((track) => track.departmentName === filters.department),
+      project.departmentTracks.some(
+        (track) => track.departmentName === filters.department
+      )
     );
   }
   if (filters.owner) {
-    filtered = filtered.filter((project) => project.ownerName === filters.owner);
+    filtered = filtered.filter(
+      (project) => project.ownerName === filters.owner
+    );
   }
   if (filters.priority) {
-    filtered = filtered.filter((project) => project.priority === filters.priority);
+    filtered = filtered.filter(
+      (project) => project.priority === filters.priority
+    );
   }
   if (filters.approvalStatus) {
-    filtered = filtered.filter((project) => getApprovalStatus(project) === filters.approvalStatus);
+    filtered = filtered.filter(
+      (project) => getApprovalStatus(project) === filters.approvalStatus
+    );
   }
   if (filters.overdueStatus) {
-    filtered = filtered.filter((project) => getOverdueStatus(project) === filters.overdueStatus);
+    filtered = filtered.filter(
+      (project) => getOverdueStatus(project) === filters.overdueStatus
+    );
   }
   if (filters.slaRisk) {
-    filtered = filtered.filter((project) => project.slaRisk === filters.slaRisk);
+    filtered = filtered.filter(
+      (project) => project.slaRisk === filters.slaRisk
+    );
   }
   if (filters.customer) {
-    filtered = filtered.filter((project) => project.customerName === filters.customer);
+    filtered = filtered.filter(
+      (project) => project.customerName === filters.customer
+    );
   }
   if (filters.templateType) {
-    filtered = filtered.filter((project) => project.templateType === filters.templateType);
+    filtered = filtered.filter(
+      (project) => project.templateType === filters.templateType
+    );
   }
 
   const cards = filtered.map<BoardProjectCard>((project) => ({
@@ -218,7 +255,9 @@ export const buildBoardViewData = (projects: BoardProjectRecord[], filters: Boar
   }));
 
   const columns: BoardColumnViewModel[] = BOARD_COLUMNS.map((column) => ({
-    cards: sortCards(cards.filter((project) => project.status === column.projectStatus)),
+    cards: sortCards(
+      cards.filter((project) => project.status === column.projectStatus)
+    ),
     entryCriteria: column.entryCriteria,
     exitCriteria: column.exitCriteria,
     id: column.id,
@@ -226,23 +265,31 @@ export const buildBoardViewData = (projects: BoardProjectRecord[], filters: Boar
     projectStatus: column.projectStatus,
   }));
 
-  const ownerOptions = [...new Set(projects.map((project) => project.ownerName))]
+  const ownerOptions = [
+    ...new Set(projects.map((project) => project.ownerName)),
+  ]
     .toSorted()
     .map((owner) => ({ label: owner, value: owner }));
 
-  const customerOptions = [...new Set(projects.map((project) => project.customerName))]
+  const customerOptions = [
+    ...new Set(projects.map((project) => project.customerName)),
+  ]
     .toSorted()
     .map((customer) => ({ label: customer, value: customer }));
 
   const departmentOptions = [
     ...new Set(
-      projects.flatMap((project) => project.departmentTracks.map((track) => track.departmentName)),
+      projects.flatMap((project) =>
+        project.departmentTracks.map((track) => track.departmentName)
+      )
     ),
   ]
     .toSorted()
     .map((department) => ({ label: department, value: department }));
 
-  const templateTypeOptions = [...new Set(projects.map((project) => project.templateType))]
+  const templateTypeOptions = [
+    ...new Set(projects.map((project) => project.templateType)),
+  ]
     .toSorted()
     .map((templateType) => ({ label: templateType, value: templateType }));
 

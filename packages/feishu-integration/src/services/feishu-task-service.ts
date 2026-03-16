@@ -1,5 +1,6 @@
 import { Context, Effect, Layer } from "effect";
 
+import { FeishuError } from "../errors/feishu-error.js";
 import { FeishuAuthService } from "./feishu-auth-service.js";
 
 export interface CreateFeishuTaskParams {
@@ -20,11 +21,11 @@ export class FeishuTaskService extends Context.Tag("FeishuTaskService")<
   {
     readonly createTask: (
       params: CreateFeishuTaskParams
-    ) => Effect.Effect<FeishuTaskResult, Error>;
-    readonly completeTask: (taskGuid: string) => Effect.Effect<void, Error>;
+    ) => Effect.Effect<FeishuTaskResult, FeishuError>;
+    readonly completeTask: (taskGuid: string) => Effect.Effect<void, FeishuError>;
     readonly getTask: (
       taskGuid: string
-    ) => Effect.Effect<Record<string, unknown>, Error>;
+    ) => Effect.Effect<Record<string, unknown>, FeishuError>;
   }
 >() {}
 
@@ -35,9 +36,9 @@ export const FeishuTaskServiceLive = Layer.effect(
       completeTask: (taskGuid: string) =>
         Effect.tryPromise({
           catch: (error) =>
-            new Error(
-              `Failed to complete Feishu task: ${error instanceof Error ? error.message : String(error)}`
-            ),
+            new FeishuError({
+              message: `Failed to complete Feishu task: ${error instanceof Error ? error.message : String(error)}`,
+            }),
           try: () =>
             auth.client.task.v2.task.patch({
               data: {
@@ -51,9 +52,9 @@ export const FeishuTaskServiceLive = Layer.effect(
       createTask: (params: CreateFeishuTaskParams) =>
         Effect.tryPromise({
           catch: (error) =>
-            new Error(
-              `Failed to create Feishu task: ${error instanceof Error ? error.message : String(error)}`
-            ),
+            new FeishuError({
+              message: `Failed to create Feishu task: ${error instanceof Error ? error.message : String(error)}`,
+            }),
           try: async () => {
             const resp = await auth.client.task.v2.task.create({
               data: {
@@ -77,7 +78,9 @@ export const FeishuTaskServiceLive = Layer.effect(
             const taskGuid = (resp?.data as { task?: { guid?: string } })?.task
               ?.guid;
             if (!taskGuid) {
-              throw new Error("No task guid in response");
+              throw new FeishuError({
+                message: "No task guid in response",
+              });
             }
             return { taskGuid };
           },
@@ -86,9 +89,9 @@ export const FeishuTaskServiceLive = Layer.effect(
       getTask: (taskGuid: string) =>
         Effect.tryPromise({
           catch: (error) =>
-            new Error(
-              `Failed to get Feishu task: ${error instanceof Error ? error.message : String(error)}`
-            ),
+            new FeishuError({
+              message: `Failed to get Feishu task: ${error instanceof Error ? error.message : String(error)}`,
+            }),
           try: async () => {
             const resp = await auth.client.task.v2.task.get({
               path: { task_guid: taskGuid },

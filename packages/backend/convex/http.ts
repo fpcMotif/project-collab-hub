@@ -2,12 +2,32 @@ import { httpRouter, anyApi } from "convex/server";
 import type { GenericActionCtx } from "convex/server";
 
 import { api } from "./_generated/api";
-import type { DataModel } from "./_generated/dataModel";
+import type { DataModel, Id } from "./_generated/dataModel";
 import { httpAction } from "./_generated/server";
 
 type CallableCtx = GenericActionCtx<DataModel>;
 
+const CONVEX_ID_RE = /^[a-z0-9]{32}$/;
+
+const isValidId = (value: string): value is Id<"workItems"> =>
+  CONVEX_ID_RE.test(value);
+
 const http = httpRouter();
+
+// ── Feishu task status mapping ──────────────────────────────────────────
+
+const FEISHU_TASK_STATUS_MAP: Record<string, string> = {
+  closed: "done",
+  completed: "done",
+  created: "todo",
+  done: "done",
+  in_progress: "in_progress",
+  in_review: "in_review",
+  not_started: "todo",
+  reviewing: "in_review",
+  running: "in_progress",
+  todo: "todo",
+};
 
 // ── Internal Handlers ───────────────────────────────────────────────────
 
@@ -57,20 +77,42 @@ const handleApprovalEvent = async (
   });
 };
 
-const handleTaskEvent = (
-  _ctx: CallableCtx,
+const handleTaskEvent = async (
+  ctx: CallableCtx,
   body: Record<string, unknown>,
-  _eventId: string
+  eventId: string
 ) => {
   const event = body.event as Record<string, unknown> | undefined;
   if (!event) {
     return;
   }
 
-  const _taskGuid = event.task_id as string | undefined;
+  const taskGuid = event.task_id as string | undefined;
+  const taskStatus = (event.status as string | undefined) ?? "";
 
-  // Look up feishuTaskBindings by taskGuid, then update workItem status.
-  // This requires a query on feishuTaskBindings.by_feishu_task index (not yet implemented).
+  if (!taskGuid) {
+    return;
+  }
+
+  const binding = (await ctx.runQuery(api.feishuTaskBindings.getByTaskGuid, {
+    feishuTaskGuid: taskGuid,
+  })) as unknown as { _id: string } | null;
+
+  if (!binding) {
+    return;
+  }
+
+  const mappedStatus = FEISHU_TASK_STATUS_MAP[taskStatus.toLowerCase()];
+  if (!mappedStatus) {
+    return;
+  }
+
+  await ctx.runMutation(api.feishuTaskBindings.applyTaskEvent, {
+    feishuTaskGuid: taskGuid,
+    feishuTaskStatus: taskStatus,
+    idempotencyKey: eventId,
+    workItemStatus: mappedStatus,
+  });
 };
 
 // ── Feishu Event Subscription Verification ──────────────────────────────
@@ -102,7 +144,7 @@ http.route({
       }
       case "task.updated":
       case "task.completed": {
-        handleTaskEvent(ctx, body, eventId);
+        await handleTaskEvent(ctx, body, eventId);
         break;
       }
       default:
@@ -137,10 +179,10 @@ http.route({
     switch (actionTag) {
       case "claim_work_item": {
         const { workItemId, userId } = actionValue;
-        if (workItemId && userId) {
+        if (workItemId && userId && isValidId(workItemId)) {
           await ctx.runMutation(api.workItems.updateStatus, {
             actorId: userId,
-            id: workItemId as never,
+            id: workItemId,
             status: "in_progress",
           });
         }

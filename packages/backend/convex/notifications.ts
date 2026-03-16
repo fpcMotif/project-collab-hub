@@ -61,11 +61,18 @@ export const markFailed = internalMutation({
       return;
     }
 
+    const MAX_RETRIES = 3;
+    const BASE_DELAY_MS = 60_000;
     const newRetryCount = delivery.retryCount + 1;
+    const isFinal = newRetryCount >= MAX_RETRIES;
+
     await ctx.db.patch(args.id, {
       lastError: args.error,
+      nextAttemptAt: isFinal
+        ? undefined
+        : Date.now() + BASE_DELAY_MS * 2 ** (newRetryCount - 1),
       retryCount: newRetryCount,
-      status: newRetryCount >= 3 ? "failed" : "retrying",
+      status: isFinal ? "failed" : "retrying",
     });
   },
 });

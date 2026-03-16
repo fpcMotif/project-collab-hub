@@ -79,6 +79,79 @@ export const create = mutation({
   },
 });
 
+export const update = mutation({
+  args: {
+    actorId: v.string(),
+    body: v.string(),
+    id: v.id("comments"),
+    mentionedUserIds: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, args) => {
+    const comment = await ctx.db.get(args.id);
+    if (!comment) {
+      throw new Error(`Comment ${args.id} not found`);
+    }
+
+    await ctx.db.patch(args.id, {
+      body: args.body,
+      editedAt: Date.now(),
+    });
+
+    const newMentionedUserIds = args.mentionedUserIds ?? [];
+    const uniqueNewUserIds = [...new Set(newMentionedUserIds)];
+
+    const existingMentions = await ctx.db
+      .query("mentions")
+      .withIndex("by_comment", (q) => q.eq("commentId", args.id))
+      .collect();
+    const existingUserIds = new Set(
+      existingMentions.map((m) => m.mentionedUserId)
+    );
+
+    const addedUserIds = uniqueNewUserIds.filter(
+      (id) => !existingUserIds.has(id)
+    );
+
+    for (const userId of addedUserIds) {
+      const notificationDeliveryId = await ctx.db.insert(
+        "notificationDeliveries",
+        {
+          channel: "private_chat",
+          messageType: "mention",
+          payload: JSON.stringify({
+            authorId: args.actorId,
+            commentId: args.id,
+            commentPreview: args.body.slice(0, 120),
+            targetScope: comment.targetScope,
+          }),
+          projectId: comment.projectId,
+          recipientId: userId,
+          retryCount: 0,
+          status: "pending",
+        }
+      );
+
+      await ctx.db.insert("mentions", {
+        commentId: args.id,
+        mentionedByUserId: args.actorId,
+        mentionedUserId: userId,
+        notificationDeliveryId,
+        notificationSent: false,
+        projectId: comment.projectId,
+      });
+    }
+
+    await ctx.db.insert("auditEvents", {
+      action: "comment.updated",
+      actorId: args.actorId,
+      changeSummary: "Comment edited",
+      objectId: args.id,
+      objectType: "comment",
+      projectId: comment.projectId,
+    });
+  },
+});
+
 export const softDelete = mutation({
   args: {
     actorId: v.string(),
