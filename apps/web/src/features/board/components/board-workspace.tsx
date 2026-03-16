@@ -31,7 +31,7 @@ interface BoardWorkspaceProps {
   onApplyView: (filters: BoardFilterState) => void;
   onClearFilter: (key: keyof BoardFilterState) => void;
   onClearAll: () => void;
-  onSaveCurrentView: () => void;
+  onSaveCurrentView: (name: string) => boolean;
   onDeleteView: (id: string) => void;
   onMoveProject: (
     projectId: string,

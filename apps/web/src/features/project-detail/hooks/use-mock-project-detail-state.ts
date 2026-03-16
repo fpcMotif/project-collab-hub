@@ -217,7 +217,7 @@ export const useMockProjectDetailState = (projectId: string) => {
   );
 
   const createComment = useCallback(
-    (body: string, mentionedUserIds: string[]) => {
+    async (body: string, mentionedUserIds: string[]) => {
       if (!detail || !body.trim()) {
         return { message: "评论内容不能为空", ok: false } as const;
       }
@@ -254,7 +254,7 @@ export const useMockProjectDetailState = (projectId: string) => {
   );
 
   const deleteComment = useCallback(
-    (commentId: string) => {
+    async (commentId: string) => {
       if (!detail) {
         return { message: "未找到项目详情", ok: false } as const;
       }
@@ -278,7 +278,7 @@ export const useMockProjectDetailState = (projectId: string) => {
   );
 
   const updateWorkItemStatus = useCallback(
-    (workItemId: string, status: WorkItemStatus) => {
+    async (workItemId: string, status: WorkItemStatus) => {
       if (!detail) {
         return { message: "未找到项目详情", ok: false } as const;
       }
@@ -367,7 +367,7 @@ export const useMockProjectDetailState = (projectId: string) => {
   );
 
   const resolveApproval = useCallback(
-    (approvalId: string, status: "approved" | "rejected") => {
+    async (approvalId: string, status: "approved" | "rejected") => {
       if (!detail) {
         return { message: "未找到项目详情", ok: false } as const;
       }

@@ -142,7 +142,7 @@ const MockProjectCreateScreen = () => {
     <ProjectCreateForm
       templates={MOCK_PROJECT_TEMPLATES}
       isSubmitting={isSubmitting}
-      onSubmit={(values) => {
+      onSubmit={async (values) => {
         const template = MOCK_PROJECT_TEMPLATES.find(
           (item) => item.id === values.templateId
         );
