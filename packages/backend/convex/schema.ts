@@ -169,6 +169,26 @@ export default defineSchema({
     .index("by_project", ["projectId"])
     .index("by_record", ["recordId"]),
 
+
+  feishuEventInbox: defineTable({
+    event_id: v.string(),
+    event_type: v.string(),
+    payload: v.string(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("processing"),
+      v.literal("retrying"),
+      v.literal("succeeded"),
+      v.literal("dead_letter"),
+    ),
+    retry_count: v.number(),
+    next_retry_at: v.number(),
+    dead_letter_at: v.optional(v.number()),
+  })
+    .index("by_event_id", ["event_id"])
+    .index("by_status_next_retry", ["status", "next_retry_at"])
+    .index("by_dead_letter_at", ["dead_letter_at"]),
+
   // ── Comments & Mentions ───────────────────────────────────────────────
 
   comments: defineTable({
