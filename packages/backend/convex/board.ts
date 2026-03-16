@@ -1,9 +1,8 @@
 import { v } from "convex/values";
 
-import type { Doc } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import type { QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
 
 const projectStatus = v.union(
   v.literal("new"),
@@ -120,7 +119,8 @@ const buildBoardProjectRecord = async (
   ctx: QueryCtx,
   project: Doc<"projects">
 ) => {
-  const [departmentTracks, workItems, approvalGates, template] = await Promise.all([
+  const [departmentTracks, workItems, approvalGates, template] =
+    await Promise.all([
       ctx.db
         .query("departmentTracks")
         .withIndex("by_project", (q) => q.eq("projectId", project._id))
@@ -134,10 +134,9 @@ const buildBoardProjectRecord = async (
         .withIndex("by_project", (q) => q.eq("projectId", project._id))
         .collect(),
       project.templateId
-        ? ctx.db.get(project.templateId as any)
+        ? ctx.db.get(project.templateId as unknown as Id<"projectTemplates">)
         : Promise.resolve(null),
     ] as const);
-
 
   const overdueTaskCount = workItems.filter(
     (item) =>
@@ -163,7 +162,7 @@ const buildBoardProjectRecord = async (
     priority: project.priority ?? "medium",
     slaRisk: deriveSlaRisk(project.slaDeadline, overdueTaskCount),
     status: project.status,
-    templateType: (template as any)?.name ?? "默认模板",
+    templateType: (template as Doc<"projectTemplates">)?.name ?? "默认模板",
   };
 };
 
@@ -246,7 +245,10 @@ export const getProjectDetail = query({
       departmentTracks.map((track) => [track._id, track])
     );
 
-    const commentMentionsByCommentId = new Map<Id<"comments">, any[]>(
+    const commentMentionsByCommentId = new Map<
+      Id<"comments">,
+      Doc<"mentions">[]
+    >(
       await Promise.all(
         comments.map(async (comment) => {
           const mentions = await ctx.db
@@ -306,7 +308,7 @@ export const getProjectDetail = query({
         mentionedUserIds:
           commentMentionsByCommentId
             .get(comment._id)
-            ?.map((mention: any) => mention.mentionedUserId) ?? [],
+            ?.map((mention) => mention.mentionedUserId) ?? [],
         parentCommentId: comment.parentCommentId ?? null,
         targetScope: comment.targetScope,
       })),

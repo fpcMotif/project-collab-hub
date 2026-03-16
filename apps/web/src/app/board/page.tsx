@@ -28,7 +28,6 @@ const Board = dynamic(
   { loading: BoardSkeleton, ssr: false }
 );
 
-
 const BoardPage = () => (
   <div className="flex h-screen flex-col bg-gray-100">
     <header className="flex shrink-0 items-center justify-between border-b border-gray-200 bg-white px-6 py-3">

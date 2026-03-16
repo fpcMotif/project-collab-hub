@@ -1,15 +1,13 @@
-import { httpRouter } from "convex/server";
+import { httpRouter, anyApi } from "convex/server";
+import type { GenericActionCtx } from "convex/server";
 
 import { api } from "./_generated/api";
+import type { DataModel } from "./_generated/dataModel";
 import { httpAction } from "./_generated/server";
 
-const http = httpRouter();
-
-import type { GenericActionCtx } from "convex/server";
-import type { DataModel } from "./_generated/dataModel";
-
-import { anyApi } from "convex/server";
 type CallableCtx = GenericActionCtx<DataModel>;
+
+const http = httpRouter();
 
 // ── Internal Handlers ───────────────────────────────────────────────────
 
@@ -44,7 +42,7 @@ const handleApprovalEvent = async (
   // Find the approval gate by instance code
   const gate = (await ctx.runQuery(anyApi.approvalGates.getByInstanceCode, {
     instanceCode,
-  })) as any;
+  })) as unknown as { _id: string };
   if (!gate) {
     return;
   }
