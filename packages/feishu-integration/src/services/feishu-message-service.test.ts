@@ -1,7 +1,8 @@
 import { describe, expect, it, mock } from "bun:test";
 
-import { Effect, Layer } from "effect";
+import { Effect, Either, Layer } from "effect";
 
+import { FeishuError } from "../errors/feishu-error.js";
 import { FeishuAuthService } from "./feishu-auth-service.js";
 import {
   FeishuMessageService,
@@ -45,6 +46,17 @@ const runSendCard = (testLayer: ReturnType<typeof createTestLayer>) =>
         service.sendCard({ card: cardPayload, chatId: "chat-123" })
       ),
       Effect.provide(testLayer)
+    )
+  );
+
+const runSendCardEither = (testLayer: ReturnType<typeof createTestLayer>) =>
+  Effect.runPromise(
+    FeishuMessageService.pipe(
+      Effect.andThen((service) =>
+        service.sendCard({ card: cardPayload, chatId: "chat-123" })
+      ),
+      Effect.provide(testLayer),
+      Effect.either
     )
   );
 
@@ -95,14 +107,22 @@ describe("FeishuMessageService", () => {
     );
   });
 
-  it("fails when Feishu rejects a card message", async () => {
+  it("returns FeishuError when sending an interactive message fails", async () => {
     const createMessage = mock().mockResolvedValue({
       code: 902,
       msg: "card validation failed",
     });
     const testLayer = createTestLayer(createMessage);
+    const result = await runSendCardEither(testLayer);
 
-    await expect(runSendCard(testLayer)).rejects.toThrow(
+    expect(Either.isLeft(result)).toBe(true);
+
+    if (Either.isRight(result)) {
+      throw new Error("Expected sendCard to fail");
+    }
+
+    expect(result.left).toBeInstanceOf(FeishuError);
+    expect(result.left.message).toBe(
       "Failed to send card message: Feishu API failed with code 902: card validation failed"
     );
   });
