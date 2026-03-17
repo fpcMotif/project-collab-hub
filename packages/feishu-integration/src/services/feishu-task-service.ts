@@ -28,7 +28,9 @@ export class FeishuTaskService extends Context.Tag("FeishuTaskService")<
     readonly createTask: (
       params: CreateFeishuTaskParams
     ) => Effect.Effect<FeishuTaskResult, FeishuError>;
-    readonly completeTask: (taskGuid: string) => Effect.Effect<void, FeishuError>;
+    readonly completeTask: (
+      taskGuid: string
+    ) => Effect.Effect<void, FeishuError>;
     readonly getTask: (
       taskGuid: string
     ) => Effect.Effect<Record<string, unknown>, FeishuError>;

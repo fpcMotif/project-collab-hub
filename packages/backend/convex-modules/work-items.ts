@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 
-import { query, mutation } from "./_generated/server";
+import { query, mutation } from "../convex/_generated/server";
 
 export const listByProject = query({
   args: { projectId: v.id("projects") },

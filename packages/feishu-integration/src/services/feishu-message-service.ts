@@ -1,6 +1,6 @@
 import { Context, Effect, Layer } from "effect";
 
-import { FeishuError } from "../errors/feishu-error.js";
+import type { FeishuError } from "../errors/feishu-error.js";
 import { FeishuAuthService } from "./feishu-auth-service.js";
 import { assertFeishuSuccess, wrapFeishuError } from "./feishu-response.js";
 

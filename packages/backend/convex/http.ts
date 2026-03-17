@@ -16,7 +16,10 @@ const http = httpRouter();
 
 // ── Feishu task status mapping ──────────────────────────────────────────
 
-const FEISHU_TASK_STATUS_MAP: Record<string, string> = {
+const FEISHU_TASK_STATUS_MAP: Record<
+  string,
+  "done" | "in_progress" | "in_review" | "todo"
+> = {
   closed: "done",
   completed: "done",
   created: "todo",

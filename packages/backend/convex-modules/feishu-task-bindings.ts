@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 
-import { query, mutation } from "./_generated/server";
+import { query, mutation } from "../convex/_generated/server";
 
 export const getByTaskGuid = query({
   args: { feishuTaskGuid: v.string() },

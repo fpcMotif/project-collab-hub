@@ -65,9 +65,7 @@ export default defineSchema({
     action: v.string(),
     actorId: v.string(),
     changeSummary: v.string(),
-    decision: v.optional(
-      v.union(v.literal("allowed"), v.literal("rejected"))
-    ),
+    decision: v.optional(v.union(v.literal("allowed"), v.literal("rejected"))),
     decisionReason: v.optional(v.string()),
     fromStage: v.optional(projectStatus),
     idempotencyKey: v.optional(v.string()),
