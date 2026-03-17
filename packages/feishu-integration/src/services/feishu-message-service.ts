@@ -37,7 +37,7 @@ export const FeishuMessageServiceLive = Layer.effect(
         readonly content: string;
         readonly failurePrefix: string;
         readonly messageType: "interactive" | "text";
-      }): Effect.Effect<void, Error> =>
+      }): Effect.Effect<void, FeishuError> =>
         Effect.tryPromise({
           catch: (error) => wrapFeishuError(params.failurePrefix, error),
           try: async () => {
