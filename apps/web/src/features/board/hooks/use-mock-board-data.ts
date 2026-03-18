@@ -13,10 +13,7 @@ import { useMockProjectStore } from "./use-mock-project-store";
 export const useMockBoardData = (filters: BoardFilterState) => {
   const { projects, replaceProjects } = useMockProjectStore();
 
-  const boardData = useMemo(
-    () => buildBoardViewData(projects, filters),
-    [projects, filters]
-  );
+  const boardData = useMemo(() => buildBoardViewData(projects, filters), [projects, filters]);
 
   const moveProject = useCallback(
     (projectId: string, targetColumnId: string): Promise<BoardMoveResult> => {
@@ -36,9 +33,7 @@ export const useMockBoardData = (filters: BoardFilterState) => {
       }
 
       replaceProjects(
-        projects.map((item) =>
-          item.id === projectId ? { ...item, status: targetStatus } : item
-        )
+        projects.map((item) => (item.id === projectId ? { ...item, status: targetStatus } : item)),
       );
 
       return Promise.resolve({
@@ -46,7 +41,7 @@ export const useMockBoardData = (filters: BoardFilterState) => {
         ok: true,
       });
     },
-    [boardData.columns, projects, replaceProjects]
+    [boardData.columns, projects, replaceProjects],
   );
 
   return {

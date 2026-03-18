@@ -11,7 +11,7 @@ export const PriorityBadge = ({ priority }: PriorityBadgeProps) => (
   <span
     className={cn(
       "inline-flex items-center rounded px-1.5 py-0.5 text-xs font-semibold",
-      PRIORITY_STYLES[priority]
+      PRIORITY_STYLES[priority],
     )}
   >
     {PRIORITY_LABELS[priority]}
