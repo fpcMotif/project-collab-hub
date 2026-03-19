@@ -1,6 +1,19 @@
 import { v } from "convex/values";
 
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { query, mutation } from "./_generated/server";
+
+const requireAuthenticatedUser = async (
+  ctx: QueryCtx | MutationCtx
+): Promise<string> => {
+  const identity = await ctx.auth.getUserIdentity();
+
+  if (!identity) {
+    throw new Error("Authentication required");
+  }
+
+  return identity.tokenIdentifier;
+};
 
 export const list = query({
   args: {
@@ -17,7 +30,9 @@ export const list = query({
       )
     ),
   },
-  handler: (ctx, args) => {
+  handler: async (ctx, args) => {
+    const userId = await requireAuthenticatedUser(ctx);
+
     if (args.status) {
       return ctx.db
         .query("projects")
@@ -35,9 +50,14 @@ export const list = query({
               | "cancelled"
           )
         )
+        .filter((q) => q.eq(q.field("createdBy"), userId))
         .collect();
     }
-    return ctx.db.query("projects").collect();
+
+    return ctx.db
+      .query("projects")
+      .filter((q) => q.eq(q.field("createdBy"), userId))
+      .collect();
   },
 });
 
@@ -48,13 +68,12 @@ export const getById = query({
 
 export const create = mutation({
   args: {
-    createdBy: v.string(),
     customerName: v.optional(v.string()),
     departmentId: v.string(),
     description: v.string(),
     endDate: v.optional(v.number()),
     name: v.string(),
-    ownerId: v.string(),
+    ownerId: v.optional(v.string()),
     priority: v.optional(
       v.union(
         v.literal("low"),
@@ -74,14 +93,18 @@ export const create = mutation({
     templateVersion: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const userId = await requireAuthenticatedUser(ctx);
+
     const projectId = await ctx.db.insert("projects", {
       ...args,
+      createdBy: userId,
+      ownerId: args.ownerId ?? userId,
       status: "new",
     });
 
     await ctx.db.insert("auditEvents", {
       action: "project.created",
-      actorId: args.createdBy,
+      actorId: userId,
       changeSummary: `Project "${args.name}" created via ${args.sourceEntry}`,
       objectId: projectId,
       objectType: "project",
