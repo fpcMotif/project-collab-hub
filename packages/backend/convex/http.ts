@@ -1,7 +1,7 @@
 import { httpRouter, anyApi } from "convex/server";
 import type { GenericActionCtx } from "convex/server";
 
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import type { DataModel, Id } from "./_generated/dataModel";
 import { httpAction } from "./_generated/server";
 
@@ -71,7 +71,7 @@ const handleApprovalEvent = async (
   }
 
   // Resolve the approval gate with idempotency
-  await ctx.runMutation(anyApi.approvalGates.resolve, {
+  await ctx.runMutation(internal.approvalGates.resolve, {
     id: gate._id,
     idempotencyKey: eventId,
     instanceCode,

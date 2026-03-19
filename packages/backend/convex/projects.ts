@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
 
 export const list = query({
   args: {
@@ -171,7 +171,7 @@ export const createFromTemplate = mutation({
   },
 });
 
-export const updateStatus = mutation({
+export const updateStatus = internalMutation({
   args: {
     actorId: v.string(),
     id: v.id("projects"),
