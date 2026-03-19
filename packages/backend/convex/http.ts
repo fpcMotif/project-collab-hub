@@ -13,6 +13,7 @@ const isValidId = (value: string): value is Id<"workItems"> =>
   CONVEX_ID_RE.test(value);
 
 const http = httpRouter();
+const FEISHU_WEBHOOK_TOKEN = process.env.FEISHU_WEBHOOK_TOKEN;
 
 // ── Feishu task status mapping ──────────────────────────────────────────
 
@@ -118,12 +119,32 @@ const handleTaskEvent = async (
   });
 };
 
+const getWebhookTokenFromBody = (body: Record<string, unknown>): string => {
+  const header = body.header as Record<string, unknown> | undefined;
+  const headerToken =
+    typeof header?.token === "string" ? header.token : undefined;
+  const bodyToken = typeof body.token === "string" ? body.token : undefined;
+  return headerToken ?? bodyToken ?? "";
+};
+
+const isAuthorizedFeishuEvent = (body: Record<string, unknown>): boolean => {
+  if (!FEISHU_WEBHOOK_TOKEN) {
+    return false;
+  }
+  const incomingToken = getWebhookTokenFromBody(body);
+  return incomingToken.length > 0 && incomingToken === FEISHU_WEBHOOK_TOKEN;
+};
+
 // ── Feishu Event Subscription Verification ──────────────────────────────
 // Feishu sends a challenge request to verify the endpoint.
 
 http.route({
   handler: httpAction(async (ctx, request) => {
     const body = (await request.json()) as Record<string, unknown>;
+
+    if (!isAuthorizedFeishuEvent(body)) {
+      return new Response("Unauthorized", { status: 401 });
+    }
 
     // Handle URL verification challenge
     if (body.type === "url_verification") {
