@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 
-import { query, mutation } from "../convex/_generated/server";
+import { query, mutation, internalMutation } from "../convex/_generated/server";
 
 export const listByProject = query({
   args: { projectId: v.id("projects") },
@@ -70,7 +70,7 @@ export const create = mutation({
   },
 });
 
-export const resolve = mutation({
+export const resolve = internalMutation({
   args: {
     id: v.id("approvalGates"),
     idempotencyKey: v.optional(v.string()),
