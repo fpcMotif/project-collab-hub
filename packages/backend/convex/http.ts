@@ -8,9 +8,18 @@ import { httpAction } from "./_generated/server";
 type CallableCtx = GenericActionCtx<DataModel>;
 
 const CONVEX_ID_RE = /^[a-z0-9]{32}$/;
+const FEISHU_VERIFICATION_TOKEN = process.env.FEISHU_VERIFICATION_TOKEN;
 
 const isValidId = (value: string): value is Id<"workItems"> =>
   CONVEX_ID_RE.test(value);
+
+const isAuthorizedFeishuRequest = (body: Record<string, unknown>): boolean => {
+  if (!FEISHU_VERIFICATION_TOKEN) {
+    return false;
+  }
+
+  return body.token === FEISHU_VERIFICATION_TOKEN;
+};
 
 const http = httpRouter();
 
@@ -125,6 +134,10 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     const body = (await request.json()) as Record<string, unknown>;
 
+    if (!isAuthorizedFeishuRequest(body)) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
     // Handle URL verification challenge
     if (body.type === "url_verification") {
       return Response.json({ challenge: body.challenge }, { status: 200 });
@@ -165,6 +178,10 @@ http.route({
 http.route({
   handler: httpAction(async (ctx, request) => {
     const body = (await request.json()) as Record<string, unknown>;
+
+    if (!isAuthorizedFeishuRequest(body)) {
+      return new Response("Unauthorized", { status: 401 });
+    }
 
     // Handle URL verification
     if (body.type === "url_verification") {
@@ -216,6 +233,10 @@ http.route({
 http.route({
   handler: httpAction(async (ctx, request) => {
     const body = (await request.json()) as Record<string, unknown>;
+
+    if (!isAuthorizedFeishuRequest(body)) {
+      return new Response("Unauthorized", { status: 401 });
+    }
 
     // Handle URL verification
     if (body.type === "url_verification") {
