@@ -12,6 +12,10 @@
     "effect": "^3"
   },
   "devDependencies": {
-    "typescript": "^5"
+    "@vitest/expect": "^4.1.0",
+    "convex-test": "^0.0.43",
+    "edge-runtime": "^4.0.1",
+    "typescript": "^5",
+    "vitest": "^4.1.0"
   }
 }
