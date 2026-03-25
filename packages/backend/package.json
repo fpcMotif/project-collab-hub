@@ -4,14 +4,17 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "check-types": "[ -d convex/_generated ] && tsc --noEmit || echo 'Skipping: run bunx convex dev first to generate types'",
     "dev": "bunx convex dev",
-    "check-types": "[ -d convex/_generated ] && tsc --noEmit || echo 'Skipping: run bunx convex dev first to generate types'"
+    "test": "vitest run"
   },
   "dependencies": {
+    "@collab-hub/feishu-integration": "workspace:*",
     "convex": "^1",
     "effect": "^3"
   },
   "devDependencies": {
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.0"
   }
 }

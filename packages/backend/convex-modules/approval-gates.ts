@@ -31,6 +31,11 @@ export const getByInstanceCode = query({
       .first(),
 });
 
+export const get = query({
+  args: { id: v.id("approvalGates") },
+  handler: (ctx, args) => ctx.db.get(args.id),
+});
+
 export const create = mutation({
   args: {
     applicantId: v.string(),

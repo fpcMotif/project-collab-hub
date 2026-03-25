@@ -2,6 +2,8 @@ node_modules/
 .next/
 dist/
 .turbo/
+apps/web/playwright-report/
+apps/web/test-results/
 .env
 .env.local
 .env*.local

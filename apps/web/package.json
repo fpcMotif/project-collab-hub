@@ -11,7 +11,8 @@
     "format": "oxfmt --check .",
     "format:fix": "oxfmt .",
     "check-types": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@collab-hub/shared": "workspace:*",
@@ -22,10 +23,14 @@
     "react-dom": "19.2.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.52.0",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "jsdom": "^26.1.0",
     "oxfmt": "latest",
     "oxlint": "latest",
     "tailwindcss": "^4",

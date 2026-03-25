@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
-import { query, mutation } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { mutation, query } from "./_generated/server";
 
 export const list = query({
   args: {
@@ -162,6 +163,25 @@ export const createFromTemplate = mutation({
       projectId,
       sourceEntry: args.sourceEntry,
     });
+
+    // Auto-create Feishu group chat per template chatPolicy
+    if (template.chatPolicy.autoCreateChat) {
+      const chatName = template.chatPolicy.chatNameTemplate
+        ? template.chatPolicy.chatNameTemplate.replace("{{name}}", args.name)
+        : `Project: ${args.name}`;
+
+      await ctx.scheduler.runAfter(
+        0,
+        internal.feishuActions.createProjectChat,
+        {
+          description: `Auto-created chat for project "${args.name}"`,
+          name: chatName,
+          ownerOpenId: args.ownerId,
+          projectId,
+          userOpenIds: [],
+        }
+      );
+    }
 
     return {
       projectId,

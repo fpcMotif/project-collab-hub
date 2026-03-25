@@ -1,36 +1,40 @@
 import { httpRouter, anyApi } from "convex/server";
 import type { GenericActionCtx } from "convex/server";
 
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import type { DataModel, Id } from "./_generated/dataModel";
 import { httpAction } from "./_generated/server";
+import {
+  CONVEX_WORK_ITEM_ID_RE,
+  extractBaseRecordIdFromEvent,
+  isValidConvexWorkItemId,
+} from "./lib/feishu-http-utils";
+import {
+  mapFeishuApprovalStatus,
+  mapFeishuTaskToWorkItemStatus,
+  mapFeishuWorkflowStatus,
+} from "./lib/feishu-maps";
+import {
+  readFeishuSignatureHeaders,
+  verifyFeishuRequestSignature,
+} from "./lib/feishu-signature";
 
 type CallableCtx = GenericActionCtx<DataModel>;
 
-const CONVEX_ID_RE = /^[a-z0-9]{32}$/;
-
 const isValidId = (value: string): value is Id<"workItems"> =>
-  CONVEX_ID_RE.test(value);
+  isValidConvexWorkItemId(value);
 
 const http = httpRouter();
 
-// ── Feishu task status mapping ──────────────────────────────────────────
-
-const FEISHU_TASK_STATUS_MAP: Record<
-  string,
-  "done" | "in_progress" | "in_review" | "todo"
-> = {
-  closed: "done",
-  completed: "done",
-  created: "todo",
-  done: "done",
-  in_progress: "in_progress",
-  in_review: "in_review",
-  not_started: "todo",
-  reviewing: "in_review",
-  running: "in_progress",
-  todo: "todo",
-};
+const verifySignature = (
+  request: Request,
+  bodyText: string
+): Promise<boolean> =>
+  verifyFeishuRequestSignature(
+    readFeishuSignatureHeaders(request),
+    bodyText,
+    process.env.FEISHU_ENCRYPT_KEY
+  );
 
 // ── Internal Handlers ───────────────────────────────────────────────────
 
@@ -51,32 +55,54 @@ const handleApprovalEvent = async (
     return;
   }
 
-  // Map Feishu approval status to our status
-  const statusMap: Record<string, string> = {
-    APPROVED: "approved",
-    CANCELED: "cancelled",
-    REJECTED: "rejected",
-  };
-  const mappedStatus = statusMap[approvalStatus];
+  const mappedStatus = mapFeishuApprovalStatus(approvalStatus);
   if (!mappedStatus) {
     return;
   }
 
-  // Find the approval gate by instance code
   const gate = (await ctx.runQuery(anyApi.approvalGates.getByInstanceCode, {
     instanceCode,
-  })) as unknown as { _id: string };
+  })) as unknown as {
+    _id: Id<"approvalGates">;
+    projectId: Id<"projects">;
+    title: string;
+  } | null;
   if (!gate) {
     return;
   }
 
-  // Resolve the approval gate with idempotency
+  const resolvedBy = (event.user_id as string) ?? "system";
+
   await ctx.runMutation(anyApi.approvalGates.resolve, {
     id: gate._id,
     idempotencyKey: eventId,
     instanceCode,
-    resolvedBy: (event.user_id as string) ?? "system",
+    resolvedBy,
     status: mappedStatus,
+  });
+
+  const [project, chatBinding] = await Promise.all([
+    ctx.runQuery(anyApi.projects.getById, { id: gate.projectId }),
+    ctx.runQuery(anyApi.chatBindings.getByProjectId, {
+      projectId: gate.projectId,
+    }),
+  ]);
+
+  if (!project || !chatBinding) {
+    return;
+  }
+
+  await ctx.runMutation(internal.notificationActions.enqueue, {
+    channel: "group_chat" as const,
+    messageType: "approval_result" as const,
+    payload: JSON.stringify({
+      approvalTitle: gate.title,
+      projectName: project.name,
+      resolvedBy,
+      status: mappedStatus,
+    }),
+    projectId: gate.projectId,
+    recipientId: chatBinding.feishuChatId,
   });
 };
 
@@ -105,7 +131,7 @@ const handleTaskEvent = async (
     return;
   }
 
-  const mappedStatus = FEISHU_TASK_STATUS_MAP[taskStatus.toLowerCase()];
+  const mappedStatus = mapFeishuTaskToWorkItemStatus(taskStatus);
   if (!mappedStatus) {
     return;
   }
@@ -118,19 +144,51 @@ const handleTaskEvent = async (
   });
 };
 
-// ── Feishu Event Subscription Verification ──────────────────────────────
-// Feishu sends a challenge request to verify the endpoint.
+const handleBaseRecordChange = async (
+  ctx: CallableCtx,
+  body: Record<string, unknown>
+) => {
+  const event = body.event as Record<string, unknown> | undefined;
+  if (!event) {
+    return;
+  }
+
+  const recordId = extractBaseRecordIdFromEvent(event);
+
+  if (!recordId) {
+    return;
+  }
+
+  const binding = (await ctx.runQuery(anyApi.baseBindings.getByRecordId, {
+    recordId,
+  })) as unknown as { _id: string } | null;
+
+  if (!binding) {
+    return;
+  }
+
+  await ctx.scheduler.runAfter(0, internal.baseSyncActions.pullFromBase, {
+    bindingId: binding._id as Id<"baseBindings">,
+  });
+};
+
+// ── Feishu Event Subscription ────────────────────────────────────────────
 
 http.route({
   handler: httpAction(async (ctx, request) => {
-    const body = (await request.json()) as Record<string, unknown>;
+    const bodyText = await request.text();
+    const body = JSON.parse(bodyText) as Record<string, unknown>;
 
-    // Handle URL verification challenge
     if (body.type === "url_verification") {
       return Response.json({ challenge: body.challenge }, { status: 200 });
     }
 
-    // Extract event header for idempotency
+    // Verify event signature
+    const signatureValid = await verifySignature(request, bodyText);
+    if (!signatureValid) {
+      return new Response("Invalid signature", { status: 403 });
+    }
+
     const header = body.header as Record<string, string> | undefined;
     const eventId = header?.event_id;
     const eventType = header?.event_type;
@@ -139,18 +197,29 @@ http.route({
       return new Response("Missing event_id or event_type", { status: 400 });
     }
 
-    // Route to appropriate handler based on event type
-    switch (eventType) {
-      case "approval_instance": {
-        await handleApprovalEvent(ctx, body, eventId);
-        break;
+    // Wrap in try-catch: always return 200 to Feishu to prevent retry storms
+    try {
+      switch (eventType) {
+        case "approval_instance": {
+          await handleApprovalEvent(ctx, body, eventId);
+          break;
+        }
+        case "task.updated":
+        case "task.completed": {
+          await handleTaskEvent(ctx, body, eventId);
+          break;
+        }
+        case "drive.file.bitable_record_changed_v1": {
+          await handleBaseRecordChange(ctx, body);
+          break;
+        }
+        default:
       }
-      case "task.updated":
-      case "task.completed": {
-        await handleTaskEvent(ctx, body, eventId);
-        break;
-      }
-      default:
+    } catch (error) {
+      console.error(
+        `[feishu/events] Error handling ${eventType} (${eventId}):`,
+        error instanceof Error ? error.message : error
+      );
     }
 
     return Response.json({ ok: true }, { status: 200 });
@@ -160,50 +229,83 @@ http.route({
 });
 
 // ── Feishu Card Callback ────────────────────────────────────────────────
-// Handles interactive card button clicks from Feishu message cards.
 
 http.route({
   handler: httpAction(async (ctx, request) => {
-    const body = (await request.json()) as Record<string, unknown>;
+    const bodyText = await request.text();
+    const body = JSON.parse(bodyText) as Record<string, unknown>;
 
-    // Handle URL verification
     if (body.type === "url_verification") {
       return Response.json({ challenge: body.challenge }, { status: 200 });
     }
 
-    const action = body.action as Record<string, unknown> | undefined;
-    const actionTag = (action?.tag as string) ?? "";
-    const actionValue = action?.value as Record<string, string> | undefined;
-
-    if (!actionValue) {
-      return new Response("Missing action value", { status: 400 });
+    const signatureValid = await verifySignature(request, bodyText);
+    if (!signatureValid) {
+      return new Response("Invalid signature", { status: 403 });
     }
 
-    switch (actionTag) {
-      case "claim_work_item": {
-        const { workItemId, userId } = actionValue;
-        if (workItemId && userId && isValidId(workItemId)) {
-          await ctx.runMutation(api.workItems.updateStatus, {
-            actorId: userId,
-            id: workItemId,
-            status: "in_progress",
-          });
+    try {
+      const action = body.action as Record<string, unknown> | undefined;
+      const actionTag = (action?.tag as string) ?? "";
+      const actionValue = action?.value as Record<string, string> | undefined;
+
+      if (!actionValue) {
+        return new Response("Missing action value", { status: 400 });
+      }
+
+      switch (actionTag) {
+        case "claim_work_item": {
+          const { workItemId, userId } = actionValue;
+          if (workItemId && userId && isValidId(workItemId)) {
+            await ctx.runMutation(api.workItems.updateStatus, {
+              actorId: userId,
+              id: workItemId,
+              status: "in_progress",
+            });
+          }
+          break;
         }
-        break;
+        case "view_project": {
+          break;
+        }
+        case "approve_gate": {
+          const { gateId, userId: approverId } = actionValue;
+          // Card actions pass the Convex approval gate document id, not Feishu instance_code.
+          if (gateId && approverId && CONVEX_WORK_ITEM_ID_RE.test(gateId)) {
+            const gate = (await ctx.runQuery(anyApi.approvalGates.get, {
+              id: gateId as Id<"approvalGates">,
+            })) as unknown as {
+              _id: Id<"approvalGates">;
+              approvalCode: string;
+              instanceCode?: string;
+            } | null;
+
+            // If the gate has no Feishu instance yet, submit native approval; otherwise the
+            // instance already exists and the UI should link users to Feishu.
+            if (gate && !gate.instanceCode) {
+              await ctx.scheduler.runAfter(
+                0,
+                internal.feishuActions.submitApproval,
+                {
+                  applicantId: approverId,
+                  approvalCode: gate.approvalCode,
+                  formData: "[]",
+                  gateId: gate._id,
+                }
+              );
+            }
+          }
+          break;
+        }
+        default:
       }
-      case "view_project": {
-        // No server-side action needed — card opens project URL
-        break;
-      }
-      case "approve_gate": {
-        // Approvals go through Feishu's native flow,
-        // this is just for navigating to the approval
-        break;
-      }
-      default:
+    } catch (error) {
+      console.error(
+        "[feishu/card-callback] Error:",
+        error instanceof Error ? error.message : error
+      );
     }
 
-    // Return empty body to acknowledge (Feishu expects 200)
     return Response.json({}, { status: 200 });
   }),
   method: "POST",
@@ -211,53 +313,128 @@ http.route({
 });
 
 // ── Link Preview Callback ───────────────────────────────────────────────
-// Returns preview card data when project links are pasted in Feishu.
 
 http.route({
   handler: httpAction(async (ctx, request) => {
-    const body = (await request.json()) as Record<string, unknown>;
+    const bodyText = await request.text();
+    const body = JSON.parse(bodyText) as Record<string, unknown>;
 
-    // Handle URL verification
     if (body.type === "url_verification") {
       return Response.json({ challenge: body.challenge }, { status: 200 });
     }
 
-    const event = body.event as Record<string, unknown> | undefined;
-    const url = (event?.url as string) ?? "";
-
-    // Extract project ID from URL pattern: /projects/{projectId}
-    const projectIdMatch = url.match(/\/projects\/([a-zA-Z0-9_]+)/);
-    if (!projectIdMatch) {
-      return Response.json({}, { status: 200 });
+    const signatureValid = await verifySignature(request, bodyText);
+    if (!signatureValid) {
+      return new Response("Invalid signature", { status: 403 });
     }
 
-    const [, projectId] = projectIdMatch;
-    const project = await ctx
-      .runQuery(anyApi.projects.getById, { id: projectId as never })
-      .catch(() => null);
+    try {
+      const event = body.event as Record<string, unknown> | undefined;
+      const url = (event?.url as string) ?? "";
 
-    if (!project) {
-      return Response.json({}, { status: 200 });
-    }
+      const projectIdMatch = url.match(/\/projects\/([a-zA-Z0-9_]+)/);
+      if (!projectIdMatch) {
+        return Response.json({}, { status: 200 });
+      }
 
-    // Return link preview card data
-    const previewCard = {
-      data: {
-        template_id: "link_preview",
-        template_variable: {
-          open_url: url,
-          project_name: project.name,
-          project_owner: project.ownerId,
-          project_status: project.status,
+      const [, projectId] = projectIdMatch;
+      const project = await ctx
+        .runQuery(anyApi.projects.getById, { id: projectId as never })
+        .catch(() => null);
+
+      if (!project) {
+        return Response.json({}, { status: 200 });
+      }
+
+      const previewCard = {
+        data: {
+          template_id: "link_preview",
+          template_variable: {
+            open_url: url,
+            project_name: project.name,
+            project_owner: project.ownerId,
+            project_status: project.status,
+          },
         },
-      },
-      type: "template",
-    };
+        type: "template",
+      };
 
-    return Response.json(previewCard, { status: 200 });
+      return Response.json(previewCard, { status: 200 });
+    } catch (error) {
+      console.error(
+        "[feishu/link-preview] Error:",
+        error instanceof Error ? error.message : error
+      );
+      return Response.json({}, { status: 200 });
+    }
   }),
   method: "POST",
   path: "/feishu/link-preview",
+});
+
+// ── Feishu Workflow Callback ─────────────────────────────────────────────
+
+http.route({
+  handler: httpAction(async (ctx, request) => {
+    const bodyText = await request.text();
+    const body = JSON.parse(bodyText) as Record<string, unknown>;
+
+    if (body.type === "url_verification") {
+      return Response.json({ challenge: body.challenge }, { status: 200 });
+    }
+
+    const signatureValid = await verifySignature(request, bodyText);
+    if (!signatureValid) {
+      return new Response("Invalid signature", { status: 403 });
+    }
+
+    try {
+      const header = body.header as Record<string, string> | undefined;
+      const eventId = header?.event_id;
+      const eventType = header?.event_type;
+
+      if (!eventId || !eventType) {
+        return new Response("Missing event_id or event_type", { status: 400 });
+      }
+
+      const event = body.event as Record<string, unknown> | undefined;
+      if (!event) {
+        return Response.json({ ok: true }, { status: 200 });
+      }
+
+      const instanceCode = event.instance_code as string | undefined;
+      const status = event.status as string | undefined;
+
+      if (!instanceCode) {
+        return Response.json({ ok: true }, { status: 200 });
+      }
+
+      const mappedStatus = mapFeishuWorkflowStatus(status);
+
+      const instance = (await ctx.runQuery(
+        anyApi.workflowInstances.getByInstanceCode,
+        { instanceCode }
+      )) as unknown as { _id: string } | null;
+
+      if (instance) {
+        await ctx.runMutation(anyApi.workflowInstances.updateStatus, {
+          id: instance._id,
+          nodeCallbackData: JSON.stringify(event),
+          resolvedBy: (event.user_id as string) ?? undefined,
+          status: mappedStatus,
+        });
+      }
+    } catch (error) {
+      console.error(
+        "[feishu/workflow-callback] Error:",
+        error instanceof Error ? error.message : error
+      );
+    }
+
+    return Response.json({ ok: true }, { status: 200 });
+  }),
+  method: "POST",
+  path: "/feishu/workflow-callback",
 });
 
 export default http;
