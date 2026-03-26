@@ -79,6 +79,9 @@ export const processDelivery = internalAction({
       await ctx.runAction(internal.feishuActions.sendCardMessage, {
         card: JSON.stringify(card),
         chatId: delivery.recipientId,
+      });
+
+      await ctx.runMutation(internal.notificationActions.markSent, {
         deliveryId: args.deliveryId,
       });
     } catch (error) {
@@ -114,6 +117,13 @@ export const processDelivery = internalAction({
 export const getDelivery = internalQuery({
   args: { deliveryId: v.id("notificationDeliveries") },
   handler: (ctx, args) => ctx.db.get(args.deliveryId),
+});
+
+export const markSent = internalMutation({
+  args: { deliveryId: v.id("notificationDeliveries") },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.deliveryId, { status: "sent" });
+  },
 });
 
 export const markSending = internalMutation({

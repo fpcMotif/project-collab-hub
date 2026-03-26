@@ -143,6 +143,8 @@ export const FeishuWorkflowServiceLive = Layer.effect(
               },
             });
 
+            assertFeishuSuccess(response);
+
             const data = response?.data as
               | { instance_code?: string }
               | undefined;

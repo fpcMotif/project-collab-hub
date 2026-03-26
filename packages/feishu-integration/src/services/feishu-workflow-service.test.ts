@@ -94,6 +94,30 @@ describe("FeishuWorkflowService", () => {
     ).rejects.toThrow("No instance_code in workflow response");
   });
 
+  it("triggerWorkflow fails on non-zero code even with partial data", async () => {
+    const instanceCreate = mock().mockResolvedValue({
+      code: 403,
+      data: { instance_code: "inst-bad" },
+      msg: "permission denied",
+    });
+    const layer = createTestLayer({ instanceCreate });
+
+    await expect(
+      Effect.runPromise(
+        FeishuWorkflowService.pipe(
+          Effect.andThen((s) =>
+            s.triggerWorkflow({
+              approvalCode: "code",
+              formData: "[]",
+              openId: "ou",
+            })
+          ),
+          Effect.provide(layer)
+        )
+      )
+    ).rejects.toThrow("Feishu API failed with code 403: permission denied");
+  });
+
   it("getWorkflowInstance maps detail fields", async () => {
     const layer = createTestLayer();
     const detail = await Effect.runPromise(
