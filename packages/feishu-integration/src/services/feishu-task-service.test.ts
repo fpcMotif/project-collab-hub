@@ -232,4 +232,53 @@ describe("FeishuTaskService", () => {
       );
     });
   });
+
+  describe("updateTask", () => {
+    it("updates a task with the expected payload", async () => {
+      const patchRequest = mock().mockResolvedValue({ code: 0, data: {} });
+      const testLayer = createTestLayer({ patchRequest });
+
+      await Effect.runPromise(
+        FeishuTaskService.pipe(
+          Effect.andThen((service) =>
+            service.updateTask({
+              description: "Updated Description",
+              summary: "Updated Summary",
+              taskGuid: "mock-task-guid-123",
+            })
+          ),
+          Effect.provide(testLayer)
+        )
+      );
+
+      expect(patchRequest).toHaveBeenCalledWith({
+        data: {
+          task: {
+            description: "Updated Description",
+            summary: "Updated Summary",
+          },
+          update_fields: ["summary", "description"],
+        },
+        path: { task_guid: "mock-task-guid-123" },
+      });
+    });
+
+    it("does nothing if no update fields are provided", async () => {
+      const patchRequest = mock().mockResolvedValue({ code: 0, data: {} });
+      const testLayer = createTestLayer({ patchRequest });
+
+      await Effect.runPromise(
+        FeishuTaskService.pipe(
+          Effect.andThen((service) =>
+            service.updateTask({
+              taskGuid: "mock-task-guid-123",
+            })
+          ),
+          Effect.provide(testLayer)
+        )
+      );
+
+      expect(patchRequest).not.toHaveBeenCalled();
+    });
+  });
 });

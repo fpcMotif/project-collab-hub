@@ -5,6 +5,12 @@ interface CardElement {
     readonly text: { readonly content: string; readonly tag: string };
   }[];
   readonly text?: { readonly content: string; readonly tag: string };
+  readonly actions?: readonly {
+    readonly tag: string;
+    readonly text: { readonly content: string; readonly tag: string };
+    readonly value: Record<string, unknown>;
+    readonly type?: string;
+  }[];
 }
 
 export const buildNotificationCard = (
@@ -14,6 +20,74 @@ export const buildNotificationCard = (
   const projectName = (payload.projectName as string) ?? "Unknown Project";
 
   switch (messageType) {
+    case "workflow_approval": {
+      return {
+        elements: [
+          {
+            fields: [
+              {
+                is_short: false,
+                text: {
+                  content: `**Project:** ${projectName}`,
+                  tag: "lark_md",
+                },
+              },
+              {
+                is_short: true,
+                text: {
+                  content: `**Applicant:** ${payload.applicantName}`,
+                  tag: "lark_md",
+                },
+              },
+              {
+                is_short: true,
+                text: {
+                  content: `**Submitted:** ${payload.submissionTime}`,
+                  tag: "lark_md",
+                },
+              },
+            ],
+            tag: "div",
+          },
+          {
+            tag: "hr",
+          },
+          {
+            actions: [
+              {
+                tag: "button",
+                text: { content: "Approve", tag: "plain_text" },
+                type: "primary",
+                value: {
+                  action: "approve",
+                  gateId: payload.gateId,
+                  instanceCode: payload.instanceCode,
+                },
+              },
+              {
+                tag: "button",
+                text: { content: "Reject", tag: "plain_text" },
+                type: "danger",
+                value: {
+                  action: "reject",
+                  gateId: payload.gateId,
+                  instanceCode: payload.instanceCode,
+                },
+              },
+            ],
+            tag: "action",
+          },
+        ],
+        header: {
+          template: "indigo",
+          title: {
+            content: `Approval Request: ${payload.approvalTitle}`,
+            tag: "plain_text",
+          },
+        },
+      };
+    }
+
     case "stage_change": {
       return {
         elements: [

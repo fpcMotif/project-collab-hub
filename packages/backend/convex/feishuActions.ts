@@ -11,6 +11,8 @@ import type {
   CreateFeishuTaskParams,
   SendCardMessageParams,
   SendTextMessageParams,
+  UpdateCardMessageParams,
+  UpdateFeishuTaskParams,
   FeishuBaseService,
   FeishuWorkflowService,
 } from "@collab-hub/feishu-integration";
@@ -161,6 +163,23 @@ export const sendCardMessage = internalAction({
   },
 });
 
+export const updateCardMessage = internalAction({
+  args: {
+    card: v.string(),
+    messageId: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const params: UpdateCardMessageParams = {
+      card: JSON.parse(args.card) as Record<string, unknown>,
+      messageId: args.messageId,
+    };
+
+    await runFeishuEffect(
+      FeishuMessageService.pipe(Effect.flatMap((svc) => svc.updateCard(params)))
+    );
+  },
+});
+
 // ── Chat Actions ─────────────────────────────────────────────────────────
 
 export const createProjectChat = internalAction({
@@ -248,6 +267,25 @@ export const completeFeishuTask = internalAction({
       FeishuTaskService.pipe(
         Effect.flatMap((svc) => svc.completeTask(args.taskGuid))
       )
+    );
+  },
+});
+
+export const updateFeishuTask = internalAction({
+  args: {
+    description: v.optional(v.string()),
+    summary: v.optional(v.string()),
+    taskGuid: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const params: UpdateFeishuTaskParams = {
+      description: args.description,
+      summary: args.summary,
+      taskGuid: args.taskGuid,
+    };
+
+    await runFeishuEffect(
+      FeishuTaskService.pipe(Effect.flatMap((svc) => svc.updateTask(params)))
     );
   },
 });

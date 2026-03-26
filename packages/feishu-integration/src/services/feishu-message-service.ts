@@ -14,6 +14,11 @@ export interface SendCardMessageParams {
   readonly card: Record<string, unknown>;
 }
 
+export interface UpdateCardMessageParams {
+  readonly messageId: string;
+  readonly card: Record<string, unknown>;
+}
+
 export class FeishuMessageService extends Context.Tag("FeishuMessageService")<
   FeishuMessageService,
   {
@@ -22,6 +27,9 @@ export class FeishuMessageService extends Context.Tag("FeishuMessageService")<
     ) => Effect.Effect<void, FeishuError>;
     readonly sendCard: (
       params: SendCardMessageParams
+    ) => Effect.Effect<void, FeishuError>;
+    readonly updateCard: (
+      params: UpdateCardMessageParams
     ) => Effect.Effect<void, FeishuError>;
   }
 >() {}
@@ -69,6 +77,22 @@ export const FeishuMessageServiceLive = Layer.effect(
             content: JSON.stringify({ text: params.text }),
             failurePrefix: "Failed to send text message",
             messageType: "text",
+          }),
+
+        updateCard: (params: UpdateCardMessageParams) =>
+          Effect.tryPromise({
+            catch: (error) =>
+              wrapFeishuError("Failed to update card message", error),
+            try: async () => {
+              const response = await auth.client.im.message.patch({
+                data: {
+                  content: JSON.stringify(params.card),
+                },
+                path: { message_id: params.messageId },
+              });
+
+              assertFeishuSuccess(response);
+            },
           }),
       };
     })

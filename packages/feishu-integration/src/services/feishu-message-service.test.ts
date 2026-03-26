@@ -135,4 +135,60 @@ describe("FeishuMessageService", () => {
       "Failed to send text message: Network Error"
     );
   });
+
+  describe("updateCard", () => {
+    it("updates a card message with the expected payload", async () => {
+      const patchMessage = mock().mockResolvedValue({
+        code: 0,
+        msg: "success",
+      });
+      const testLayer = FeishuMessageServiceLive.pipe(
+        Layer.provide(
+          Layer.succeed(FeishuAuthService, {
+            client: { im: { message: { patch: patchMessage } } },
+          } as unknown as FeishuAuthService)
+        )
+      );
+
+      const card = { header: { title: { content: "Updated" } } };
+      await Effect.runPromise(
+        FeishuMessageService.pipe(
+          Effect.andThen((service) =>
+            service.updateCard({ card, messageId: "msg-1" })
+          ),
+          Effect.provide(testLayer)
+        )
+      );
+
+      expect(patchMessage).toHaveBeenCalledWith({
+        data: { content: JSON.stringify(card) },
+        path: { message_id: "msg-1" },
+      });
+    });
+
+    it("fails when Feishu returns non-zero code on update", async () => {
+      const patchMessage = mock().mockResolvedValue({
+        code: 1,
+        msg: "invalid content",
+      });
+      const testLayer = FeishuMessageServiceLive.pipe(
+        Layer.provide(
+          Layer.succeed(FeishuAuthService, {
+            client: { im: { message: { patch: patchMessage } } },
+          } as unknown as FeishuAuthService)
+        )
+      );
+
+      await expect(
+        Effect.runPromise(
+          FeishuMessageService.pipe(
+            Effect.andThen((service) =>
+              service.updateCard({ card: {}, messageId: "msg-1" })
+            ),
+            Effect.provide(testLayer)
+          )
+        )
+      ).rejects.toThrow("Feishu API failed with code 1: invalid content");
+    });
+  });
 });

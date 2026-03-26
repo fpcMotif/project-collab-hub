@@ -18,6 +18,12 @@ export interface CreateFeishuTaskParams {
   readonly originTitle: string;
 }
 
+export interface UpdateFeishuTaskParams {
+  readonly taskGuid: string;
+  readonly summary?: string;
+  readonly description?: string;
+}
+
 export interface FeishuTaskResult {
   readonly taskGuid: string;
 }
@@ -28,6 +34,9 @@ export class FeishuTaskService extends Context.Tag("FeishuTaskService")<
     readonly createTask: (
       params: CreateFeishuTaskParams
     ) => Effect.Effect<FeishuTaskResult, FeishuError>;
+    readonly updateTask: (
+      params: UpdateFeishuTaskParams
+    ) => Effect.Effect<void, FeishuError>;
     readonly completeTask: (
       taskGuid: string
     ) => Effect.Effect<void, FeishuError>;
@@ -104,6 +113,39 @@ export const FeishuTaskServiceLive = Layer.effect(
             });
 
             return getFeishuObjectData(response);
+          },
+        }),
+
+      updateTask: (params: UpdateFeishuTaskParams) =>
+        Effect.tryPromise({
+          catch: (error) =>
+            wrapFeishuError("Failed to update Feishu task", error),
+          try: async () => {
+            const task: Record<string, string> = {};
+            const update_fields: string[] = [];
+
+            if (params.summary !== undefined) {
+              task.summary = params.summary;
+              update_fields.push("summary");
+            }
+            if (params.description !== undefined) {
+              task.description = params.description;
+              update_fields.push("description");
+            }
+
+            if (update_fields.length === 0) {
+              return;
+            }
+
+            const response = await auth.client.task.v2.task.patch({
+              data: {
+                task,
+                update_fields,
+              },
+              path: { task_guid: params.taskGuid },
+            });
+
+            assertFeishuSuccess(response);
           },
         }),
     }))

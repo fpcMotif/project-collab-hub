@@ -22,6 +22,27 @@ describe("buildNotificationCard", () => {
     expect(JSON.stringify(card.elements)).toContain("A → B");
   });
 
+  it("builds a workflow_approval card with interactive buttons", () => {
+    const card = buildNotificationCard("workflow_approval", {
+      applicantName: "John Doe",
+      approvalTitle: "Review Solution",
+      gateId: "gate1",
+      instanceCode: "inst1",
+      projectName: "Delta",
+      submissionTime: "2026-03-26",
+    });
+    expect(card.header.template).toBe("indigo");
+    expect(JSON.stringify(card.header.title)).toContain("Review Solution");
+    expect(JSON.stringify(card.elements)).toContain("John Doe");
+    expect(JSON.stringify(card.elements)).toContain("2026-03-26");
+
+    const actionElement = card.elements.find((e) => e.tag === "action");
+    expect(actionElement?.actions).toHaveLength(2);
+    expect(actionElement?.actions?.[0].type).toBe("primary");
+    expect(actionElement?.actions?.[1].type).toBe("danger");
+    expect(actionElement?.actions?.[0].value.action).toBe("approve");
+  });
+
   it("falls back to a generic card for unknown message types", () => {
     const card = buildNotificationCard("custom", {
       foo: "bar",
