@@ -5,7 +5,6 @@ import { api, internal } from "./_generated/api";
 import type { DataModel, Id } from "./_generated/dataModel";
 import { httpAction } from "./_generated/server";
 import {
-  CONVEX_WORK_ITEM_ID_RE,
   extractBaseRecordIdFromEvent,
   isValidConvexWorkItemId,
 } from "./lib/feishu-http-utils";
@@ -268,32 +267,21 @@ http.route({
         case "view_project": {
           break;
         }
-        case "approve_gate": {
-          const { gateId, userId: approverId } = actionValue;
-          // Card actions pass the Convex approval gate document id, not Feishu instance_code.
-          if (gateId && approverId && CONVEX_WORK_ITEM_ID_RE.test(gateId)) {
-            const gate = (await ctx.runQuery(anyApi.approvalGates.get, {
-              id: gateId as Id<"approvalGates">,
-            })) as unknown as {
-              _id: Id<"approvalGates">;
-              approvalCode: string;
-              instanceCode?: string;
-            } | null;
+        case "approval_gate_action": {
+          const { action: decision, gateId, userId: approverId } = actionValue;
+          if (
+            gateId &&
+            approverId &&
+            decision &&
+            isValidConvexWorkItemId(gateId)
+          ) {
+            const status = decision === "approve" ? "approved" : "rejected";
 
-            // If the gate has no Feishu instance yet, submit native approval; otherwise the
-            // instance already exists and the UI should link users to Feishu.
-            if (gate && !gate.instanceCode) {
-              await ctx.scheduler.runAfter(
-                0,
-                internal.feishuActions.submitApproval,
-                {
-                  applicantId: approverId,
-                  approvalCode: gate.approvalCode,
-                  formData: "[]",
-                  gateId: gate._id,
-                }
-              );
-            }
+            await ctx.runMutation(anyApi.approvalGates.resolve, {
+              id: gateId as Id<"approvalGates">,
+              resolvedBy: approverId,
+              status,
+            });
           }
           break;
         }

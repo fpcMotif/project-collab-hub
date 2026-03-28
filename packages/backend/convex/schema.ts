@@ -56,6 +56,7 @@ export default defineSchema({
     templateVersion: v.optional(v.number()),
     title: v.string(),
     triggerStage: projectStatus,
+    workItemId: v.optional(v.id("workItems")),
   })
     .index("by_project", ["projectId"])
     .index("by_instance_code", ["instanceCode"])
@@ -308,6 +309,7 @@ export default defineSchema({
       v.literal("cancelled"),
       v.literal("error")
     ),
+    transitionToStage: v.optional(projectStatus),
     triggerStage: v.optional(v.string()),
     triggeredBy: v.string(),
   })

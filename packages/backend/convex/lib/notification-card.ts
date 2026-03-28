@@ -55,7 +55,7 @@ export const buildNotificationCard = (
           {
             actions: [
               {
-                tag: "button",
+                tag: "approval_gate_action",
                 text: { content: "Approve", tag: "plain_text" },
                 type: "primary",
                 value: {
@@ -65,7 +65,7 @@ export const buildNotificationCard = (
                 },
               },
               {
-                tag: "button",
+                tag: "approval_gate_action",
                 text: { content: "Reject", tag: "plain_text" },
                 type: "danger",
                 value: {

@@ -109,5 +109,75 @@ export const updateStatus = mutation({
       objectType: "work_item",
       projectId: item.projectId,
     });
+
+    // Synchronize completion status with Feishu task if it exists
+    if (args.status === "done") {
+      const binding = await ctx.db
+        .query("feishuTaskBindings")
+        .withIndex("by_work_item", (q) => q.eq("workItemId", args.id))
+        .first();
+
+      if (binding) {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.feishuActions.completeFeishuTask,
+          {
+            taskGuid: binding.feishuTaskGuid,
+          }
+        );
+      }
+    }
+  },
+});
+
+export const update = mutation({
+  args: {
+    actorId: v.string(),
+    description: v.optional(v.string()),
+    id: v.id("workItems"),
+    title: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const item = await ctx.db.get(args.id);
+    if (!item) {
+      throw new Error(`WorkItem ${args.id} not found`);
+    }
+
+    const patch: Record<string, unknown> = {};
+    if (args.description !== undefined) {
+      patch.description = args.description;
+    }
+    if (args.title !== undefined) {
+      patch.title = args.title;
+    }
+
+    if (Object.keys(patch).length === 0) {
+      return;
+    }
+
+    await ctx.db.patch(args.id, patch);
+
+    await ctx.db.insert("auditEvents", {
+      action: "work_item.updated",
+      actorId: args.actorId,
+      changeSummary: `"${item.title}" updated`,
+      objectId: args.id,
+      objectType: "work_item",
+      projectId: item.projectId,
+    });
+
+    // Synchronize title/description with Feishu task if it exists
+    const binding = await ctx.db
+      .query("feishuTaskBindings")
+      .withIndex("by_work_item", (q) => q.eq("workItemId", args.id))
+      .first();
+
+    if (binding) {
+      await ctx.scheduler.runAfter(0, internal.feishuActions.updateFeishuTask, {
+        description: args.description,
+        summary: args.title,
+        taskGuid: binding.feishuTaskGuid,
+      });
+    }
   },
 });

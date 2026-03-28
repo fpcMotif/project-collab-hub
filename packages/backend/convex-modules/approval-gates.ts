@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 
+import { internal } from "../convex/_generated/api";
 import { query, mutation } from "../convex/_generated/server";
 
 export const listByProject = query({
@@ -55,6 +56,7 @@ export const create = mutation({
       v.literal("done"),
       v.literal("cancelled")
     ),
+    workItemId: v.optional(v.id("workItems")),
   },
   handler: async (ctx, args) => {
     const gateId = await ctx.db.insert("approvalGates", {
@@ -71,6 +73,40 @@ export const create = mutation({
       projectId: args.projectId,
     });
 
+    // Automatically trigger Feishu approval if an approvalCode is provided
+    if (args.approvalCode) {
+      await ctx.scheduler.runAfter(0, internal.feishuActions.submitApproval, {
+        applicantId: args.applicantId,
+        approvalCode: args.approvalCode,
+        formData: args.snapshotData ?? "[]",
+        gateId,
+      });
+    }
+
+    // Notify project chat if it exists
+    const chatBinding = await ctx.db
+      .query("chatBindings")
+      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+      .first();
+
+    if (chatBinding) {
+      await ctx.scheduler.runAfter(0, internal.notificationActions.enqueue, {
+        channel: "group_chat",
+        messageType: "workflow_approval",
+        payload: JSON.stringify({
+          // Ideally look up the name
+          applicantName: args.applicantId,
+          approvalTitle: args.title,
+          gateId,
+          // Ideally look up the project name
+          projectName: "Project",
+          submissionTime: new Date().toISOString().split("T")[0],
+        }),
+        projectId: args.projectId,
+        recipientId: chatBinding.feishuChatId,
+      });
+    }
+
     return gateId;
   },
 });
@@ -79,7 +115,7 @@ export const resolve = mutation({
   args: {
     id: v.id("approvalGates"),
     idempotencyKey: v.optional(v.string()),
-    instanceCode: v.string(),
+    instanceCode: v.optional(v.string()),
     resolvedBy: v.string(),
     status: v.union(
       v.literal("approved"),
@@ -105,8 +141,12 @@ export const resolve = mutation({
       throw new Error(`ApprovalGate ${args.id} not found`);
     }
 
+    if (gate.status !== "pending") {
+      return;
+    }
+
     await ctx.db.patch(args.id, {
-      instanceCode: args.instanceCode,
+      instanceCode: args.instanceCode ?? gate.instanceCode,
       resolvedAt: Date.now(),
       resolvedBy: args.resolvedBy,
       status: args.status,
@@ -121,5 +161,24 @@ export const resolve = mutation({
       objectType: "approval_gate",
       projectId: gate.projectId,
     });
+
+    // If approved, trigger project stage transition if applicable
+    if (args.status === "approved") {
+      const project = await ctx.db.get(gate.projectId);
+      if (project && project.status !== gate.triggerStage) {
+        await ctx.db.patch(gate.projectId, { status: gate.triggerStage });
+
+        await ctx.db.insert("auditEvents", {
+          action: "project.status_changed",
+          actorId: args.resolvedBy,
+          changeSummary: `Project stage advanced to ${gate.triggerStage} via approval of "${gate.title}"`,
+          fromStage: project.status,
+          objectId: gate.projectId,
+          objectType: "project",
+          projectId: gate.projectId,
+          toStage: gate.triggerStage,
+        });
+      }
+    }
   },
 });
