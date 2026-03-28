@@ -4,13 +4,25 @@
     "./node_modules/ultracite/config/oxlint/core/.oxlintrc.json",
     "./node_modules/ultracite/config/oxlint/next/.oxlintrc.json"
   ],
-  "ignorePatterns": [
-    "packages/backend/convex/_generated",
-    "packages/backend/convex/approvalGates.ts",
-    "packages/backend/convex/auditEvents.ts",
-    "packages/backend/convex/departmentTracks.ts",
-    "packages/backend/convex/feishuTaskBindings.ts",
-    "packages/backend/convex/projectTemplates.ts",
-    "packages/backend/convex/workItems.ts"
+  "ignorePatterns": ["packages/backend/convex/_generated/**"],
+  "overrides": [
+    {
+      "files": ["packages/backend/convex/*.ts"],
+      "rules": {
+        "unicorn/filename-case": "off"
+      }
+    },
+    {
+      "files": ["packages/shared/src/schemas/**/*.ts"],
+      "rules": {
+        "max-classes-per-file": "off"
+      }
+    },
+    {
+      "files": ["packages/feishu-integration/src/**/*.ts"],
+      "rules": {
+        "unicorn/filename-case": "off"
+      }
+    }
   ]
 }

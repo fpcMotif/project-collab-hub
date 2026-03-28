@@ -158,7 +158,6 @@ export const createInitialMockProjectDetail = (
     bindings: {
       bases: [
         {
-          baseAppToken: `bascn_${project.id.toLowerCase()}`,
           fieldOwnership: "App-owned",
           id: `${project.id}-base-1`,
           lastSyncedAt: Date.now() - 1000 * 60 * 30,
@@ -177,14 +176,12 @@ export const createInitialMockProjectDetail = (
       docs: [
         {
           docType: "doc",
-          feishuDocToken: `doc_${project.id.toLowerCase()}`,
           id: `${project.id}-doc-1`,
           purpose: "方案沉淀",
           title: `${project.name} 项目方案`,
         },
         {
           docType: "wiki",
-          feishuDocToken: `wiki_${project.id.toLowerCase()}`,
           id: `${project.id}-doc-2`,
           purpose: "交付资料",
           title: `${project.name} 交付清单`,

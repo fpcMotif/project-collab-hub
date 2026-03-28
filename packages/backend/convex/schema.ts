@@ -291,4 +291,27 @@ export default defineSchema({
     .index("by_department_track", ["departmentTrackId"])
     .index("by_assignee", ["assigneeId"])
     .index("by_status", ["status"]),
+
+  workflowInstances: defineTable({
+    feishuInstanceCode: v.string(),
+    feishuWorkflowCode: v.string(),
+    lastPolledAt: v.optional(v.number()),
+    nodeCallbackData: v.optional(v.string()),
+    projectId: v.id("projects"),
+    resolvedAt: v.optional(v.number()),
+    resolvedBy: v.optional(v.string()),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("running"),
+      v.literal("approved"),
+      v.literal("rejected"),
+      v.literal("cancelled"),
+      v.literal("error")
+    ),
+    triggerStage: v.optional(v.string()),
+    triggeredBy: v.string(),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_instance_code", ["feishuInstanceCode"])
+    .index("by_status", ["status"]),
 });

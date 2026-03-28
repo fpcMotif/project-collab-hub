@@ -96,12 +96,10 @@ export interface ProjectDetailDocBinding {
   title: string;
   docType: DocType;
   purpose?: string;
-  feishuDocToken: string;
 }
 
 export interface ProjectDetailBaseBinding {
   id: string;
-  baseAppToken: string;
   tableId: string;
   recordId: string;
   fieldOwnership?: string;

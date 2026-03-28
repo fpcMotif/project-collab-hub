@@ -12,7 +12,11 @@
     "order": "asc",
   },
   "experimentalSortPackageJson": true,
-  "ignorePatterns": ["packages/backend/convex/_generated"],
+  "ignorePatterns": [
+    "apps/web/playwright-report/**",
+    "apps/web/test-results/**",
+    "packages/backend/convex/_generated/**",
+  ],
   "jsxSingleQuote": false,
   "printWidth": 80,
   "quoteProps": "as-needed",

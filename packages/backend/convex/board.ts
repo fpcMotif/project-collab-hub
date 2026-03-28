@@ -1,7 +1,8 @@
 import { v } from "convex/values";
 
+import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import type { QueryCtx } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
 
 const projectStatus = v.union(
@@ -37,6 +38,14 @@ const STAGE_TRANSITIONS: Record<string, readonly string[]> = {
 } as const;
 
 const BLOCKING_TRACK_STATUSES = new Set(["blocked", "waiting_approval"]);
+
+const requireAuthenticatedIdentity = async (ctx: QueryCtx | MutationCtx) => {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) {
+    throw new Error("Authentication required");
+  }
+  return identity;
+};
 
 const isForwardTransition = (currentStatus: string, targetStatus: string) => {
   const currentIndex = FORWARD_FLOW.indexOf(
@@ -169,6 +178,7 @@ const buildBoardProjectRecord = async (
 export const listBoardProjects = query({
   args: {},
   handler: async (ctx) => {
+    await requireAuthenticatedIdentity(ctx);
     const projects = await ctx.db.query("projects").collect();
 
     return Promise.all(
@@ -180,6 +190,7 @@ export const listBoardProjects = query({
 export const getProjectDetail = query({
   args: { projectId: v.id("projects") },
   handler: async (ctx, args) => {
+    await requireAuthenticatedIdentity(ctx);
     const project = await ctx.db.get(args.projectId);
     if (!project) {
       return null;
@@ -278,7 +289,6 @@ export const getProjectDetail = query({
       })),
       bindings: {
         bases: baseBindings.map((binding) => ({
-          baseAppToken: binding.baseAppToken,
           fieldOwnership: binding.fieldOwnership,
           id: binding._id,
           lastSyncedAt: binding.lastSyncedAt,
@@ -293,7 +303,6 @@ export const getProjectDetail = query({
         })),
         docs: docBindings.map((binding) => ({
           docType: binding.docType,
-          feishuDocToken: binding.feishuDocToken,
           id: binding._id,
           purpose: binding.purpose,
           title: binding.title,
@@ -376,12 +385,12 @@ export const getProjectDetail = query({
 
 export const transitionProjectStage = mutation({
   args: {
-    actorId: v.string(),
     projectId: v.id("projects"),
     reason: v.optional(v.string()),
     targetStatus: projectStatus,
   },
   handler: async (ctx, args) => {
+    const identity = await requireAuthenticatedIdentity(ctx);
     const project = await ctx.db.get(args.projectId);
     if (!project) {
       return {
@@ -427,7 +436,7 @@ export const transitionProjectStage = mutation({
 
     await ctx.db.insert("auditEvents", {
       action: "project.stage_transitioned",
-      actorId: args.actorId,
+      actorId: identity.subject,
       changeSummary: args.reason
         ? `Stage moved from ${fromStatus} to ${args.targetStatus}: ${args.reason}`
         : `Stage moved from ${fromStatus} to ${args.targetStatus}`,
@@ -436,6 +445,120 @@ export const transitionProjectStage = mutation({
       projectId: args.projectId,
       sourceEntry: "web_drag_drop",
     });
+
+    // Auto-create approval gates from template when entering a new stage
+    if (project.templateId) {
+      const template = await ctx.db.get(
+        project.templateId as unknown as Id<"projectTemplates">
+      );
+
+      if (template) {
+        const stageGates = template.approvalGates.filter(
+          (gate) => gate.triggerStage === args.targetStatus
+        );
+
+        for (const gateConfig of stageGates) {
+          const gateId = await ctx.db.insert("approvalGates", {
+            applicantId: args.actorId,
+            approvalCode: gateConfig.approvalCode,
+            projectId: args.projectId,
+            snapshotData: JSON.stringify({
+              fromStage: fromStatus,
+              projectName: project.name,
+              targetStage: args.targetStatus,
+            }),
+            status: "pending",
+            templateVersion: project.templateVersion,
+            title: gateConfig.title,
+            triggerStage: args.targetStatus as
+              | "new"
+              | "assessment"
+              | "solution"
+              | "ready"
+              | "executing"
+              | "delivering"
+              | "done"
+              | "cancelled",
+          });
+
+          await ctx.scheduler.runAfter(
+            0,
+            internal.feishuActions.submitApproval,
+            {
+              applicantId: args.actorId,
+              approvalCode: gateConfig.approvalCode,
+              formData: JSON.stringify([
+                {
+                  id: "project_name",
+                  type: "input",
+                  value: project.name,
+                },
+                {
+                  id: "stage_transition",
+                  type: "input",
+                  value: `${fromStatus} → ${args.targetStatus}`,
+                },
+              ]),
+              gateId,
+            }
+          );
+        }
+      }
+    }
+
+    // Schedule stage-change notification for group chats
+    const chatBinding = await ctx.db
+      .query("chatBindings")
+      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+      .first();
+
+    if (chatBinding) {
+      const deliveryId = await ctx.db.insert("notificationDeliveries", {
+        channel: "group_chat",
+        messageType: "stage_change",
+        payload: JSON.stringify({
+          fromStage: fromStatus,
+          projectName: project.name,
+          targetStage: args.targetStatus,
+        }),
+        projectId: args.projectId,
+        recipientId: chatBinding.feishuChatId,
+        retryCount: 0,
+        status: "pending",
+      });
+
+      await ctx.scheduler.runAfter(0, internal.feishuActions.sendCardMessage, {
+        card: JSON.stringify({
+          elements: [
+            {
+              fields: [
+                {
+                  is_short: true,
+                  text: {
+                    content: `**Project:** ${project.name}`,
+                    tag: "lark_md",
+                  },
+                },
+                {
+                  is_short: true,
+                  text: {
+                    content: `**Stage:** ${fromStatus} → ${args.targetStatus}`,
+                    tag: "lark_md",
+                  },
+                },
+              ],
+              tag: "div",
+            },
+          ],
+          header: {
+            template: "blue",
+            title: { content: "Stage Transition", tag: "plain_text" },
+          },
+        }),
+        chatId: chatBinding.feishuChatId,
+        deliveryId,
+      });
+    }
 
     return {
       message: "阶段迁移成功",

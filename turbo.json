@@ -12,7 +12,7 @@
       "interactive": true
     },
     "lint": {
-      "inputs": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.mjs", "oxlint.json"]
+      "inputs": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.mjs", ".oxlintrc.json"]
     },
     "lint:fix": {
       "cache": false
@@ -25,7 +25,7 @@
         "**/*.mjs",
         "**/*.json",
         "**/*.css",
-        ".oxfmtrc.json"
+        ".oxfmtrc.jsonc"
       ]
     },
     "format:fix": {
@@ -37,13 +37,19 @@
     "test": {
       "dependsOn": ["^build"],
       "inputs": [
+        "convex/**/*.ts",
         "src/**/*.ts",
         "src/**/*.tsx",
         "src/**/*.test.ts",
         "src/**/*.test.tsx",
         "tests/**/*.ts",
-        "tests/**/*.tsx"
+        "tests/**/*.tsx",
+        "vitest.config.ts"
       ]
+    },
+    "test:e2e": {
+      "cache": false,
+      "dependsOn": ["^build"]
     }
   }
 }

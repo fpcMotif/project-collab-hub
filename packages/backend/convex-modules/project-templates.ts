@@ -1,6 +1,18 @@
 import { v } from "convex/values";
 
 import { query, mutation } from "../convex/_generated/server";
+import type { MutationCtx } from "../convex/_generated/server";
+
+const getAuthenticatedUserId = async (
+  ctx: MutationCtx
+): Promise<string> => {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) {
+    throw new Error("Authentication required");
+  }
+
+  return identity.subject;
+};
 
 export const list = query({
   args: { activeOnly: v.optional(v.boolean()) },
@@ -36,7 +48,6 @@ export const create = mutation({
       chatNameTemplate: v.optional(v.string()),
       pinProjectCard: v.boolean(),
     }),
-    createdBy: v.string(),
     defaultPriority: v.union(
       v.literal("low"),
       v.literal("medium"),
@@ -63,8 +74,10 @@ export const create = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    const createdBy = await getAuthenticatedUserId(ctx);
     const templateId = await ctx.db.insert("projectTemplates", {
       ...args,
+      createdBy,
       isActive: true,
       updatedAt: Date.now(),
       version: 1,
@@ -72,7 +85,7 @@ export const create = mutation({
 
     await ctx.db.insert("auditEvents", {
       action: "template.created",
-      actorId: args.createdBy,
+      actorId: createdBy,
       changeSummary: `Template "${args.name}" created (v1)`,
       objectId: templateId,
       objectType: "project_template",
@@ -84,10 +97,10 @@ export const create = mutation({
 
 export const createNewVersion = mutation({
   args: {
-    actorId: v.string(),
     sourceTemplateId: v.id("projectTemplates"),
   },
   handler: async (ctx, args) => {
+    const actorId = await getAuthenticatedUserId(ctx);
     const source = await ctx.db.get(args.sourceTemplateId);
     if (!source) {
       throw new Error(`Template ${args.sourceTemplateId} not found`);
@@ -107,7 +120,7 @@ export const createNewVersion = mutation({
 
     await ctx.db.insert("auditEvents", {
       action: "template.versioned",
-      actorId: args.actorId,
+      actorId,
       changeSummary: `Template "${rest.name}" upgraded to v${newVersion}`,
       objectId: newId,
       objectType: "project_template",

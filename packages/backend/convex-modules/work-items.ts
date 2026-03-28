@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
-import { query, mutation } from "../convex/_generated/server";
+import { internal } from "../convex/_generated/api";
+import { mutation, query } from "../convex/_generated/server";
 
 export const listByProject = query({
   args: { projectId: v.id("projects") },
@@ -52,6 +53,25 @@ export const create = mutation({
       objectType: "work_item",
       projectId: args.projectId,
     });
+
+    // Auto-create a linked Feishu task when an assignee is specified
+    if (args.assigneeId) {
+      const project = await ctx.db.get(args.projectId);
+      const dueTimestamp = args.dueDate
+        ? String(Math.floor(args.dueDate / 1000))
+        : String(Math.floor((Date.now() + 7 * 24 * 60 * 60 * 1000) / 1000));
+
+      await ctx.scheduler.runAfter(0, internal.feishuActions.createFeishuTask, {
+        description: args.description,
+        dueTimestamp,
+        memberIds: [args.assigneeId],
+        originHref: `/projects/${args.projectId}`,
+        originTitle: project?.name ?? "Project",
+        projectId: args.projectId,
+        summary: args.title,
+        workItemId,
+      });
+    }
 
     return workItemId;
   },
