@@ -2,13 +2,13 @@ import { convexTest } from "convex-test";
 import { anyApi } from "convex/server";
 import { test, expect, describe, beforeEach } from "vitest";
 
-import schema from "../../convex/schema";
+import schema from "../convex/schema";
 
 const modules = {
-  "../../convex/_generated/server.js": () =>
-    import("../../convex/_generated/server.js"),
-  "../../convex/feishuTaskBindings.ts": () =>
-    import("../../convex/feishuTaskBindings"),
+  "../convex/_generated/server.js": () =>
+    import("../convex/_generated/server.js"),
+  "../convex/feishuTaskBindings.ts": () =>
+    import("../convex/feishuTaskBindings"),
 };
 
 describe("feishuTaskBindings - applyTaskEvent", () => {
