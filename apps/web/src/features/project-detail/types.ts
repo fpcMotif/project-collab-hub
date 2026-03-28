@@ -1,6 +1,10 @@
 import type { CommentTargetScope } from "@collab-hub/shared";
 
-import type { BoardProjectRecord, DeptTrackStatus, Priority } from "@/features/board/types";
+import type {
+  BoardProjectRecord,
+  DeptTrackStatus,
+  Priority,
+} from "@/features/board/types";
 
 export type WorkItemStatus = "todo" | "in_progress" | "in_review" | "done";
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "cancelled";

@@ -14,7 +14,9 @@ import {
 
 // ── Fixtures ───────────────────────────────────────────────────────
 
-const makeProject = (overrides: Partial<BoardProjectRecord> = {}): BoardProjectRecord => ({
+const makeProject = (
+  overrides: Partial<BoardProjectRecord> = {}
+): BoardProjectRecord => ({
   customerName: "客户A",
   departmentTracks: [],
   id: "proj-1",
@@ -31,7 +33,7 @@ const makeProject = (overrides: Partial<BoardProjectRecord> = {}): BoardProjectR
 
 const requireColumn = (
   columns: ReturnType<typeof buildBoardViewData>["columns"],
-  status: BoardProjectRecord["status"],
+  status: BoardProjectRecord["status"]
 ) => {
   const column = columns.find((item) => item.projectStatus === status);
   if (!column) {
@@ -82,21 +84,29 @@ describe("getProjectStatusByColumnId", () => {
 
 describe("getApprovalStatus", () => {
   it("returns 'pending' when there are pending approvals", () => {
-    expect(getApprovalStatus(makeProject({ pendingApprovalCount: 3 }))).toBe("pending");
+    expect(getApprovalStatus(makeProject({ pendingApprovalCount: 3 }))).toBe(
+      "pending"
+    );
   });
 
   it("returns 'clear' when there are no pending approvals", () => {
-    expect(getApprovalStatus(makeProject({ pendingApprovalCount: 0 }))).toBe("clear");
+    expect(getApprovalStatus(makeProject({ pendingApprovalCount: 0 }))).toBe(
+      "clear"
+    );
   });
 });
 
 describe("getOverdueStatus", () => {
   it("returns 'overdue' when there are overdue tasks", () => {
-    expect(getOverdueStatus(makeProject({ overdueTaskCount: 1 }))).toBe("overdue");
+    expect(getOverdueStatus(makeProject({ overdueTaskCount: 1 }))).toBe(
+      "overdue"
+    );
   });
 
   it("returns 'normal' when there are no overdue tasks", () => {
-    expect(getOverdueStatus(makeProject({ overdueTaskCount: 0 }))).toBe("normal");
+    expect(getOverdueStatus(makeProject({ overdueTaskCount: 0 }))).toBe(
+      "normal"
+    );
   });
 });
 
@@ -132,7 +142,9 @@ describe("buildStageAdvanceState", () => {
 
   it("returns 'blocked' tone when required tracks are blocked", () => {
     const project = makeProject({
-      departmentTracks: [{ blockReason: "缺物料", departmentName: "采购部", status: "blocked" }],
+      departmentTracks: [
+        { blockReason: "缺物料", departmentName: "采购部", status: "blocked" },
+      ],
       status: "new",
     });
     const state = buildStageAdvanceState(project);
@@ -168,7 +180,9 @@ describe("buildStageAdvanceState", () => {
   });
   it("returns 'blocked' tone when tracks are waiting approval", () => {
     const project = makeProject({
-      departmentTracks: [{ departmentName: "法务部", status: "waiting_approval" }],
+      departmentTracks: [
+        { departmentName: "法务部", status: "waiting_approval" },
+      ],
       status: "new",
     });
     const state = buildStageAdvanceState(project);
@@ -209,7 +223,9 @@ describe("buildBoardViewData", () => {
   it("returns columns matching BOARD_COLUMNS", () => {
     const data = buildBoardViewData([], EMPTY_FILTERS);
     expect(data.columns).toHaveLength(BOARD_COLUMNS.length);
-    expect(data.columns.map((c) => c.id)).toEqual(BOARD_COLUMNS.map((c) => c.id));
+    expect(data.columns.map((c) => c.id)).toEqual(
+      BOARD_COLUMNS.map((c) => c.id)
+    );
   });
 
   it("places projects into correct columns by status", () => {
@@ -356,6 +372,10 @@ describe("buildBoardViewData", () => {
     ];
     const data = buildBoardViewData(projects, EMPTY_FILTERS);
     const newColumn = requireColumn(data.columns, "new");
-    expect(newColumn.cards.map((card) => card.id)).toEqual(["high-c", "low-a", "low-b"]);
+    expect(newColumn.cards.map((card) => card.id)).toEqual([
+      "high-c",
+      "low-a",
+      "low-b",
+    ]);
   });
 });

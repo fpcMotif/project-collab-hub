@@ -34,7 +34,9 @@ const readProjectRecords = (): BoardProjectRecord[] => {
     }
 
     const parsed = JSON.parse(raw);
-    cachedProjects = Array.isArray(parsed) ? (parsed as BoardProjectRecord[]) : MOCK_PROJECTS;
+    cachedProjects = Array.isArray(parsed)
+      ? (parsed as BoardProjectRecord[])
+      : MOCK_PROJECTS;
 
     return cachedProjects;
   } catch {
@@ -69,7 +71,11 @@ const subscribe = (listener: () => void) => {
 };
 
 export const useMockProjectStore = () => {
-  const projects = useSyncExternalStore(subscribe, readProjectRecords, () => MOCK_PROJECTS);
+  const projects = useSyncExternalStore(
+    subscribe,
+    readProjectRecords,
+    () => MOCK_PROJECTS
+  );
 
   const replaceProjects = useCallback((nextProjects: BoardProjectRecord[]) => {
     writeProjectRecords(nextProjects);
@@ -79,7 +85,7 @@ export const useMockProjectStore = () => {
     (project: BoardProjectRecord) => {
       writeProjectRecords([...projects, project]);
     },
-    [projects],
+    [projects]
   );
 
   return {

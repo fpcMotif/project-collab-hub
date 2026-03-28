@@ -19,7 +19,9 @@ import { ProjectCreateForm } from "./project-create-form";
 
 const CREATE_ACTOR_ID = "web_app.user";
 
-const toProjectTemplateOption = (template: ConvexProjectTemplateDoc): ProjectTemplateOption => ({
+const toProjectTemplateOption = (
+  template: ConvexProjectTemplateDoc
+): ProjectTemplateOption => ({
   approvalGates: template.approvalGates,
   defaultPriority: template.defaultPriority,
   departments: template.departments,
@@ -30,7 +32,10 @@ const toProjectTemplateOption = (template: ConvexProjectTemplateDoc): ProjectTem
 });
 
 const createProjectId = () => {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return `P-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
   }
 
@@ -39,7 +44,7 @@ const createProjectId = () => {
 
 const createMockProjectRecord = (
   values: ProjectCreateFormValues,
-  template: ProjectTemplateOption,
+  template: ProjectTemplateOption
 ): BoardProjectRecord => ({
   customerName: values.customerName.trim() || "未填写客户",
   departmentTracks: template.departments.map((department) => ({
@@ -78,11 +83,13 @@ const ConnectedProjectCreateScreen = () => {
   const templatesQuery = useQuery(convexFunctionRefs.listProjectTemplates, {
     activeOnly: true,
   });
-  const createProjectFromTemplate = useMutation(convexFunctionRefs.createProjectFromTemplate);
+  const createProjectFromTemplate = useMutation(
+    convexFunctionRefs.createProjectFromTemplate
+  );
 
   const templates = useMemo(
     () => (templatesQuery ?? []).map(toProjectTemplateOption),
-    [templatesQuery],
+    [templatesQuery]
   );
 
   if (templatesQuery === undefined) {
@@ -136,7 +143,9 @@ const MockProjectCreateScreen = () => {
       templates={MOCK_PROJECT_TEMPLATES}
       isSubmitting={isSubmitting}
       onSubmit={(values) => {
-        const template = MOCK_PROJECT_TEMPLATES.find((item) => item.id === values.templateId);
+        const template = MOCK_PROJECT_TEMPLATES.find(
+          (item) => item.id === values.templateId
+        );
         if (!template) {
           return Promise.resolve({ message: "未找到模板", ok: false });
         }

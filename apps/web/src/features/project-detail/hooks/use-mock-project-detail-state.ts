@@ -3,7 +3,11 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 
 import { useMockProjectStore } from "@/features/board/hooks/use-mock-project-store";
-import type { BoardProjectRecord, DeptTrackStatus, SlaRisk } from "@/features/board/types";
+import type {
+  BoardProjectRecord,
+  DeptTrackStatus,
+  SlaRisk,
+} from "@/features/board/types";
 
 import { getMockProjectDetail } from "../mock-data";
 import type {
@@ -56,7 +60,9 @@ const readOverlayStore = (): OverlayStore => {
 
     const parsed = JSON.parse(raw);
     _cachedStore =
-      parsed && typeof parsed === "object" ? (parsed as OverlayStore) : EMPTY_OVERLAY_STORE;
+      parsed && typeof parsed === "object"
+        ? (parsed as OverlayStore)
+        : EMPTY_OVERLAY_STORE;
     return _cachedStore;
   } catch {
     _cachedStore = EMPTY_OVERLAY_STORE;
@@ -92,7 +98,7 @@ const subscribe = (onChange: () => void) => {
 
 const mergeDetailWithOverlay = (
   baseDetail: ProjectDetailData | null,
-  overlay: ProjectDetailOverlay | undefined,
+  overlay: ProjectDetailOverlay | undefined
 ): ProjectDetailData | null => {
   if (!baseDetail) {
     return null;
@@ -114,13 +120,15 @@ const mergeDetailWithOverlay = (
 
 const getNextTrackStatusFromWorkItems = (
   track: ProjectDetailDepartmentTrack,
-  workItems: ProjectDetailWorkItem[],
+  workItems: ProjectDetailWorkItem[]
 ): DeptTrackStatus => {
   if (track.status === "blocked" || track.status === "waiting_approval") {
     return track.status;
   }
 
-  const relatedItems = workItems.filter((item) => item.departmentTrackId === track.id);
+  const relatedItems = workItems.filter(
+    (item) => item.departmentTrackId === track.id
+  );
   if (relatedItems.length === 0) {
     return track.status;
   }
@@ -129,14 +137,21 @@ const getNextTrackStatusFromWorkItems = (
     return "done";
   }
 
-  if (relatedItems.some((item) => item.status === "in_progress" || item.status === "in_review")) {
+  if (
+    relatedItems.some(
+      (item) => item.status === "in_progress" || item.status === "in_review"
+    )
+  ) {
     return "in_progress";
   }
 
   return "not_started";
 };
 
-const deriveSlaRisk = (currentRisk: SlaRisk, overdueTaskCount: number): SlaRisk => {
+const deriveSlaRisk = (
+  currentRisk: SlaRisk,
+  overdueTaskCount: number
+): SlaRisk => {
   if (overdueTaskCount > 0) {
     return "overdue";
   }
@@ -147,7 +162,7 @@ const deriveSlaRisk = (currentRisk: SlaRisk, overdueTaskCount: number): SlaRisk 
 const createTimelineEvent = (
   projectId: string,
   action: string,
-  changeSummary: string,
+  changeSummary: string
 ): ProjectDetailTimelineEvent => ({
   action,
   actorId: ACTION_ACTOR_ID,
@@ -163,17 +178,17 @@ export const useMockProjectDetailState = (projectId: string) => {
   const overlayStore = useSyncExternalStore<OverlayStore>(
     subscribe,
     readOverlayStore,
-    () => EMPTY_OVERLAY_STORE,
+    () => EMPTY_OVERLAY_STORE
   );
   const { projects, replaceProjects } = useMockProjectStore();
 
   const baseDetail = useMemo(
     () => getMockProjectDetail(projectId, projects),
-    [projectId, projects],
+    [projectId, projects]
   );
   const detail = useMemo(
     () => mergeDetailWithOverlay(baseDetail, overlayStore[projectId]),
-    [baseDetail, overlayStore, projectId],
+    [baseDetail, overlayStore, projectId]
   );
 
   const updateOverlay = useCallback(
@@ -187,16 +202,18 @@ export const useMockProjectDetailState = (projectId: string) => {
         [projectId]: updater(detail),
       });
     },
-    [detail, overlayStore, projectId],
+    [detail, overlayStore, projectId]
   );
 
   const updateProjectRecord = useCallback(
     (updater: (project: BoardProjectRecord) => BoardProjectRecord) => {
       replaceProjects(
-        projects.map((project) => (project.id === projectId ? updater(project) : project)),
+        projects.map((project) =>
+          project.id === projectId ? updater(project) : project
+        )
       );
     },
-    [projectId, projects, replaceProjects],
+    [projectId, projects, replaceProjects]
   );
 
   const createComment = useCallback(
@@ -224,7 +241,7 @@ export const useMockProjectDetailState = (projectId: string) => {
           createTimelineEvent(
             projectId,
             "comment.created",
-            `新增评论：${body.trim().slice(0, 40)}`,
+            `新增评论：${body.trim().slice(0, 40)}`
           ),
           ...current.timeline,
         ],
@@ -233,7 +250,7 @@ export const useMockProjectDetailState = (projectId: string) => {
 
       return Promise.resolve({ message: "评论已保存", ok: true });
     },
-    [detail, projectId, updateOverlay],
+    [detail, projectId, updateOverlay]
   );
 
   const deleteComment = useCallback(
@@ -245,7 +262,7 @@ export const useMockProjectDetailState = (projectId: string) => {
       updateOverlay((current) => ({
         approvals: current.approvals,
         comments: current.comments.map((comment) =>
-          comment.id === commentId ? { ...comment, isDeleted: true } : comment,
+          comment.id === commentId ? { ...comment, isDeleted: true } : comment
         ),
         departmentTracks: current.departmentTracks,
         timeline: [
@@ -257,7 +274,7 @@ export const useMockProjectDetailState = (projectId: string) => {
 
       return Promise.resolve({ message: "评论已删除", ok: true });
     },
-    [detail, projectId, updateOverlay],
+    [detail, projectId, updateOverlay]
   );
 
   const updateWorkItemStatus = useCallback(
@@ -266,7 +283,9 @@ export const useMockProjectDetailState = (projectId: string) => {
         return Promise.resolve({ message: "未找到项目详情", ok: false });
       }
 
-      const existingItem = detail.workItems.find((item) => item.id === workItemId);
+      const existingItem = detail.workItems.find(
+        (item) => item.id === workItemId
+      );
       if (!existingItem) {
         return Promise.resolve({ message: "未找到行动项", ok: false });
       }
@@ -279,7 +298,7 @@ export const useMockProjectDetailState = (projectId: string) => {
                 completedAt: status === "done" ? Date.now() : undefined,
                 status,
               }
-            : item,
+            : item
         );
 
         const departmentTracks = current.departmentTracks.map((track) => ({
@@ -295,7 +314,7 @@ export const useMockProjectDetailState = (projectId: string) => {
             createTimelineEvent(
               projectId,
               "work_item.status_changed",
-              `行动项「${existingItem.title}」更新为 ${status}`,
+              `行动项「${existingItem.title}」更新为 ${status}`
             ),
             ...current.timeline,
           ],
@@ -306,7 +325,11 @@ export const useMockProjectDetailState = (projectId: string) => {
       updateProjectRecord((project) => {
         const overdueTaskCount = detail.workItems.filter((item) => {
           const nextStatus = item.id === workItemId ? status : item.status;
-          return nextStatus !== "done" && item.dueDate !== undefined && item.dueDate < Date.now();
+          return (
+            nextStatus !== "done" &&
+            item.dueDate !== undefined &&
+            item.dueDate < Date.now()
+          );
         }).length;
 
         const departmentTracks = detail.departmentTracks.map((track) => ({
@@ -320,11 +343,12 @@ export const useMockProjectDetailState = (projectId: string) => {
                     item.id === workItemId
                       ? {
                           ...item,
-                          completedAt: status === "done" ? Date.now() : undefined,
+                          completedAt:
+                            status === "done" ? Date.now() : undefined,
                           status,
                         }
-                      : item,
-                  ),
+                      : item
+                  )
                 )
               : track.status,
         }));
@@ -339,7 +363,7 @@ export const useMockProjectDetailState = (projectId: string) => {
 
       return Promise.resolve({ message: "行动项状态已更新", ok: true });
     },
-    [detail, projectId, updateOverlay, updateProjectRecord],
+    [detail, projectId, updateOverlay, updateProjectRecord]
   );
 
   const resolveApproval = useCallback(
@@ -362,28 +386,30 @@ export const useMockProjectDetailState = (projectId: string) => {
                 resolvedBy: ACTION_ACTOR_ID,
                 status,
               }
-            : item,
+            : item
         );
 
-        const departmentTracks = current.departmentTracks.map<ProjectDetailDepartmentTrack>(
-          (track) => {
-            if (track.departmentName !== approval.departmentName) {
-              return track;
-            }
+        const departmentTracks =
+          current.departmentTracks.map<ProjectDetailDepartmentTrack>(
+            (track) => {
+              if (track.departmentName !== approval.departmentName) {
+                return track;
+              }
 
-            let nextStatus: DeptTrackStatus = "blocked";
-            if (status === "approved") {
-              nextStatus = track.status === "waiting_approval" ? "done" : track.status;
-            }
+              let nextStatus: DeptTrackStatus = "blocked";
+              if (status === "approved") {
+                nextStatus =
+                  track.status === "waiting_approval" ? "done" : track.status;
+              }
 
-            return {
-              ...track,
-              blockReason: status === "approved" ? undefined : "审批被拒绝",
-              pendingApprovalCount: 0,
-              status: nextStatus,
-            };
-          },
-        );
+              return {
+                ...track,
+                blockReason: status === "approved" ? undefined : "审批被拒绝",
+                pendingApprovalCount: 0,
+                status: nextStatus,
+              };
+            }
+          );
 
         return {
           approvals,
@@ -393,7 +419,7 @@ export const useMockProjectDetailState = (projectId: string) => {
             createTimelineEvent(
               projectId,
               `approval_gate.${status}`,
-              `审批「${approval.title}」${status === "approved" ? "已通过" : "已拒绝"}`,
+              `审批「${approval.title}」${status === "approved" ? "已通过" : "已拒绝"}`
             ),
             ...current.timeline,
           ],
@@ -412,7 +438,8 @@ export const useMockProjectDetailState = (projectId: string) => {
             ? {
                 ...track,
                 blockReason: undefined,
-                status: track.status === "waiting_approval" ? "done" : track.status,
+                status:
+                  track.status === "waiting_approval" ? "done" : track.status,
               }
             : {
                 ...track,
@@ -422,7 +449,7 @@ export const useMockProjectDetailState = (projectId: string) => {
         }),
         pendingApprovalCount: Math.max(
           0,
-          project.pendingApprovalCount - (approval.status === "pending" ? 1 : 0),
+          project.pendingApprovalCount - (approval.status === "pending" ? 1 : 0)
         ),
       }));
 
@@ -431,7 +458,7 @@ export const useMockProjectDetailState = (projectId: string) => {
         ok: true,
       });
     },
-    [detail, projectId, updateOverlay, updateProjectRecord],
+    [detail, projectId, updateOverlay, updateProjectRecord]
   );
 
   return {
