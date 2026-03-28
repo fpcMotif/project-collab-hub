@@ -12,7 +12,6 @@ export type ProjectDetailQueryArgs = Record<string, string> & {
 export type TransitionProjectStageArgs = Record<string, string | undefined> & {
   projectId: string;
   targetStatus: ProjectStatus;
-  actorId: string;
   reason?: string;
 };
 

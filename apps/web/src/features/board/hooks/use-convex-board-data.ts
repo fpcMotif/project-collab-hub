@@ -12,8 +12,6 @@ import {
 } from "../lib/view-model";
 import type { BoardFilterState, BoardMoveResult } from "../types";
 
-const BOARD_ACTOR_ID = "web_app.board_drag_drop";
-
 export const useConvexBoardData = (filters: BoardFilterState) => {
   const remoteProjects = useQuery(convexFunctionRefs.listBoardProjects, {});
   const transitionProjectStage = useMutation(
@@ -50,7 +48,6 @@ export const useConvexBoardData = (filters: BoardFilterState) => {
       setMovingProjectId(projectId);
       try {
         const result = await transitionProjectStage({
-          actorId: BOARD_ACTOR_ID,
           projectId,
           reason: `drag ${project.status} -> ${targetStatus}`,
           targetStatus,

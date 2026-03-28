@@ -2,7 +2,7 @@ import { v } from "convex/values";
 
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import type { QueryCtx } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
 
 const projectStatus = v.union(
@@ -38,6 +38,14 @@ const STAGE_TRANSITIONS: Record<string, readonly string[]> = {
 } as const;
 
 const BLOCKING_TRACK_STATUSES = new Set(["blocked", "waiting_approval"]);
+
+const requireAuthenticatedIdentity = async (ctx: QueryCtx | MutationCtx) => {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) {
+    throw new Error("Authentication required");
+  }
+  return identity;
+};
 
 const isForwardTransition = (currentStatus: string, targetStatus: string) => {
   const currentIndex = FORWARD_FLOW.indexOf(
@@ -170,6 +178,7 @@ const buildBoardProjectRecord = async (
 export const listBoardProjects = query({
   args: {},
   handler: async (ctx) => {
+    await requireAuthenticatedIdentity(ctx);
     const projects = await ctx.db.query("projects").collect();
 
     return Promise.all(
@@ -181,6 +190,7 @@ export const listBoardProjects = query({
 export const getProjectDetail = query({
   args: { projectId: v.id("projects") },
   handler: async (ctx, args) => {
+    await requireAuthenticatedIdentity(ctx);
     const project = await ctx.db.get(args.projectId);
     if (!project) {
       return null;
@@ -279,7 +289,6 @@ export const getProjectDetail = query({
       })),
       bindings: {
         bases: baseBindings.map((binding) => ({
-          baseAppToken: binding.baseAppToken,
           fieldOwnership: binding.fieldOwnership,
           id: binding._id,
           lastSyncedAt: binding.lastSyncedAt,
@@ -294,7 +303,6 @@ export const getProjectDetail = query({
         })),
         docs: docBindings.map((binding) => ({
           docType: binding.docType,
-          feishuDocToken: binding.feishuDocToken,
           id: binding._id,
           purpose: binding.purpose,
           title: binding.title,
@@ -377,12 +385,12 @@ export const getProjectDetail = query({
 
 export const transitionProjectStage = mutation({
   args: {
-    actorId: v.string(),
     projectId: v.id("projects"),
     reason: v.optional(v.string()),
     targetStatus: projectStatus,
   },
   handler: async (ctx, args) => {
+    const identity = await requireAuthenticatedIdentity(ctx);
     const project = await ctx.db.get(args.projectId);
     if (!project) {
       return {
@@ -428,7 +436,7 @@ export const transitionProjectStage = mutation({
 
     await ctx.db.insert("auditEvents", {
       action: "project.stage_transitioned",
-      actorId: args.actorId,
+      actorId: identity.subject,
       changeSummary: args.reason
         ? `Stage moved from ${fromStatus} to ${args.targetStatus}: ${args.reason}`
         : `Stage moved from ${fromStatus} to ${args.targetStatus}`,
