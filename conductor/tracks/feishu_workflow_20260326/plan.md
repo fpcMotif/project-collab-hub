@@ -10,15 +10,15 @@
   - [x] Implement support for interactive Feishu cards for quick approvals
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Feishu Integration Refinement' (Protocol in workflow.md) f180405
 
-## Phase 2: Workflow Approval Logic (Convex)
+## Phase 2: Workflow Approval Logic (Convex) [checkpoint: eb0dce3]
 
-- [ ] Task: Implement core approval gate logic in Convex
-  - [ ] Define schemas for approval gates and workflow transitions in `schema.ts`
-  - [ ] Create serverless functions in `approvalGates.ts` for managing approval states
-- [ ] Task: Connect approvals to Feishu notifications
-  - [ ] Implement triggers in Convex to send Feishu notifications on approval requests
-  - [ ] Handle Feishu webhooks or callbacks for interactive approvals
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Workflow Approval Logic (Convex)' (Protocol in workflow.md)
+- [x] Task: Implement core approval gate logic in Convex [commit: df13493]
+  - [x] Define schemas for approval gates and workflow transitions in `schema.ts`
+  - [x] Create serverless functions in `approvalGates.ts` for managing approval states
+- [x] Task: Connect approvals to Feishu notifications [commit: df13493]
+  - [x] Implement triggers in Convex to send Feishu notifications on approval requests
+  - [x] Handle Feishu webhooks or callbacks for interactive approvals
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Workflow Approval Logic (Convex)' (Protocol in workflow.md) eb0dce3
 
 ## Phase 3: Frontend Integration and UI/UX
 
