@@ -8,8 +8,11 @@
     "check-types": "[ -d convex/_generated ] && tsc --noEmit || echo 'Skipping: run bunx convex dev first to generate types'"
   },
   "dependencies": {
+    "@edge-runtime/vm": "^5.0.0",
     "convex": "^1",
-    "effect": "^3"
+    "convex-test": "^0.0.41",
+    "effect": "^3",
+    "vitest": "^4.1.0"
   },
   "devDependencies": {
     "typescript": "^5"
