@@ -1,0 +1,13 @@
+diff --git a/config/oxlint/core/.oxlintrc.json b/config/oxlint/core/.oxlintrc.json
+index 1137d48a2d8f3e20f6be487e98bf8a0aa350d18f..cc37d4fd3b2596c0368545673af1122feec3c8e4 100644
+--- a/config/oxlint/core/.oxlintrc.json
++++ b/config/oxlint/core/.oxlintrc.json
+@@ -55,7 +55,7 @@
+     "import/exports-last": "off",
+     "import/no-named-export": "off",
+     "import/max-dependencies": "off",
+-    "import/no-unresolved": "off",
++
+     "import/extensions": "off",
+     "import/no-namespace": "off",
+     "import/no-anonymous-default-export": "off",
