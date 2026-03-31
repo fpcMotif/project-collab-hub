@@ -10,7 +10,10 @@
     "check-types": "turbo run check-types"
   },
   "devDependencies": {
+    "@edge-runtime/vm": "^5.0.0",
+    "convex-test": "^0.0.41",
     "turbo": "^2",
-    "typescript": "^5.9"
+    "typescript": "^5.9",
+    "vitest": "^4.1.0"
   }
 }
