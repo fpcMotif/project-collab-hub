@@ -25,12 +25,12 @@ describe("useMockProjectDetail", () => {
       addProject: vi.fn(),
       projects: mockProjects,
       replaceProjects: vi.fn(),
-    } as ReturnType<typeof useMockProjectStore>);
+    } as unknown as ReturnType<typeof useMockProjectStore>);
   });
 
   it("returns project detail successfully", () => {
     vi.mocked(getMockProjectDetail).mockReturnValue(
-      mockDetail as ReturnType<typeof getMockProjectDetail>
+      mockDetail as unknown as ReturnType<typeof getMockProjectDetail>
     );
 
     const { result } = renderHook(() => useMockProjectDetail("proj-1"));
@@ -43,7 +43,7 @@ describe("useMockProjectDetail", () => {
   });
 
   it("handles non-existent project id by returning undefined", () => {
-    vi.mocked(getMockProjectDetail).mockReturnValue();
+    vi.mocked(getMockProjectDetail).mockReturnValue(null);
 
     const { result } = renderHook(() => useMockProjectDetail("non-existent"));
 
@@ -52,13 +52,13 @@ describe("useMockProjectDetail", () => {
       mockProjects
     );
 
-    expect(result.current.detail).toBeUndefined();
+    expect(result.current.detail).toBeNull();
     expect(result.current.isLoading).toBe(false);
   });
 
   it("memoizes the detail correctly across re-renders", () => {
     vi.mocked(getMockProjectDetail).mockReturnValue(
-      mockDetail as ReturnType<typeof getMockProjectDetail>
+      mockDetail as unknown as ReturnType<typeof getMockProjectDetail>
     );
 
     const { result, rerender } = renderHook(

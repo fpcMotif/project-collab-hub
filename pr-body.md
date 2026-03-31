@@ -2,6 +2,7 @@
 
 📊 **Coverage:**
 The added test suite covers:
+
 - **Happy path:** Successfully retrieving a specific mock project detail and verifying `isLoading` is set correctly.
 - **Edge cases:** Requesting details for a non-existent project returns `undefined` safely.
 - **Memoization:** Verifies that `useMemo` is applied correctly. Specifically, re-renders with the same `projectId` reference the cached value instead of repeatedly invoking the detail getter utility.
