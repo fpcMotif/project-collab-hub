@@ -207,6 +207,7 @@ export const getProjectDetail = query({
       docBindings,
       baseBindings,
       feishuTaskBindings,
+      projectMentions,
     ] = await Promise.all([
       buildBoardProjectRecord(ctx, project),
       ctx.db
@@ -246,6 +247,10 @@ export const getProjectDetail = query({
         .query("feishuTaskBindings")
         .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
         .collect(),
+      ctx.db
+        .query("mentions")
+        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+        .collect(),
     ]);
 
     const taskBindingByWorkItemId = new Map(
@@ -259,17 +264,14 @@ export const getProjectDetail = query({
     const commentMentionsByCommentId = new Map<
       Id<"comments">,
       Doc<"mentions">[]
-    >(
-      await Promise.all(
-        comments.map(async (comment) => {
-          const mentions = await ctx.db
-            .query("mentions")
-            .withIndex("by_comment", (q) => q.eq("commentId", comment._id))
-            .collect();
-          return [comment._id, mentions] as const;
-        })
-      )
-    );
+    >();
+
+    for (const mention of projectMentions) {
+      const mentionsForComment =
+        commentMentionsByCommentId.get(mention.commentId) ?? [];
+      mentionsForComment.push(mention);
+      commentMentionsByCommentId.set(mention.commentId, mentionsForComment);
+    }
 
     return {
       approvals: approvalGates.map((gate) => ({

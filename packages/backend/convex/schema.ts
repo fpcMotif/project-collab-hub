@@ -170,7 +170,8 @@ export default defineSchema({
     projectId: v.id("projects"),
   })
     .index("by_comment", ["commentId"])
-    .index("by_mentioned_user", ["mentionedUserId"]),
+    .index("by_mentioned_user", ["mentionedUserId"])
+    .index("by_project", ["projectId"]),
 
   notificationDeliveries: defineTable({
     channel: v.union(
