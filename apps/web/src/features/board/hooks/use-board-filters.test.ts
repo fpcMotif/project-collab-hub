@@ -190,7 +190,9 @@ describe("useBoardFilters", () => {
 
       expect(mockRouter.replace).toHaveBeenCalledWith(
         "/board?owner=Jane&priority=high",
-        { scroll: false }
+        {
+          scroll: false,
+        }
       );
     });
 
