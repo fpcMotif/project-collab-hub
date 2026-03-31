@@ -82,7 +82,24 @@ export interface CreateProjectFromTemplateResult {
   templateVersion: number;
 }
 
+export type TriggerBaseSyncArgs = Record<string, string> & {
+  bindingId: string;
+};
+
+export type CreateApprovalGateArgs = Record<string, string | undefined> & {
+  projectId: string;
+  title: string;
+  approvalCode: string;
+  applicantId: string;
+  triggerStage: ProjectStatus;
+};
+
 export const convexFunctionRefs = {
+  createApprovalGate: makeFunctionReference<
+    "mutation",
+    CreateApprovalGateArgs,
+    string
+  >("approvalGates:create"),
   createComment: makeFunctionReference<"mutation", CreateCommentArgs, string>(
     "comments:create"
   ),
@@ -121,6 +138,11 @@ export const convexFunctionRefs = {
     TransitionProjectStageArgs,
     TransitionProjectStageResult
   >("board:transitionProjectStage"),
+  triggerBaseSync: makeFunctionReference<
+    "mutation",
+    TriggerBaseSyncArgs,
+    undefined
+  >("baseBindings:triggerSync"),
   updateWorkItemStatus: makeFunctionReference<
     "mutation",
     UpdateWorkItemStatusArgs,

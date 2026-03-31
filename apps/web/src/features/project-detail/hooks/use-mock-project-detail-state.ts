@@ -11,6 +11,7 @@ import type {
 
 import { getMockProjectDetail } from "../mock-data";
 import type {
+  ProjectDetailApproval,
   ProjectDetailComment,
   ProjectDetailData,
   ProjectDetailDepartmentTrack,
@@ -461,11 +462,47 @@ export const useMockProjectDetailState = (projectId: string) => {
     [detail, projectId, updateOverlay, updateProjectRecord]
   );
 
+  const requestApproval = useCallback(
+    (title: string, approvalCode: string, triggerStage: string) => {
+      if (!detail) {
+        return Promise.resolve({ message: "未找到项目详情", ok: false });
+      }
+
+      const nextApproval: ProjectDetailApproval = {
+        applicantId: ACTION_ACTOR_ID,
+        approvalCode,
+        id: `${projectId}-approval-${Date.now()}`,
+        status: "pending",
+        title,
+        triggerStage,
+      };
+
+      updateOverlay((current) => ({
+        approvals: [...current.approvals, nextApproval],
+        comments: current.comments,
+        departmentTracks: current.departmentTracks,
+        timeline: [
+          createTimelineEvent(
+            projectId,
+            "approval_gate.created",
+            `申请审批：${title}`
+          ),
+          ...current.timeline,
+        ],
+        workItems: current.workItems,
+      }));
+
+      return Promise.resolve({ message: "审批申请已提交", ok: true });
+    },
+    [detail, projectId, updateOverlay]
+  );
+
   return {
     createComment,
     deleteComment,
     detail,
     isLoading: false,
+    requestApproval,
     resolveApproval,
     updateWorkItemStatus,
   } as const;
