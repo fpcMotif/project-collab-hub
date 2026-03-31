@@ -1,4 +1,4 @@
-import { FeishuBaseService, FeishuLive } from "@collab-hub/feishu-integration";
+import { FeishuBaseService } from "@collab-hub/feishu-integration";
 import type {
   CreateRecordParams,
   GetRecordParams,
@@ -17,23 +17,20 @@ import {
   baseFieldsToProjectPatch,
   projectToBaseFields,
 } from "./lib/base-field-map";
+import { runFeishu } from "./lib/feishu-layer";
 
-const buildFeishuLayer = () => {
-  const appId = process.env.FEISHU_APP_ID;
-  const appSecret = process.env.FEISHU_APP_SECRET;
+const MAX_RETRY_ATTEMPTS = 5;
+const BASE_RETRY_DELAY_MS = 2000;
 
-  if (!appId || !appSecret) {
-    throw new Error(
-      "Missing FEISHU_APP_ID or FEISHU_APP_SECRET environment variables"
-    );
-  }
+const retryDelayMs = (attempt: number): number =>
+  BASE_RETRY_DELAY_MS * 2 ** Math.min(attempt, MAX_RETRY_ATTEMPTS - 1);
 
-  return FeishuLive({ appId, appSecret });
-};
-
-const runBaseEffect = <A>(
-  effect: Effect.Effect<A, unknown, FeishuBaseService>
-): Promise<A> => Effect.runPromise(Effect.provide(effect, buildFeishuLayer()));
+/** Compose a Feishu Base effect from a service method. */
+const baseOp = <A>(
+  fn: (
+    svc: Effect.Effect.Success<typeof FeishuBaseService>
+  ) => Effect.Effect<A, unknown>
+) => FeishuBaseService.pipe(Effect.flatMap(fn));
 
 // ── Queries for sync data ────────────────────────────────────────────────
 
@@ -69,6 +66,11 @@ export const getBindingWithProject = internalQuery({
 export const syncProjectToBase = internalAction({
   args: { bindingId: v.id("baseBindings") },
   handler: async (ctx, args) => {
+    await ctx.runMutation(internal.baseSyncActions.setSyncStatus, {
+      bindingId: args.bindingId,
+      status: "pending",
+    });
+
     const data = await ctx.runQuery(
       internal.baseSyncActions.getBindingWithProject,
       { bindingId: args.bindingId }
@@ -80,51 +82,70 @@ export const syncProjectToBase = internalAction({
 
     const { binding, departmentTracks, project, workItems } = data;
 
-    const fields = projectToBaseFields(project, workItems, departmentTracks);
+    try {
+      const fields = projectToBaseFields(project, workItems, departmentTracks);
 
-    if (binding.recordId) {
-      const params: UpdateRecordParams = {
-        appToken: binding.baseAppToken,
-        fields,
-        recordId: binding.recordId,
-        tableId: binding.tableId,
-      };
+      if (binding.recordId) {
+        const params: UpdateRecordParams = {
+          appToken: binding.baseAppToken,
+          fields,
+          recordId: binding.recordId,
+          tableId: binding.tableId,
+        };
+        await runFeishu(baseOp((svc) => svc.updateRecord(params)));
+      } else {
+        const params: CreateRecordParams = {
+          appToken: binding.baseAppToken,
+          fields,
+          tableId: binding.tableId,
+        };
+        const result = await runFeishu(
+          baseOp((svc) => svc.createRecord(params))
+        );
 
-      await runBaseEffect(
-        FeishuBaseService.pipe(
-          Effect.flatMap((svc) => svc.updateRecord(params))
-        )
-      );
-    } else {
-      const params: CreateRecordParams = {
-        appToken: binding.baseAppToken,
-        fields,
-        tableId: binding.tableId,
-      };
+        await ctx.runMutation(internal.baseSyncActions.patchBindingRecordId, {
+          bindingId: args.bindingId,
+          recordId: result.recordId,
+        });
+      }
 
-      const result = await runBaseEffect(
-        FeishuBaseService.pipe(
-          Effect.flatMap((svc) => svc.createRecord(params))
-        )
-      );
-
-      await ctx.runMutation(internal.baseSyncActions.patchBindingRecordId, {
+      await ctx.runMutation(internal.baseSyncActions.markSynced, {
         bindingId: args.bindingId,
-        recordId: result.recordId,
       });
-    }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const attempts = (binding.syncAttempts ?? 0) + 1;
 
-    await ctx.runMutation(internal.baseSyncActions.markSynced, {
-      bindingId: args.bindingId,
-    });
+      await ctx.runMutation(internal.baseSyncActions.markSyncFailed, {
+        bindingId: args.bindingId,
+        error: message,
+        syncAttempts: attempts,
+      });
+
+      if (attempts < MAX_RETRY_ATTEMPTS) {
+        await ctx.scheduler.runAfter(
+          retryDelayMs(attempts),
+          internal.baseSyncActions.syncProjectToBase,
+          { bindingId: args.bindingId }
+        );
+      }
+    }
   },
 });
 
 // ── Pull: Read data FROM Feishu Base into Convex ─────────────────────────
 
 export const pullFromBase = internalAction({
-  args: { bindingId: v.id("baseBindings") },
+  args: {
+    bindingId: v.id("baseBindings"),
+    idempotencyKey: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
+    await ctx.runMutation(internal.baseSyncActions.setSyncStatus, {
+      bindingId: args.bindingId,
+      status: "pending",
+    });
+
     const data = await ctx.runQuery(
       internal.baseSyncActions.getBindingWithProject,
       { bindingId: args.bindingId }
@@ -136,36 +157,56 @@ export const pullFromBase = internalAction({
 
     const { binding, project } = data;
 
-    const params: GetRecordParams = {
-      appToken: binding.baseAppToken,
-      recordId: binding.recordId,
-      tableId: binding.tableId,
-    };
+    try {
+      const params: GetRecordParams = {
+        appToken: binding.baseAppToken,
+        recordId: binding.recordId,
+        tableId: binding.tableId,
+      };
+      const record = await runFeishu(baseOp((svc) => svc.getRecord(params)));
 
-    const record = await runBaseEffect(
-      FeishuBaseService.pipe(Effect.flatMap((svc) => svc.getRecord(params)))
-    );
+      const fieldOwnership = binding.fieldOwnership
+        ? (JSON.parse(binding.fieldOwnership) as Record<string, string>)
+        : {};
 
-    const fieldOwnership = binding.fieldOwnership
-      ? (JSON.parse(binding.fieldOwnership) as Record<string, string>)
-      : {};
+      const projectPatch = baseFieldsToProjectPatch(
+        record.fields,
+        fieldOwnership,
+        project
+      );
 
-    const projectPatch = baseFieldsToProjectPatch(
-      record.fields,
-      fieldOwnership,
-      project
-    );
+      if (Object.keys(projectPatch).length > 0) {
+        await ctx.runMutation(internal.baseSyncActions.applyProjectPatch, {
+          idempotencyKey: args.idempotencyKey,
+          patch: JSON.stringify(projectPatch),
+          projectId: binding.projectId,
+        });
+      }
 
-    if (Object.keys(projectPatch).length > 0) {
-      await ctx.runMutation(internal.baseSyncActions.applyProjectPatch, {
-        patch: JSON.stringify(projectPatch),
-        projectId: binding.projectId,
+      await ctx.runMutation(internal.baseSyncActions.markSynced, {
+        bindingId: args.bindingId,
       });
-    }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const attempts = (binding.syncAttempts ?? 0) + 1;
 
-    await ctx.runMutation(internal.baseSyncActions.markSynced, {
-      bindingId: args.bindingId,
-    });
+      await ctx.runMutation(internal.baseSyncActions.markSyncFailed, {
+        bindingId: args.bindingId,
+        error: message,
+        syncAttempts: attempts,
+      });
+
+      if (attempts < MAX_RETRY_ATTEMPTS) {
+        await ctx.scheduler.runAfter(
+          retryDelayMs(attempts),
+          internal.baseSyncActions.pullFromBase,
+          {
+            bindingId: args.bindingId,
+            idempotencyKey: args.idempotencyKey,
+          }
+        );
+      }
+    }
   },
 });
 
@@ -174,13 +215,93 @@ export const pullFromBase = internalAction({
 export const reconcileSync = internalAction({
   args: { bindingId: v.id("baseBindings") },
   handler: async (ctx, args) => {
-    // Pull first (remote wins for base-owned fields), then push (app wins for app-owned fields)
-    await ctx.runAction(internal.baseSyncActions.pullFromBase, {
+    await ctx.runMutation(internal.baseSyncActions.setSyncStatus, {
       bindingId: args.bindingId,
+      status: "pending",
     });
-    await ctx.runAction(internal.baseSyncActions.syncProjectToBase, {
-      bindingId: args.bindingId,
-    });
+
+    const data = await ctx.runQuery(
+      internal.baseSyncActions.getBindingWithProject,
+      { bindingId: args.bindingId }
+    );
+
+    if (!data?.binding.recordId) {
+      return;
+    }
+
+    const { binding, project } = data;
+
+    try {
+      // Step 1: Pull (remote wins for base-owned fields)
+      const getParams: GetRecordParams = {
+        appToken: binding.baseAppToken,
+        recordId: binding.recordId,
+        tableId: binding.tableId,
+      };
+      const record = await runFeishu(baseOp((svc) => svc.getRecord(getParams)));
+
+      const fieldOwnership = binding.fieldOwnership
+        ? (JSON.parse(binding.fieldOwnership) as Record<string, string>)
+        : {};
+
+      const projectPatch = baseFieldsToProjectPatch(
+        record.fields,
+        fieldOwnership,
+        project
+      );
+
+      if (Object.keys(projectPatch).length > 0) {
+        await ctx.runMutation(internal.baseSyncActions.applyProjectPatch, {
+          patch: JSON.stringify(projectPatch),
+          projectId: binding.projectId,
+        });
+      }
+
+      // Step 2: Push (app wins for app-owned fields)
+      const updatedData = await ctx.runQuery(
+        internal.baseSyncActions.getBindingWithProject,
+        { bindingId: args.bindingId }
+      );
+
+      if (!updatedData) {
+        return;
+      }
+
+      const pushFields = projectToBaseFields(
+        updatedData.project,
+        updatedData.workItems,
+        updatedData.departmentTracks
+      );
+
+      const updateParams: UpdateRecordParams = {
+        appToken: binding.baseAppToken,
+        fields: pushFields,
+        recordId: binding.recordId,
+        tableId: binding.tableId,
+      };
+      await runFeishu(baseOp((svc) => svc.updateRecord(updateParams)));
+
+      await ctx.runMutation(internal.baseSyncActions.markSynced, {
+        bindingId: args.bindingId,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const attempts = (binding.syncAttempts ?? 0) + 1;
+
+      await ctx.runMutation(internal.baseSyncActions.markSyncFailed, {
+        bindingId: args.bindingId,
+        error: message,
+        syncAttempts: attempts,
+      });
+
+      if (attempts < MAX_RETRY_ATTEMPTS) {
+        await ctx.scheduler.runAfter(
+          retryDelayMs(attempts),
+          internal.baseSyncActions.reconcileSync,
+          { bindingId: args.bindingId }
+        );
+      }
+    }
   },
 });
 
@@ -202,12 +323,43 @@ export const patchBindingRecordId = internalMutation({
 export const markSynced = internalMutation({
   args: { bindingId: v.id("baseBindings") },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.bindingId, { lastSyncedAt: Date.now() });
+    await ctx.db.patch(args.bindingId, {
+      lastSyncError: undefined,
+      lastSyncedAt: Date.now(),
+      syncAttempts: 0,
+      syncStatus: "ok",
+    });
+  },
+});
+
+export const markSyncFailed = internalMutation({
+  args: {
+    bindingId: v.id("baseBindings"),
+    error: v.string(),
+    syncAttempts: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.bindingId, {
+      lastSyncError: args.error,
+      syncAttempts: args.syncAttempts,
+      syncStatus: "error",
+    });
+  },
+});
+
+export const setSyncStatus = internalMutation({
+  args: {
+    bindingId: v.id("baseBindings"),
+    status: v.union(v.literal("ok"), v.literal("error"), v.literal("pending")),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.bindingId, { syncStatus: args.status });
   },
 });
 
 export const applyProjectPatch = internalMutation({
   args: {
+    idempotencyKey: v.optional(v.string()),
     patch: v.string(),
     projectId: v.id("projects"),
   },
@@ -224,6 +376,7 @@ export const applyProjectPatch = internalMutation({
       action: "project.synced_from_base",
       actorId: "system",
       changeSummary: `Project fields updated from Feishu Base: ${Object.keys(patchData).join(", ")}`,
+      idempotencyKey: args.idempotencyKey,
       objectId: args.projectId,
       objectType: "project",
       projectId: args.projectId,

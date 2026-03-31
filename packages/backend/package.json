@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@collab-hub/feishu-integration": "workspace:*",
+    "@collab-hub/shared": "workspace:*",
     "convex": "^1",
     "effect": "^3"
   },

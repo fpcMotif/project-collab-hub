@@ -1,7 +1,6 @@
 import {
   FeishuApprovalService,
   FeishuChatService,
-  FeishuLive,
   FeishuMessageService,
   FeishuTaskService,
 } from "@collab-hub/feishu-integration";
@@ -13,40 +12,13 @@ import type {
   SendTextMessageParams,
   UpdateCardMessageParams,
   UpdateFeishuTaskParams,
-  FeishuBaseService,
-  FeishuWorkflowService,
 } from "@collab-hub/feishu-integration";
 import { v } from "convex/values";
 import { Effect } from "effect";
 
 import { internal } from "./_generated/api";
 import { internalAction, internalMutation } from "./_generated/server";
-
-const buildFeishuLayer = () => {
-  const appId = process.env.FEISHU_APP_ID;
-  const appSecret = process.env.FEISHU_APP_SECRET;
-
-  if (!appId || !appSecret) {
-    throw new Error(
-      "Missing FEISHU_APP_ID or FEISHU_APP_SECRET environment variables"
-    );
-  }
-
-  return FeishuLive({ appId, appSecret });
-};
-
-const runFeishuEffect = <A>(
-  effect: Effect.Effect<
-    A,
-    unknown,
-    | FeishuApprovalService
-    | FeishuBaseService
-    | FeishuChatService
-    | FeishuMessageService
-    | FeishuTaskService
-    | FeishuWorkflowService
-  >
-): Promise<A> => Effect.runPromise(Effect.provide(effect, buildFeishuLayer()));
+import { runFeishu } from "./lib/feishu-layer";
 
 // ── Approval Actions ─────────────────────────────────────────────────────
 
@@ -64,7 +36,7 @@ export const submitApproval = internalAction({
       formData: args.formData,
     };
 
-    const result = await runFeishuEffect(
+    const result = await runFeishu(
       FeishuApprovalService.pipe(
         Effect.flatMap((svc) => svc.createInstance(params))
       )
@@ -82,7 +54,7 @@ export const submitApproval = internalAction({
 export const getApprovalInstance = internalAction({
   args: { instanceCode: v.string() },
   handler: (_ctx, args) =>
-    runFeishuEffect(
+    runFeishu(
       FeishuApprovalService.pipe(
         Effect.flatMap((svc) => svc.getInstance(args.instanceCode))
       )
@@ -104,7 +76,7 @@ export const sendTextMessage = internalAction({
     };
 
     try {
-      await runFeishuEffect(
+      await runFeishu(
         FeishuMessageService.pipe(Effect.flatMap((svc) => svc.sendText(params)))
       );
 
@@ -140,7 +112,7 @@ export const sendCardMessage = internalAction({
     };
 
     try {
-      await runFeishuEffect(
+      await runFeishu(
         FeishuMessageService.pipe(Effect.flatMap((svc) => svc.sendCard(params)))
       );
 
@@ -174,7 +146,7 @@ export const updateCardMessage = internalAction({
       messageId: args.messageId,
     };
 
-    await runFeishuEffect(
+    await runFeishu(
       FeishuMessageService.pipe(Effect.flatMap((svc) => svc.updateCard(params)))
     );
   },
@@ -198,7 +170,7 @@ export const createProjectChat = internalAction({
       userOpenIds: args.userOpenIds,
     };
 
-    const result = await runFeishuEffect(
+    const result = await runFeishu(
       FeishuChatService.pipe(Effect.flatMap((svc) => svc.createChat(params)))
     );
 
@@ -215,7 +187,7 @@ export const createProjectChat = internalAction({
 export const pinMessageInChat = internalAction({
   args: { messageId: v.string() },
   handler: async (_ctx, args) => {
-    await runFeishuEffect(
+    await runFeishu(
       FeishuChatService.pipe(
         Effect.flatMap((svc) => svc.pinMessage(args.messageId))
       )
@@ -246,7 +218,7 @@ export const createFeishuTask = internalAction({
       summary: args.summary,
     };
 
-    const result = await runFeishuEffect(
+    const result = await runFeishu(
       FeishuTaskService.pipe(Effect.flatMap((svc) => svc.createTask(params)))
     );
 
@@ -263,7 +235,7 @@ export const createFeishuTask = internalAction({
 export const completeFeishuTask = internalAction({
   args: { taskGuid: v.string() },
   handler: async (_ctx, args) => {
-    await runFeishuEffect(
+    await runFeishu(
       FeishuTaskService.pipe(
         Effect.flatMap((svc) => svc.completeTask(args.taskGuid))
       )
@@ -284,7 +256,7 @@ export const updateFeishuTask = internalAction({
       taskGuid: args.taskGuid,
     };
 
-    await runFeishuEffect(
+    await runFeishu(
       FeishuTaskService.pipe(Effect.flatMap((svc) => svc.updateTask(params)))
     );
   },
