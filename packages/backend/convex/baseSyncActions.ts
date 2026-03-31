@@ -25,12 +25,42 @@ const BASE_RETRY_DELAY_MS = 2000;
 const retryDelayMs = (attempt: number): number =>
   BASE_RETRY_DELAY_MS * 2 ** Math.min(attempt, MAX_RETRY_ATTEMPTS - 1);
 
-/** Compose a Feishu Base effect from a service method. */
 const baseOp = <A>(
   fn: (
     svc: Effect.Effect.Success<typeof FeishuBaseService>
   ) => Effect.Effect<A, unknown>
 ) => FeishuBaseService.pipe(Effect.flatMap(fn));
+
+const getErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
+type ActionCtx = Parameters<Parameters<typeof internalAction>[0]["handler"]>[0];
+
+/** Shared catch handler for sync actions — marks failure and schedules retry. */
+const handleSyncFailure = async (
+  ctx: ActionCtx,
+  bindingId: string,
+  currentAttempts: number,
+  error: unknown,
+  retryAction: typeof internal.baseSyncActions.syncProjectToBase,
+  retryArgs: Record<string, string | undefined>
+) => {
+  const attempts = currentAttempts + 1;
+
+  await ctx.runMutation(internal.baseSyncActions.markSyncFailed, {
+    bindingId: bindingId as never,
+    error: getErrorMessage(error),
+    syncAttempts: attempts,
+  });
+
+  if (attempts < MAX_RETRY_ATTEMPTS) {
+    await ctx.scheduler.runAfter(
+      retryDelayMs(attempts),
+      retryAction,
+      retryArgs as never
+    );
+  }
+};
 
 // ── Queries for sync data ────────────────────────────────────────────────
 
@@ -113,22 +143,14 @@ export const syncProjectToBase = internalAction({
         bindingId: args.bindingId,
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      const attempts = (binding.syncAttempts ?? 0) + 1;
-
-      await ctx.runMutation(internal.baseSyncActions.markSyncFailed, {
-        bindingId: args.bindingId,
-        error: message,
-        syncAttempts: attempts,
-      });
-
-      if (attempts < MAX_RETRY_ATTEMPTS) {
-        await ctx.scheduler.runAfter(
-          retryDelayMs(attempts),
-          internal.baseSyncActions.syncProjectToBase,
-          { bindingId: args.bindingId }
-        );
-      }
+      await handleSyncFailure(
+        ctx,
+        args.bindingId,
+        binding.syncAttempts ?? 0,
+        error,
+        internal.baseSyncActions.syncProjectToBase,
+        { bindingId: args.bindingId }
+      );
     }
   },
 });
@@ -187,25 +209,14 @@ export const pullFromBase = internalAction({
         bindingId: args.bindingId,
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      const attempts = (binding.syncAttempts ?? 0) + 1;
-
-      await ctx.runMutation(internal.baseSyncActions.markSyncFailed, {
-        bindingId: args.bindingId,
-        error: message,
-        syncAttempts: attempts,
-      });
-
-      if (attempts < MAX_RETRY_ATTEMPTS) {
-        await ctx.scheduler.runAfter(
-          retryDelayMs(attempts),
-          internal.baseSyncActions.pullFromBase,
-          {
-            bindingId: args.bindingId,
-            idempotencyKey: args.idempotencyKey,
-          }
-        );
-      }
+      await handleSyncFailure(
+        ctx,
+        args.bindingId,
+        binding.syncAttempts ?? 0,
+        error,
+        internal.baseSyncActions.pullFromBase,
+        { bindingId: args.bindingId, idempotencyKey: args.idempotencyKey }
+      );
     }
   },
 });
@@ -285,22 +296,14 @@ export const reconcileSync = internalAction({
         bindingId: args.bindingId,
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      const attempts = (binding.syncAttempts ?? 0) + 1;
-
-      await ctx.runMutation(internal.baseSyncActions.markSyncFailed, {
-        bindingId: args.bindingId,
-        error: message,
-        syncAttempts: attempts,
-      });
-
-      if (attempts < MAX_RETRY_ATTEMPTS) {
-        await ctx.scheduler.runAfter(
-          retryDelayMs(attempts),
-          internal.baseSyncActions.reconcileSync,
-          { bindingId: args.bindingId }
-        );
-      }
+      await handleSyncFailure(
+        ctx,
+        args.bindingId,
+        binding.syncAttempts ?? 0,
+        error,
+        internal.baseSyncActions.reconcileSync,
+        { bindingId: args.bindingId }
+      );
     }
   },
 });
