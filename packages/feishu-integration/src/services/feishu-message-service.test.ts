@@ -39,6 +39,18 @@ const runSendText = (testLayer: ReturnType<typeof createTestLayer>) =>
     )
   );
 
+
+const runSendTextEither = (testLayer: ReturnType<typeof createTestLayer>) =>
+  Effect.runPromise(
+    FeishuMessageService.pipe(
+      Effect.andThen((service) =>
+        service.sendText({ chatId: "chat-123", text: "Hello, World!" })
+      ),
+      Effect.provide(testLayer),
+      Effect.either
+    )
+  );
+
 const runSendCard = (testLayer: ReturnType<typeof createTestLayer>) =>
   Effect.runPromise(
     FeishuMessageService.pipe(
@@ -93,6 +105,27 @@ describe("FeishuMessageService", () => {
       },
       params: { receive_id_type: "chat_id" },
     });
+  });
+
+
+  it("returns FeishuError when sending a text message fails", async () => {
+    const createMessage = mock().mockResolvedValue({
+      code: 902,
+      msg: "text validation failed",
+    });
+    const testLayer = createTestLayer(createMessage);
+    const result = await runSendTextEither(testLayer);
+
+    expect(Either.isLeft(result)).toBe(true);
+
+    if (Either.isRight(result)) {
+      throw new Error("Expected sendText to fail");
+    }
+
+    expect(result.left).toBeInstanceOf(FeishuError);
+    expect(result.left.message).toBe(
+      "Failed to send text message: Feishu API failed with code 902: text validation failed"
+    );
   });
 
   it("fails when Feishu rejects a text message", async () => {
