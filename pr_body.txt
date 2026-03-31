@@ -1,0 +1,6 @@
+🎯 **What:** The `department-tracks` `listByProject` query function lacked test coverage.
+📊 **Coverage:** Created tests simulating the `listByProject` functionality using `convex-test` and `edge-runtime`, ensuring:
+- When a project has no department tracks, an empty array is returned.
+- When tracks exist for the project, they are returned correctly.
+- Tracks from other projects do not leak into the results.
+✨ **Result:** Test coverage improved for the core department track fetching operation without flakes.
