@@ -187,6 +187,133 @@ export const listBoardProjects = query({
   },
 });
 
+const buildApprovalsRecord = (
+  approvalGates: Doc<"approvalGates">[],
+  departmentTrackById: Map<Id<"departmentTracks">, Doc<"departmentTracks">>
+) =>
+  approvalGates.map((gate) => ({
+    applicantId: gate.applicantId,
+    approvalCode: gate.approvalCode,
+    departmentName: gate.departmentTrackId
+      ? (departmentTrackById.get(gate.departmentTrackId)?.departmentName ??
+        null)
+      : null,
+    id: gate._id,
+    instanceCode: gate.instanceCode,
+    resolvedAt: gate.resolvedAt,
+    resolvedBy: gate.resolvedBy,
+    status: gate.status,
+    title: gate.title,
+    triggerStage: gate.triggerStage,
+  }));
+
+const buildBindingsRecord = (
+  baseBindings: Doc<"baseBindings">[],
+  chatBindings: Doc<"chatBindings">[],
+  docBindings: Doc<"docBindings">[]
+) => ({
+  bases: baseBindings.map((binding) => ({
+    fieldOwnership: binding.fieldOwnership,
+    id: binding._id,
+    lastSyncedAt: binding.lastSyncedAt,
+    recordId: binding.recordId,
+    tableId: binding.tableId,
+  })),
+  chats: chatBindings.map((binding) => ({
+    chatType: binding.chatType,
+    feishuChatId: binding.feishuChatId,
+    id: binding._id,
+    pinnedMessageId: binding.pinnedMessageId,
+  })),
+  docs: docBindings.map((binding) => ({
+    docType: binding.docType,
+    id: binding._id,
+    purpose: binding.purpose,
+    title: binding.title,
+  })),
+});
+
+const buildCommentsRecord = (
+  comments: Doc<"comments">[],
+  commentMentionsByCommentId: Map<Id<"comments">, Doc<"mentions">[]>
+) =>
+  comments.map((comment) => ({
+    authorId: comment.authorId,
+    body: comment.body,
+    createdAt: comment._creationTime,
+    id: comment._id,
+    isDeleted: comment.isDeleted,
+    mentionedUserIds:
+      commentMentionsByCommentId
+        .get(comment._id)
+        ?.map((mention) => mention.mentionedUserId) ?? [],
+    parentCommentId: comment.parentCommentId ?? null,
+    targetScope: comment.targetScope,
+  }));
+
+const buildDepartmentTracksRecord = (
+  departmentTracks: Doc<"departmentTracks">[],
+  approvalGates: Doc<"approvalGates">[],
+  workItems: Doc<"workItems">[]
+) =>
+  departmentTracks.map((track) => ({
+    blockReason: track.blockReason,
+    collaboratorIds: track.collaboratorIds ?? [],
+    departmentId: track.departmentId,
+    departmentName: track.departmentName,
+    dueDate: track.dueDate,
+    id: track._id,
+    isRequired: track.isRequired,
+    ownerId: track.ownerId,
+    pendingApprovalCount: approvalGates.filter(
+      (gate) =>
+        gate.departmentTrackId === track._id && gate.status === "pending"
+    ).length,
+    relatedWorkItemCount: workItems.filter(
+      (item) => item.departmentTrackId === track._id
+    ).length,
+    status: track.status,
+  }));
+
+const buildTimelineRecord = (auditEvents: Doc<"auditEvents">[]) =>
+  auditEvents.map((event) => ({
+    action: event.action,
+    actorId: event.actorId,
+    changeSummary: event.changeSummary,
+    createdAt: event._creationTime,
+    id: event._id,
+    objectId: event.objectId,
+    objectType: event.objectType,
+    sourceEntry: event.sourceEntry,
+  }));
+
+const buildWorkItemsRecord = (
+  workItems: Doc<"workItems">[],
+  taskBindingByWorkItemId: Map<Id<"workItems">, Doc<"feishuTaskBindings">>,
+  departmentTrackById: Map<Id<"departmentTracks">, Doc<"departmentTracks">>
+) =>
+  workItems.map((item) => {
+    const binding = taskBindingByWorkItemId.get(item._id);
+    return {
+      assigneeId: item.assigneeId,
+      collaboratorIds: item.collaboratorIds ?? [],
+      completedAt: item.completedAt,
+      departmentName: item.departmentTrackId
+        ? (departmentTrackById.get(item.departmentTrackId)?.departmentName ??
+          null)
+        : null,
+      departmentTrackId: item.departmentTrackId,
+      description: item.description,
+      dueDate: item.dueDate,
+      feishuTaskGuid: binding?.feishuTaskGuid ?? null,
+      feishuTaskStatus: binding?.feishuTaskStatus ?? null,
+      id: item._id,
+      priority: item.priority,
+      status: item.status,
+      title: item.title,
+    };
+  });
+
 export const getProjectDetail = query({
   args: { projectId: v.id("projects") },
   handler: async (ctx, args) => {
@@ -272,73 +399,14 @@ export const getProjectDetail = query({
     );
 
     return {
-      approvals: approvalGates.map((gate) => ({
-        applicantId: gate.applicantId,
-        approvalCode: gate.approvalCode,
-        departmentName: gate.departmentTrackId
-          ? (departmentTrackById.get(gate.departmentTrackId)?.departmentName ??
-            null)
-          : null,
-        id: gate._id,
-        instanceCode: gate.instanceCode,
-        resolvedAt: gate.resolvedAt,
-        resolvedBy: gate.resolvedBy,
-        status: gate.status,
-        title: gate.title,
-        triggerStage: gate.triggerStage,
-      })),
-      bindings: {
-        bases: baseBindings.map((binding) => ({
-          fieldOwnership: binding.fieldOwnership,
-          id: binding._id,
-          lastSyncedAt: binding.lastSyncedAt,
-          recordId: binding.recordId,
-          tableId: binding.tableId,
-        })),
-        chats: chatBindings.map((binding) => ({
-          chatType: binding.chatType,
-          feishuChatId: binding.feishuChatId,
-          id: binding._id,
-          pinnedMessageId: binding.pinnedMessageId,
-        })),
-        docs: docBindings.map((binding) => ({
-          docType: binding.docType,
-          id: binding._id,
-          purpose: binding.purpose,
-          title: binding.title,
-        })),
-      },
-      comments: comments.map((comment) => ({
-        authorId: comment.authorId,
-        body: comment.body,
-        createdAt: comment._creationTime,
-        id: comment._id,
-        isDeleted: comment.isDeleted,
-        mentionedUserIds:
-          commentMentionsByCommentId
-            .get(comment._id)
-            ?.map((mention) => mention.mentionedUserId) ?? [],
-        parentCommentId: comment.parentCommentId ?? null,
-        targetScope: comment.targetScope,
-      })),
-      departmentTracks: departmentTracks.map((track) => ({
-        blockReason: track.blockReason,
-        collaboratorIds: track.collaboratorIds ?? [],
-        departmentId: track.departmentId,
-        departmentName: track.departmentName,
-        dueDate: track.dueDate,
-        id: track._id,
-        isRequired: track.isRequired,
-        ownerId: track.ownerId,
-        pendingApprovalCount: approvalGates.filter(
-          (gate) =>
-            gate.departmentTrackId === track._id && gate.status === "pending"
-        ).length,
-        relatedWorkItemCount: workItems.filter(
-          (item) => item.departmentTrackId === track._id
-        ).length,
-        status: track.status,
-      })),
+      approvals: buildApprovalsRecord(approvalGates, departmentTrackById),
+      bindings: buildBindingsRecord(baseBindings, chatBindings, docBindings),
+      comments: buildCommentsRecord(comments, commentMentionsByCommentId),
+      departmentTracks: buildDepartmentTracksRecord(
+        departmentTracks,
+        approvalGates,
+        workItems
+      ),
       project: {
         ...boardProject,
         createdBy: project.createdBy,
@@ -348,37 +416,12 @@ export const getProjectDetail = query({
         sourceEntry: project.sourceEntry,
         startDate: project.startDate,
       },
-      timeline: auditEvents.map((event) => ({
-        action: event.action,
-        actorId: event.actorId,
-        changeSummary: event.changeSummary,
-        createdAt: event._creationTime,
-        id: event._id,
-        objectId: event.objectId,
-        objectType: event.objectType,
-        sourceEntry: event.sourceEntry,
-      })),
-      workItems: workItems.map((item) => {
-        const binding = taskBindingByWorkItemId.get(item._id);
-        return {
-          assigneeId: item.assigneeId,
-          collaboratorIds: item.collaboratorIds ?? [],
-          completedAt: item.completedAt,
-          departmentName: item.departmentTrackId
-            ? (departmentTrackById.get(item.departmentTrackId)
-                ?.departmentName ?? null)
-            : null,
-          departmentTrackId: item.departmentTrackId,
-          description: item.description,
-          dueDate: item.dueDate,
-          feishuTaskGuid: binding?.feishuTaskGuid ?? null,
-          feishuTaskStatus: binding?.feishuTaskStatus ?? null,
-          id: item._id,
-          priority: item.priority,
-          status: item.status,
-          title: item.title,
-        };
-      }),
+      timeline: buildTimelineRecord(auditEvents),
+      workItems: buildWorkItemsRecord(
+        workItems,
+        taskBindingByWorkItemId,
+        departmentTrackById
+      ),
     };
   },
 });
