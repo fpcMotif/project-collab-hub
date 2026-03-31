@@ -118,12 +118,53 @@ const handleTaskEvent = async (
   });
 };
 
+// ── Feishu Webhook Signature Verification ───────────────────────────────
+
+export const verifyFeishuSignature = async (
+  request: Request,
+  rawBody: string
+): Promise<boolean> => {
+  const timestamp = request.headers.get("X-Lark-Request-Timestamp");
+  const nonce = request.headers.get("X-Lark-Request-Nonce");
+  const signature = request.headers.get("X-Lark-Signature");
+
+  if (!timestamp || !nonce || !signature) {
+    return false;
+  }
+
+  const key = process.env.FEISHU_ENCRYPT_KEY || process.env.FEISHU_APP_SECRET;
+
+  // If no key is configured, allow the request but log a warning
+  if (!key) {
+    console.warn(
+      "Feishu webhook signature verification skipped: FEISHU_ENCRYPT_KEY and FEISHU_APP_SECRET are missing."
+    );
+    return true;
+  }
+
+  const encoder = new TextEncoder();
+  const data = encoder.encode(timestamp + nonce + key + rawBody);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = [...new Uint8Array(hashBuffer)];
+  const hashHex = hashArray
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  return hashHex === signature;
+};
+
 // ── Feishu Event Subscription Verification ──────────────────────────────
 // Feishu sends a challenge request to verify the endpoint.
 
 http.route({
   handler: httpAction(async (ctx, request) => {
-    const body = (await request.json()) as Record<string, unknown>;
+    const rawBody = await request.text();
+
+    if (!(await verifyFeishuSignature(request, rawBody))) {
+      return new Response("Invalid signature", { status: 401 });
+    }
+
+    const body = JSON.parse(rawBody) as Record<string, unknown>;
 
     // Handle URL verification challenge
     if (body.type === "url_verification") {
@@ -164,7 +205,13 @@ http.route({
 
 http.route({
   handler: httpAction(async (ctx, request) => {
-    const body = (await request.json()) as Record<string, unknown>;
+    const rawBody = await request.text();
+
+    if (!(await verifyFeishuSignature(request, rawBody))) {
+      return new Response("Invalid signature", { status: 401 });
+    }
+
+    const body = JSON.parse(rawBody) as Record<string, unknown>;
 
     // Handle URL verification
     if (body.type === "url_verification") {
@@ -215,7 +262,13 @@ http.route({
 
 http.route({
   handler: httpAction(async (ctx, request) => {
-    const body = (await request.json()) as Record<string, unknown>;
+    const rawBody = await request.text();
+
+    if (!(await verifyFeishuSignature(request, rawBody))) {
+      return new Response("Invalid signature", { status: 401 });
+    }
+
+    const body = JSON.parse(rawBody) as Record<string, unknown>;
 
     // Handle URL verification
     if (body.type === "url_verification") {
