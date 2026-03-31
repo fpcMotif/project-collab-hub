@@ -11,6 +11,8 @@
   "dependencies": {
     "@collab-hub/feishu-integration": "workspace:*",
     "convex": "^1",
+    "convex-test": "^0.0.46",
+    "edge-runtime": "^4.0.1",
     "effect": "^3"
   },
   "devDependencies": {
