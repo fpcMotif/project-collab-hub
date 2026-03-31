@@ -339,7 +339,7 @@ http.route({
 
       const [, projectId] = projectIdMatch;
       const project = await ctx
-        .runQuery(anyApi.projects.getById, { id: projectId as never })
+        .runQuery(api.projects.getById, { id: projectId as Id<"projects"> })
         .catch(() => null);
 
       if (!project) {
