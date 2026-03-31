@@ -104,7 +104,8 @@ describe("FeishuApprovalService.createInstance", () => {
     const createMock = mock().mockResolvedValue({
       code: 0,
       data: {},
-      msg: "success", // missing instance_code
+      msg: "success",
+      // missing instance_code
     });
     const getMock = mock();
     const testLayer = createTestLayer(createMock, getMock);
@@ -144,8 +145,8 @@ describe("FeishuApprovalService.getInstance", () => {
       code: 0,
       data: {
         approval_code: "app-123",
-        status: "APPROVED",
         form: '{"field":"value"}',
+        status: "APPROVED",
       },
       msg: "success",
     });
