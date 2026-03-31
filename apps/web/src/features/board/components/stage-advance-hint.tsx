@@ -41,21 +41,11 @@ export const StageAdvanceHint = ({ stageAdvance }: StageAdvanceHintProps) => {
 
   return (
     <div className={cn("rounded-md px-2.5 py-2", styles.container)}>
-      <p
-        className={cn(
-          "flex items-center gap-1.5 text-[11px] font-semibold",
-          styles.summary
-        )}
-      >
-        <span
-          className={cn("h-1.5 w-1.5 rounded-full", styles.dot)}
-          aria-hidden="true"
-        />
+      <p className={cn("flex items-center gap-1.5 text-[11px] font-semibold", styles.summary)}>
+        <span className={cn("h-1.5 w-1.5 rounded-full", styles.dot)} aria-hidden="true" />
         {stageAdvance.summary}
       </p>
-      <p className={cn("mt-1 text-[11px] leading-4", styles.detail)}>
-        {stageAdvance.detail}
-      </p>
+      <p className={cn("mt-1 text-[11px] leading-4", styles.detail)}>{stageAdvance.detail}</p>
     </div>
   );
 };

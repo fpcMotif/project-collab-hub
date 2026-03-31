@@ -14,22 +14,14 @@ import type { BoardFilterState, BoardMoveResult } from "../types";
 
 export const useConvexBoardData = (filters: BoardFilterState) => {
   const remoteProjects = useQuery(convexFunctionRefs.listBoardProjects, {});
-  const transitionProjectStage = useMutation(
-    convexFunctionRefs.transitionProjectStage
-  );
+  const transitionProjectStage = useMutation(convexFunctionRefs.transitionProjectStage);
   const [movingProjectId, setMovingProjectId] = useState<string | null>(null);
 
   const projects = remoteProjects ?? [];
-  const boardData = useMemo(
-    () => buildBoardViewData(projects, filters),
-    [projects, filters]
-  );
+  const boardData = useMemo(() => buildBoardViewData(projects, filters), [projects, filters]);
 
   const moveProject = useCallback(
-    async (
-      projectId: string,
-      targetColumnId: string
-    ): Promise<BoardMoveResult> => {
+    async (projectId: string, targetColumnId: string): Promise<BoardMoveResult> => {
       const project = projects.find((item) => item.id === projectId);
       if (!project) {
         return { message: "未找到项目卡片", ok: false };
@@ -70,7 +62,7 @@ export const useConvexBoardData = (filters: BoardFilterState) => {
         setMovingProjectId(null);
       }
     },
-    [boardData.columns, projects, transitionProjectStage]
+    [boardData.columns, projects, transitionProjectStage],
   );
 
   return {

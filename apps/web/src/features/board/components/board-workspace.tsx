@@ -24,19 +24,13 @@ interface BoardWorkspaceProps {
   savedViews: BoardSavedView[];
   isLoading: boolean;
   movingProjectId: string | null;
-  onFilterChange: <K extends keyof BoardFilterState>(
-    key: K,
-    value: BoardFilterState[K]
-  ) => void;
+  onFilterChange: <K extends keyof BoardFilterState>(key: K, value: BoardFilterState[K]) => void;
   onApplyView: (filters: BoardFilterState) => void;
   onClearFilter: (key: keyof BoardFilterState) => void;
   onClearAll: () => void;
   onSaveCurrentView: (name: string) => boolean;
   onDeleteView: (id: string) => void;
-  onMoveProject: (
-    projectId: string,
-    targetColumnId: string
-  ) => Promise<BoardMoveResult>;
+  onMoveProject: (projectId: string, targetColumnId: string) => Promise<BoardMoveResult>;
 }
 
 interface BoardNotice {
@@ -66,9 +60,7 @@ export const BoardWorkspace = ({
 }: BoardWorkspaceProps) => {
   const [mobileColumnIdx, setMobileColumnIdx] = useState(0);
   const [draggedProjectId, setDraggedProjectId] = useState<string | null>(null);
-  const [dropTargetColumnId, setDropTargetColumnId] = useState<string | null>(
-    null
-  );
+  const [dropTargetColumnId, setDropTargetColumnId] = useState<string | null>(null);
   const [notice, setNotice] = useState<BoardNotice | null>(null);
 
   const safeMobileColumnIdx = useMemo(() => {
@@ -100,10 +92,7 @@ export const BoardWorkspace = ({
     return (
       <div className="flex h-full gap-3 overflow-x-auto">
         {Array.from({ length: 6 }).map((_, index) => (
-          <div
-            key={index}
-            className="min-w-[280px] animate-pulse rounded-xl bg-gray-50 p-4"
-          >
+          <div key={index} className="min-w-[280px] animate-pulse rounded-xl bg-gray-50 p-4">
             <div className="mb-4 h-4 w-24 rounded bg-gray-200" />
             <div className="space-y-3">
               <div className="h-36 rounded-lg bg-gray-200" />

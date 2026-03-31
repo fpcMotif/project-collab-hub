@@ -9,10 +9,7 @@ import type {
   SlaRisk,
 } from "../types";
 
-const APPROVAL_STATUS_VALUES = new Set<ApprovalStatusFilter>([
-  "pending",
-  "clear",
-]);
+const APPROVAL_STATUS_VALUES = new Set<ApprovalStatusFilter>(["pending", "clear"]);
 const FILTER_KEYS: (keyof BoardFilterState)[] = [
   "priority",
   "slaRisk",
@@ -23,10 +20,7 @@ const FILTER_KEYS: (keyof BoardFilterState)[] = [
   "overdueStatus",
   "templateType",
 ];
-const OVERDUE_STATUS_VALUES = new Set<OverdueStatusFilter>([
-  "overdue",
-  "normal",
-]);
+const OVERDUE_STATUS_VALUES = new Set<OverdueStatusFilter>(["overdue", "normal"]);
 const PRIORITY_VALUES = new Set<Priority>(["urgent", "high", "medium", "low"]);
 const SLA_RISK_VALUES = new Set<SlaRisk>(["on_time", "at_risk", "overdue"]);
 
@@ -46,9 +40,7 @@ const parseSlaRisk = (value: string | null): null | SlaRisk => {
   return value as SlaRisk;
 };
 
-const parseApprovalStatus = (
-  value: string | null
-): ApprovalStatusFilter | null => {
+const parseApprovalStatus = (value: string | null): ApprovalStatusFilter | null => {
   if (!value || !APPROVAL_STATUS_VALUES.has(value as ApprovalStatusFilter)) {
     return null;
   }
@@ -56,9 +48,7 @@ const parseApprovalStatus = (
   return value as ApprovalStatusFilter;
 };
 
-const parseOverdueStatus = (
-  value: string | null
-): null | OverdueStatusFilter => {
+const parseOverdueStatus = (value: string | null): null | OverdueStatusFilter => {
   if (!value || !OVERDUE_STATUS_VALUES.has(value as OverdueStatusFilter)) {
     return null;
   }
@@ -105,7 +95,7 @@ export const useBoardFilters = () => {
 
       router.replace(buildUrl(pathname, params), { scroll: false });
     },
-    [pathname, router]
+    [pathname, router],
   );
 
   const setFilter = useCallback(
@@ -118,7 +108,7 @@ export const useBoardFilters = () => {
       }
       router.replace(buildUrl(pathname, params), { scroll: false });
     },
-    [pathname, router, searchParams]
+    [pathname, router, searchParams],
   );
 
   const clearFilter = useCallback(
@@ -127,7 +117,7 @@ export const useBoardFilters = () => {
       params.delete(key);
       router.replace(buildUrl(pathname, params), { scroll: false });
     },
-    [pathname, router, searchParams]
+    [pathname, router, searchParams],
   );
 
   const clearAll = useCallback(() => {

@@ -13,12 +13,8 @@ export const useConvexProjectDetail = (projectId: string) => {
   const detail = useQuery(convexFunctionRefs.getProjectDetail, { projectId });
   const createCommentMutation = useMutation(convexFunctionRefs.createComment);
   const deleteCommentMutation = useMutation(convexFunctionRefs.deleteComment);
-  const updateWorkItemStatusMutation = useMutation(
-    convexFunctionRefs.updateWorkItemStatus
-  );
-  const resolveApprovalGateMutation = useMutation(
-    convexFunctionRefs.resolveApprovalGate
-  );
+  const updateWorkItemStatusMutation = useMutation(convexFunctionRefs.updateWorkItemStatus);
+  const resolveApprovalGateMutation = useMutation(convexFunctionRefs.resolveApprovalGate);
 
   const createComment = useCallback(
     async (body: string, mentionedUserIds: string[]) => {
@@ -36,7 +32,7 @@ export const useConvexProjectDetail = (projectId: string) => {
 
       return { message: "评论已保存", ok: true } as const;
     },
-    [createCommentMutation, projectId]
+    [createCommentMutation, projectId],
   );
 
   const deleteComment = useCallback(
@@ -48,7 +44,7 @@ export const useConvexProjectDetail = (projectId: string) => {
 
       return { message: "评论已删除", ok: true } as const;
     },
-    [deleteCommentMutation]
+    [deleteCommentMutation],
   );
 
   const updateWorkItemStatus = useCallback(
@@ -61,7 +57,7 @@ export const useConvexProjectDetail = (projectId: string) => {
 
       return { message: "行动项状态已更新", ok: true } as const;
     },
-    [updateWorkItemStatusMutation]
+    [updateWorkItemStatusMutation],
   );
 
   const resolveApproval = useCallback(
@@ -84,7 +80,7 @@ export const useConvexProjectDetail = (projectId: string) => {
         ok: true,
       } as const;
     },
-    [detail?.approvals, resolveApprovalGateMutation]
+    [detail?.approvals, resolveApprovalGateMutation],
   );
 
   return {

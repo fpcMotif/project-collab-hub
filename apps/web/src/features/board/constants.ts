@@ -15,10 +15,7 @@ export {
 } from "@collab-hub/shared";
 
 // ── Department track status colors ──────────────────────────────────
-export const DEPT_STATUS_STYLES: Record<
-  DeptTrackStatus,
-  { bg: string; text: string }
-> = {
+export const DEPT_STATUS_STYLES: Record<DeptTrackStatus, { bg: string; text: string }> = {
   blocked: { bg: "bg-red-100", text: "text-red-700" },
   done: { bg: "bg-green-100", text: "text-green-700" },
   in_progress: { bg: "bg-blue-100", text: "text-blue-700" },
@@ -52,10 +49,7 @@ export const PRIORITY_LABELS: Record<Priority, string> = {
 } as const;
 
 // ── SLA risk styles ─────────────────────────────────────────────────
-export const SLA_RISK_STYLES: Record<
-  SlaRisk,
-  { dot: string; text: string; label: string }
-> = {
+export const SLA_RISK_STYLES: Record<SlaRisk, { dot: string; text: string; label: string }> = {
   at_risk: { dot: "bg-amber-500", label: "风险", text: "text-amber-700" },
   on_time: { dot: "bg-green-500", label: "按时", text: "text-green-700" },
   overdue: { dot: "bg-red-500", label: "逾期", text: "text-red-700" },

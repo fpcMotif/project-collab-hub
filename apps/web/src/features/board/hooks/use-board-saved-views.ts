@@ -44,7 +44,7 @@ const readSavedViews = (): BoardSavedView[] => {
         typeof item?.filters === "object" &&
         item.filters !== null &&
         typeof item?.id === "string" &&
-        typeof item?.name === "string"
+        typeof item?.name === "string",
     );
 
     return cachedViews;
@@ -72,10 +72,7 @@ const persistSavedViews = (views: BoardSavedView[]) => {
 };
 
 const createViewId = () => {
-  if (
-    typeof crypto !== "undefined" &&
-    typeof crypto.randomUUID === "function"
-  ) {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
   }
 
@@ -99,11 +96,7 @@ const subscribe = (listener: () => void) => {
 };
 
 export const useBoardSavedViews = () => {
-  const savedViews = useSyncExternalStore(
-    subscribe,
-    readSavedViews,
-    () => EMPTY_VIEWS
-  );
+  const savedViews = useSyncExternalStore(subscribe, readSavedViews, () => EMPTY_VIEWS);
 
   const saveView = useCallback(
     (name: string, filters: BoardFilterState) => {
@@ -124,14 +117,14 @@ export const useBoardSavedViews = () => {
       persistSavedViews(next);
       return true;
     },
-    [savedViews]
+    [savedViews],
   );
 
   const deleteView = useCallback(
     (id: string) => {
       persistSavedViews(savedViews.filter((view) => view.id !== id));
     },
-    [savedViews]
+    [savedViews],
   );
 
   return {

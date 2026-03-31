@@ -6,11 +6,7 @@ export const metadata: Metadata = {
   title: "项目详情 - Project Collab Hub",
 };
 
-const ProjectDetailPage = async ({
-  params,
-}: {
-  params: Promise<{ projectId: string }>;
-}) => {
+const ProjectDetailPage = async ({ params }: { params: Promise<{ projectId: string }> }) => {
   const { projectId } = await params;
 
   return <ProjectDetailScreen projectId={projectId} />;

@@ -13,11 +13,7 @@ export const useConvexEnabled = () => useContext(ConvexEnabledContext);
 
 export const ConvexClientProvider = ({ children }: { children: ReactNode }) => {
   if (!convex) {
-    return (
-      <ConvexEnabledContext.Provider value={false}>
-        {children}
-      </ConvexEnabledContext.Provider>
-    );
+    return <ConvexEnabledContext.Provider value={false}>{children}</ConvexEnabledContext.Provider>;
   }
 
   return (

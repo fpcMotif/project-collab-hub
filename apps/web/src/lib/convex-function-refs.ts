@@ -35,10 +35,7 @@ export type ResolveApprovalArgs = Record<string, string | undefined> & {
   idempotencyKey?: string;
 };
 
-export type CreateCommentArgs = Record<
-  string,
-  string | string[] | undefined
-> & {
+export type CreateCommentArgs = Record<string, string | string[] | undefined> & {
   projectId: string;
   authorId: string;
   body: string;
@@ -58,10 +55,7 @@ export type ListProjectTemplatesArgs = Record<string, boolean | undefined> & {
   activeOnly?: boolean;
 };
 
-export interface CreateProjectFromTemplateArgs extends Record<
-  string,
-  string | number | undefined
-> {
+export interface CreateProjectFromTemplateArgs extends Record<string, string | number | undefined> {
   templateId: string;
   name: string;
   description: string;
@@ -83,47 +77,37 @@ export interface CreateProjectFromTemplateResult {
 }
 
 export const convexFunctionRefs = {
-  createComment: makeFunctionReference<"mutation", CreateCommentArgs, string>(
-    "comments:create"
-  ),
+  createComment: makeFunctionReference<"mutation", CreateCommentArgs, string>("comments:create"),
   createProjectFromTemplate: makeFunctionReference<
     "mutation",
     CreateProjectFromTemplateArgs,
     CreateProjectFromTemplateResult
   >("projects:createFromTemplate"),
-  deleteComment: makeFunctionReference<
-    "mutation",
-    DeleteCommentArgs,
-    undefined
-  >("comments:softDelete"),
+  deleteComment: makeFunctionReference<"mutation", DeleteCommentArgs, undefined>(
+    "comments:softDelete",
+  ),
   getProjectDetail: makeFunctionReference<
     "query",
     ProjectDetailQueryArgs,
     ProjectDetailData | null
   >("board:getProjectDetail"),
-  listBoardProjects: makeFunctionReference<
-    "query",
-    Record<string, never>,
-    BoardProjectRecord[]
-  >("board:listBoardProjects"),
+  listBoardProjects: makeFunctionReference<"query", Record<string, never>, BoardProjectRecord[]>(
+    "board:listBoardProjects",
+  ),
   listProjectTemplates: makeFunctionReference<
     "query",
     ListProjectTemplatesArgs,
     ConvexProjectTemplateDoc[]
   >("projectTemplates:list"),
-  resolveApprovalGate: makeFunctionReference<
-    "mutation",
-    ResolveApprovalArgs,
-    undefined
-  >("approvalGates:resolve"),
+  resolveApprovalGate: makeFunctionReference<"mutation", ResolveApprovalArgs, undefined>(
+    "approvalGates:resolve",
+  ),
   transitionProjectStage: makeFunctionReference<
     "mutation",
     TransitionProjectStageArgs,
     TransitionProjectStageResult
   >("board:transitionProjectStage"),
-  updateWorkItemStatus: makeFunctionReference<
-    "mutation",
-    UpdateWorkItemStatusArgs,
-    undefined
-  >("workItems:updateStatus"),
+  updateWorkItemStatus: makeFunctionReference<"mutation", UpdateWorkItemStatusArgs, undefined>(
+    "workItems:updateStatus",
+  ),
 } as const;
