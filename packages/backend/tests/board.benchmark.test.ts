@@ -1,11 +1,11 @@
 import { convexTest } from "convex-test";
+import { anyApi } from "convex/server";
 import { describe, expect, it } from "vitest";
 
 import * as board from "../convex/board";
-import { anyApi } from "convex/server";
-const mockApi = anyApi as any;
-mockApi.board = board;
 import schema from "../convex/schema";
+const mockApi = anyApi as unknown as Record<string, unknown>;
+mockApi.board = board;
 
 describe("Board performance benchmark", () => {
   it("measure getProjectDetail with many comments", async () => {
