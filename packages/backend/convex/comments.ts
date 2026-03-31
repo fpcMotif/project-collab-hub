@@ -36,34 +36,36 @@ export const create = mutation({
 
     if (mentionedUserIds && mentionedUserIds.length > 0) {
       const uniqueUserIds = [...new Set(mentionedUserIds)];
-      for (const userId of uniqueUserIds) {
-        const notificationDeliveryId = await ctx.db.insert(
-          "notificationDeliveries",
-          {
-            channel: "private_chat",
-            messageType: "mention",
-            payload: JSON.stringify({
-              authorId: args.authorId,
-              commentId,
-              commentPreview: args.body.slice(0, 120),
-              targetScope: args.targetScope,
-            }),
-            projectId: args.projectId,
-            recipientId: userId,
-            retryCount: 0,
-            status: "pending",
-          }
-        );
+      await Promise.all(
+        uniqueUserIds.map(async (userId) => {
+          const notificationDeliveryId = await ctx.db.insert(
+            "notificationDeliveries",
+            {
+              channel: "private_chat",
+              messageType: "mention",
+              payload: JSON.stringify({
+                authorId: args.authorId,
+                commentId,
+                commentPreview: args.body.slice(0, 120),
+                targetScope: args.targetScope,
+              }),
+              projectId: args.projectId,
+              recipientId: userId,
+              retryCount: 0,
+              status: "pending",
+            }
+          );
 
-        await ctx.db.insert("mentions", {
-          commentId,
-          mentionedByUserId: args.authorId,
-          mentionedUserId: userId,
-          notificationDeliveryId,
-          notificationSent: false,
-          projectId: args.projectId,
-        });
-      }
+          await ctx.db.insert("mentions", {
+            commentId,
+            mentionedByUserId: args.authorId,
+            mentionedUserId: userId,
+            notificationDeliveryId,
+            notificationSent: false,
+            projectId: args.projectId,
+          });
+        })
+      );
     }
 
     await ctx.db.insert("auditEvents", {
@@ -112,34 +114,36 @@ export const update = mutation({
       (id) => !existingUserIds.has(id)
     );
 
-    for (const userId of addedUserIds) {
-      const notificationDeliveryId = await ctx.db.insert(
-        "notificationDeliveries",
-        {
-          channel: "private_chat",
-          messageType: "mention",
-          payload: JSON.stringify({
-            authorId: args.actorId,
-            commentId: args.id,
-            commentPreview: args.body.slice(0, 120),
-            targetScope: comment.targetScope,
-          }),
-          projectId: comment.projectId,
-          recipientId: userId,
-          retryCount: 0,
-          status: "pending",
-        }
-      );
+    await Promise.all(
+      addedUserIds.map(async (userId) => {
+        const notificationDeliveryId = await ctx.db.insert(
+          "notificationDeliveries",
+          {
+            channel: "private_chat",
+            messageType: "mention",
+            payload: JSON.stringify({
+              authorId: args.actorId,
+              commentId: args.id,
+              commentPreview: args.body.slice(0, 120),
+              targetScope: comment.targetScope,
+            }),
+            projectId: comment.projectId,
+            recipientId: userId,
+            retryCount: 0,
+            status: "pending",
+          }
+        );
 
-      await ctx.db.insert("mentions", {
-        commentId: args.id,
-        mentionedByUserId: args.actorId,
-        mentionedUserId: userId,
-        notificationDeliveryId,
-        notificationSent: false,
-        projectId: comment.projectId,
-      });
-    }
+        await ctx.db.insert("mentions", {
+          commentId: args.id,
+          mentionedByUserId: args.actorId,
+          mentionedUserId: userId,
+          notificationDeliveryId,
+          notificationSent: false,
+          projectId: comment.projectId,
+        });
+      })
+    );
 
     await ctx.db.insert("auditEvents", {
       action: "comment.updated",
