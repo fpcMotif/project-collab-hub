@@ -143,16 +143,18 @@ export const createFromTemplate = mutation({
       templateVersion: template.version,
     });
 
-    for (const department of template.departments) {
-      await ctx.db.insert("departmentTracks", {
-        departmentId: department.departmentId,
-        departmentName: department.departmentName,
-        isRequired: department.isRequired,
-        ownerId: department.defaultOwnerId,
-        projectId,
-        status: department.isRequired ? "not_started" : "not_required",
-      });
-    }
+    await Promise.all(
+      template.departments.map((department) =>
+        ctx.db.insert("departmentTracks", {
+          departmentId: department.departmentId,
+          departmentName: department.departmentName,
+          isRequired: department.isRequired,
+          ownerId: department.defaultOwnerId,
+          projectId,
+          status: department.isRequired ? "not_started" : "not_required",
+        })
+      )
+    );
 
     await ctx.db.insert("auditEvents", {
       action: "project.created",
