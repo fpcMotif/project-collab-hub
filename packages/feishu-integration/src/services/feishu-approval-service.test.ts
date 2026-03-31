@@ -1,14 +1,18 @@
 import { describe, expect, it, mock } from "bun:test";
+
 import { Effect, Either, Layer } from "effect";
 
 import { FeishuError } from "../errors/feishu-error.js";
-import { FeishuAuthService } from "./feishu-auth-service.js";
 import {
   FeishuApprovalService,
   FeishuApprovalServiceLive,
 } from "./feishu-approval-service.js";
+import { FeishuAuthService } from "./feishu-auth-service.js";
 
-const createTestLayer = (createInstanceMock: ReturnType<typeof mock>, getInstanceMock: ReturnType<typeof mock>) =>
+const createTestLayer = (
+  createInstanceMock: ReturnType<typeof mock>,
+  getInstanceMock: ReturnType<typeof mock>
+) =>
   FeishuApprovalServiceLive.pipe(
     Layer.provide(
       Layer.succeed(FeishuAuthService, {
@@ -24,13 +28,15 @@ const createTestLayer = (createInstanceMock: ReturnType<typeof mock>, getInstanc
     )
   );
 
-const runCreateInstanceEither = (testLayer: ReturnType<typeof createTestLayer>) =>
+const runCreateInstanceEither = (
+  testLayer: ReturnType<typeof createTestLayer>
+) =>
   Effect.runPromise(
     FeishuApprovalService.pipe(
       Effect.andThen((service) =>
         service.createInstance({
-          approvalCode: "app-123",
           applicantId: "user-456",
+          approvalCode: "app-123",
           formData: '{"field":"value"}',
         })
       ),
@@ -48,13 +54,12 @@ const runGetInstanceEither = (testLayer: ReturnType<typeof createTestLayer>) =>
     )
   );
 
-
 describe("FeishuApprovalService.createInstance", () => {
   it("creates an approval instance successfully", async () => {
     const createMock = mock().mockResolvedValue({
       code: 0,
-      msg: "success",
       data: { instance_code: "inst-789" },
+      msg: "success",
     });
     const getMock = mock();
     const testLayer = createTestLayer(createMock, getMock);
@@ -98,8 +103,8 @@ describe("FeishuApprovalService.createInstance", () => {
   it("fails when response is missing instance_code", async () => {
     const createMock = mock().mockResolvedValue({
       code: 0,
-      msg: "success",
-      data: {}, // missing instance_code
+      data: {},
+      msg: "success", // missing instance_code
     });
     const getMock = mock();
     const testLayer = createTestLayer(createMock, getMock);
@@ -137,12 +142,12 @@ describe("FeishuApprovalService.getInstance", () => {
     const createMock = mock();
     const getMock = mock().mockResolvedValue({
       code: 0,
-      msg: "success",
       data: {
         approval_code: "app-123",
         status: "APPROVED",
         form: '{"field":"value"}',
       },
+      msg: "success",
     });
     const testLayer = createTestLayer(createMock, getMock);
 
@@ -152,8 +157,8 @@ describe("FeishuApprovalService.getInstance", () => {
     if (Either.isRight(result)) {
       expect(result.right).toEqual({
         approval_code: "app-123",
-        status: "APPROVED",
         form: '{"field":"value"}',
+        status: "APPROVED",
       });
     }
 
