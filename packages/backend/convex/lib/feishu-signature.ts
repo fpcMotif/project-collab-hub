@@ -52,5 +52,27 @@ export const verifyFeishuRequestSignature = async (
     bodyText
   );
 
-  return headers.signature === expected;
+  if (headers.signature.length !== expected.length) {
+    return false;
+  }
+
+  const encoder = new TextEncoder();
+  const signatureBuffer = encoder.encode(headers.signature);
+  const expectedBuffer = encoder.encode(expected);
+
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-expect-error
+  if (crypto.subtle.timingSafeEqual === undefined) {
+    // Fallback for environments lacking timingSafeEqual (e.g. some bun/vitest tests)
+    let result = 0;
+    for (let i = 0; i < signatureBuffer.length; i += 1) {
+      // eslint-disable-next-line no-bitwise
+      result |= signatureBuffer[i] ^ expectedBuffer[i];
+    }
+    return result === 0;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-expect-error
+  return crypto.subtle.timingSafeEqual(signatureBuffer, expectedBuffer);
 };
