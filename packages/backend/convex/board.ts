@@ -383,6 +383,156 @@ export const getProjectDetail = query({
   },
 });
 
+const logStageTransition = async (
+  ctx: MutationCtx,
+  projectId: Id<"projects">,
+  actorId: string,
+  fromStatus: string,
+  targetStatus: string,
+  reason?: string
+) => {
+  await ctx.db.insert("auditEvents", {
+    action: "project.stage_transitioned",
+    actorId,
+    changeSummary: reason
+      ? `Stage moved from ${fromStatus} to ${targetStatus}: ${reason}`
+      : `Stage moved from ${fromStatus} to ${targetStatus}`,
+    objectId: projectId,
+    objectType: "project",
+    projectId: projectId,
+    sourceEntry: "web_drag_drop",
+  });
+};
+
+const createApprovalGatesForStage = async (
+  ctx: MutationCtx,
+  project: Doc<"projects">,
+  actorId: string,
+  fromStatus: string,
+  targetStatus: string
+) => {
+  if (!project.templateId) {
+    return;
+  }
+
+  const template = await ctx.db.get(
+    project.templateId as unknown as Id<"projectTemplates">
+  );
+
+  if (!template) {
+    return;
+  }
+
+  const stageGates = template.approvalGates.filter(
+    (gate) => gate.triggerStage === targetStatus
+  );
+
+  for (const gateConfig of stageGates) {
+    const gateId = await ctx.db.insert("approvalGates", {
+      applicantId: actorId,
+      approvalCode: gateConfig.approvalCode,
+      projectId: project._id,
+      snapshotData: JSON.stringify({
+        fromStage: fromStatus,
+        projectName: project.name,
+        targetStage: targetStatus,
+      }),
+      status: "pending",
+      templateVersion: project.templateVersion,
+      title: gateConfig.title,
+      triggerStage: targetStatus as
+        | "new"
+        | "assessment"
+        | "solution"
+        | "ready"
+        | "executing"
+        | "delivering"
+        | "done"
+        | "cancelled",
+    });
+
+    await ctx.scheduler.runAfter(0, internal.feishuActions.submitApproval, {
+      applicantId: actorId,
+      approvalCode: gateConfig.approvalCode,
+      formData: JSON.stringify([
+        {
+          id: "project_name",
+          type: "input",
+          value: project.name,
+        },
+        {
+          id: "stage_transition",
+          type: "input",
+          value: `${fromStatus} → ${targetStatus}`,
+        },
+      ]),
+      gateId,
+    });
+  }
+};
+
+const notifyStageChange = async (
+  ctx: MutationCtx,
+  project: Doc<"projects">,
+  fromStatus: string,
+  targetStatus: string
+) => {
+  const chatBinding = await ctx.db
+    .query("chatBindings")
+    .withIndex("by_project", (q) => q.eq("projectId", project._id))
+    .first();
+
+  if (!chatBinding) {
+    return;
+  }
+
+  const deliveryId = await ctx.db.insert("notificationDeliveries", {
+    channel: "group_chat",
+    messageType: "stage_change",
+    payload: JSON.stringify({
+      fromStage: fromStatus,
+      projectName: project.name,
+      targetStage: targetStatus,
+    }),
+    projectId: project._id,
+    recipientId: chatBinding.feishuChatId,
+    retryCount: 0,
+    status: "pending",
+  });
+
+  await ctx.scheduler.runAfter(0, internal.feishuActions.sendCardMessage, {
+    card: JSON.stringify({
+      elements: [
+        {
+          fields: [
+            {
+              is_short: true,
+              text: {
+                content: `**Project:** ${project.name}`,
+                tag: "lark_md",
+              },
+            },
+            {
+              is_short: true,
+              text: {
+                content: `**Stage:** ${fromStatus} → ${targetStatus}`,
+                tag: "lark_md",
+              },
+            },
+          ],
+          tag: "div",
+        },
+      ],
+      header: {
+        template: "blue",
+        title: { content: "Stage Transition", tag: "plain_text" },
+      },
+    }),
+    chatId: chatBinding.feishuChatId,
+    deliveryId,
+  });
+};
+
 export const transitionProjectStage = mutation({
   args: {
     projectId: v.id("projects"),
@@ -434,131 +584,24 @@ export const transitionProjectStage = mutation({
     const fromStatus = project.status;
     await ctx.db.patch(args.projectId, { status: args.targetStatus });
 
-    await ctx.db.insert("auditEvents", {
-      action: "project.stage_transitioned",
-      actorId: identity.subject,
-      changeSummary: args.reason
-        ? `Stage moved from ${fromStatus} to ${args.targetStatus}: ${args.reason}`
-        : `Stage moved from ${fromStatus} to ${args.targetStatus}`,
-      objectId: args.projectId,
-      objectType: "project",
-      projectId: args.projectId,
-      sourceEntry: "web_drag_drop",
-    });
+    await logStageTransition(
+      ctx,
+      args.projectId,
+      identity.subject,
+      fromStatus,
+      args.targetStatus,
+      args.reason
+    );
 
-    // Auto-create approval gates from template when entering a new stage
-    if (project.templateId) {
-      const template = await ctx.db.get(
-        project.templateId as unknown as Id<"projectTemplates">
-      );
+    await createApprovalGatesForStage(
+      ctx,
+      project,
+      identity.subject,
+      fromStatus,
+      args.targetStatus
+    );
 
-      if (template) {
-        const stageGates = template.approvalGates.filter(
-          (gate) => gate.triggerStage === args.targetStatus
-        );
-
-        for (const gateConfig of stageGates) {
-          const gateId = await ctx.db.insert("approvalGates", {
-            applicantId: args.actorId,
-            approvalCode: gateConfig.approvalCode,
-            projectId: args.projectId,
-            snapshotData: JSON.stringify({
-              fromStage: fromStatus,
-              projectName: project.name,
-              targetStage: args.targetStatus,
-            }),
-            status: "pending",
-            templateVersion: project.templateVersion,
-            title: gateConfig.title,
-            triggerStage: args.targetStatus as
-              | "new"
-              | "assessment"
-              | "solution"
-              | "ready"
-              | "executing"
-              | "delivering"
-              | "done"
-              | "cancelled",
-          });
-
-          await ctx.scheduler.runAfter(
-            0,
-            internal.feishuActions.submitApproval,
-            {
-              applicantId: args.actorId,
-              approvalCode: gateConfig.approvalCode,
-              formData: JSON.stringify([
-                {
-                  id: "project_name",
-                  type: "input",
-                  value: project.name,
-                },
-                {
-                  id: "stage_transition",
-                  type: "input",
-                  value: `${fromStatus} → ${args.targetStatus}`,
-                },
-              ]),
-              gateId,
-            }
-          );
-        }
-      }
-    }
-
-    // Schedule stage-change notification for group chats
-    const chatBinding = await ctx.db
-      .query("chatBindings")
-      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-      .first();
-
-    if (chatBinding) {
-      const deliveryId = await ctx.db.insert("notificationDeliveries", {
-        channel: "group_chat",
-        messageType: "stage_change",
-        payload: JSON.stringify({
-          fromStage: fromStatus,
-          projectName: project.name,
-          targetStage: args.targetStatus,
-        }),
-        projectId: args.projectId,
-        recipientId: chatBinding.feishuChatId,
-        retryCount: 0,
-        status: "pending",
-      });
-
-      await ctx.scheduler.runAfter(0, internal.feishuActions.sendCardMessage, {
-        card: JSON.stringify({
-          elements: [
-            {
-              fields: [
-                {
-                  is_short: true,
-                  text: {
-                    content: `**Project:** ${project.name}`,
-                    tag: "lark_md",
-                  },
-                },
-                {
-                  is_short: true,
-                  text: {
-                    content: `**Stage:** ${fromStatus} → ${args.targetStatus}`,
-                    tag: "lark_md",
-                  },
-                },
-              ],
-              tag: "div",
-            },
-          ],
-          header: {
-            template: "blue",
-            title: { content: "Stage Transition", tag: "plain_text" },
-          },
-        }),
-        chatId: chatBinding.feishuChatId,
-        deliveryId,
-      });
-    }
+    await notifyStageChange(ctx, project, fromStatus, args.targetStatus);
 
     return {
       message: "阶段迁移成功",
