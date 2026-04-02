@@ -34,10 +34,20 @@
           "unusedDisableDirectives": "deny"
         }
       }
+    },
+    "vscode-css-language-server": {
+      "settings": {
+        "css": {
+          "lint": {
+            "unknownAtRules": "ignore"
+          }
+        }
+      }
     }
   },
   "languages": {
     "JavaScript": {
+      "language_servers": ["!eslint", "..."],
       "code_actions_on_format": {
         "source.fixAll.oxc": true,
         "source.organizeImports.oxc": true
@@ -49,6 +59,7 @@
       }
     },
     "TSX": {
+      "language_servers": ["!eslint", "..."],
       "code_actions_on_format": {
         "source.fixAll.oxc": true,
         "source.organizeImports.oxc": true
@@ -60,6 +71,7 @@
       }
     },
     "TypeScript": {
+      "language_servers": ["!eslint", "..."],
       "code_actions_on_format": {
         "source.fixAll.oxc": true,
         "source.organizeImports.oxc": true
