@@ -16,7 +16,6 @@
     "check": "ultracite check",
     "fix": "ultracite fix",
     "test": "turbo run test",
-    "test:e2e": "turbo run test:e2e",
     "validate": "bun run lint && bun run check-types && bun run test && bun run build",
     "prepare": "lefthook install"
   },
@@ -24,7 +23,6 @@
     "convex": "^1.33.1"
   },
   "devDependencies": {
-    "@effect/language-service": "^0.84.2",
     "lefthook": "^2.1.4",
     "lint-staged": "^16.4.0",
     "oxfmt": "^0.40.0",
