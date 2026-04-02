@@ -114,6 +114,65 @@ describe("canAdvanceStage", () => {
     expect(result.reason).toContain("not complete");
   });
 
+  it("rejects transition when currentStatus is invalid or not in STAGE_TRANSITIONS", () => {
+    const result = canAdvanceStage("invalid_status", "assessment", ["done"], 0);
+    expect(result.allowed).toBe(false);
+    expect(result.reason).toContain("not permitted");
+  });
+
+  it("rejects transition when targetStatus is undefined", () => {
+    // @ts-expect-error testing invalid input
+    const result = canAdvanceStage("new", undefined, ["done"], 0);
+    expect(result.allowed).toBe(false);
+    expect(result.reason).toContain("not permitted");
+  });
+
+  it("handles missing pendingRequiredApprovalCount parameter correctly", () => {
+    const result = canAdvanceStage("new", "assessment", ["done", "done"]);
+    expect(result).toEqual({ allowed: true });
+  });
+
+  it("rejects forward transition when multiple required department tracks are blocked/waiting", () => {
+    const result = canAdvanceStage(
+      "new",
+      "assessment",
+      ["blocked", "waiting_approval"],
+      0
+    );
+    expect(result.allowed).toBe(false);
+    expect(result.reason).toBe(
+      "2 required department(s) are blocked or waiting approval"
+    );
+  });
+
+  it("rejects forward transition when multiple required department tracks are not complete", () => {
+    const result = canAdvanceStage(
+      "new",
+      "assessment",
+      ["in_progress", "not_started"],
+      0
+    );
+    expect(result.allowed).toBe(false);
+    expect(result.reason).toBe("2 required department(s) are not complete");
+  });
+
+  it("rejects forward transition when multiple pending approvals exist", () => {
+    const result = canAdvanceStage("new", "assessment", ["done"], 5);
+    expect(result.allowed).toBe(false);
+    expect(result.reason).toBe("5 required approval(s) are still pending");
+  });
+
+  it("does not allow advancing to a valid forward stage if any required track is not_started", () => {
+    const result = canAdvanceStage(
+      "solution",
+      "ready",
+      ["done", "not_started"],
+      0
+    );
+    expect(result.allowed).toBe(false);
+    expect(result.reason).toContain("not complete");
+  });
+
   it("rejects transitions from cancelled as a terminal state", () => {
     const result = canAdvanceStage("cancelled", "new", ["done"], 0);
     expect(result.allowed).toBe(false);
