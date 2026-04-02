@@ -459,7 +459,7 @@ export const transitionProjectStage = mutation({
 
         for (const gateConfig of stageGates) {
           const gateId = await ctx.db.insert("approvalGates", {
-            applicantId: args.actorId,
+            applicantId: identity.subject,
             approvalCode: gateConfig.approvalCode,
             projectId: args.projectId,
             snapshotData: JSON.stringify({
@@ -485,7 +485,7 @@ export const transitionProjectStage = mutation({
             0,
             internal.feishuActions.submitApproval,
             {
-              applicantId: args.actorId,
+              applicantId: identity.subject,
               approvalCode: gateConfig.approvalCode,
               formData: JSON.stringify([
                 {
