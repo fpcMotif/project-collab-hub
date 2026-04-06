@@ -51,7 +51,7 @@ interface DefaultPayload {
 
 const buildWorkflowApprovalCard = (
   payload: WorkflowApprovalPayload,
-  _projectName: string
+  projectName: string
 ): { header: Record<string, unknown>; elements: CardElement[] } => ({
   elements: [
     {
@@ -120,7 +120,7 @@ const buildWorkflowApprovalCard = (
 
 const buildStageChangeCard = (
   payload: StageChangePayload,
-  _projectName: string
+  projectName: string
 ): { header: Record<string, unknown>; elements: CardElement[] } => ({
   elements: [
     {
@@ -151,7 +151,7 @@ const buildStageChangeCard = (
 
 const buildApprovalResultCard = (
   payload: ApprovalResultPayload,
-  _projectName: string
+  projectName: string
 ): { header: Record<string, unknown>; elements: CardElement[] } => ({
   elements: [
     {
@@ -213,7 +213,7 @@ const buildTaskUpdateCard = (
 
 const buildRiskAlertCard = (
   payload: RiskAlertPayload,
-  _projectName: string
+  projectName: string
 ): { header: Record<string, unknown>; elements: CardElement[] } => ({
   elements: [
     {
@@ -244,7 +244,7 @@ const buildRiskAlertCard = (
 
 const buildDefaultCard = (
   payload: DefaultPayload,
-  _projectName: string
+  projectName: string
 ): { header: Record<string, unknown>; elements: CardElement[] } => ({
   elements: [
     {
