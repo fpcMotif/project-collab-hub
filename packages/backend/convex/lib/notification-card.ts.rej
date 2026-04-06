@@ -1,0 +1,11 @@
+--- notification-card.ts
++++ notification-card.ts
+@@ -165,7 +165,7 @@
+ };
+
+ const buildTaskUpdateCard = (
+   payload: TaskUpdatePayload,
+-  projectName: string
++  _projectName: string
+ ): { header: Record<string, unknown>; elements: CardElement[] } => {
+   return {
