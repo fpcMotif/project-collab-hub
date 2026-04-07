@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
+import { useMemo, useState } from "react";
 
 import { PRIORITY_OPTIONS, PRIORITY_LABELS } from "@/features/board/constants";
 
