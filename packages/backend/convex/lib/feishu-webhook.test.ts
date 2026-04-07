@@ -89,7 +89,7 @@ describe("feishuWebhook helpers", () => {
 
     it("returns false for non-objects or null", () => {
       expect(isRecord(null)).toBe(false);
-      expect(isRecord(undefined)).toBe(false);
+      expect(isRecord()).toBe(false);
       expect(isRecord([])).toBe(false);
       expect(isRecord([1, 2, 3])).toBe(false);
       expect(isRecord("string")).toBe(false);
@@ -100,8 +100,8 @@ describe("feishuWebhook helpers", () => {
   describe("parseJsonRecord", () => {
     it("parses valid JSON records successfully", () => {
       expect(parseJsonRecord('{"ok":true,"data":123}')).toEqual({
-        ok: true,
         data: 123,
+        ok: true,
       });
     });
 
