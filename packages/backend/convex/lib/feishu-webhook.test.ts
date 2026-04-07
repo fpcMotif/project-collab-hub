@@ -10,15 +10,17 @@ import {
   parseJsonRecord,
 } from "./feishu-webhook";
 
-
 describe("parseJsonRecord", () => {
   it("returns parsed object for valid JSON record", () => {
-    expect(parseJsonRecord('{"foo": "bar", "baz": 123}')).toEqual({ foo: "bar", baz: 123 });
+    expect(parseJsonRecord('{"foo": "bar", "baz": 123}')).toEqual({
+      baz: 123,
+      foo: "bar",
+    });
   });
 
   it("returns null for invalid JSON string", () => {
     // This covers the catch block error path
-    expect(parseJsonRecord('{invalid_json}')).toBeNull();
+    expect(parseJsonRecord("{invalid_json}")).toBeNull();
   });
 
   it("returns null for valid JSON array", () => {
@@ -27,12 +29,12 @@ describe("parseJsonRecord", () => {
 
   it("returns null for valid JSON primitive", () => {
     expect(parseJsonRecord('"a string"')).toBeNull();
-    expect(parseJsonRecord('123')).toBeNull();
-    expect(parseJsonRecord('true')).toBeNull();
+    expect(parseJsonRecord("123")).toBeNull();
+    expect(parseJsonRecord("true")).toBeNull();
   });
 
   it("returns null for valid JSON null", () => {
-    expect(parseJsonRecord('null')).toBeNull();
+    expect(parseJsonRecord("null")).toBeNull();
   });
 });
 
