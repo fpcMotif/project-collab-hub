@@ -106,8 +106,22 @@ export const sendCardMessage = internalAction({
     deliveryId: v.optional(v.id("notificationDeliveries")),
   },
   handler: async (ctx, args) => {
+    let cardObj: Record<string, unknown>;
+    try {
+      cardObj = JSON.parse(args.card) as Record<string, unknown>;
+    } catch (error) {
+      if (args.deliveryId) {
+        await ctx.runMutation(internal.feishuActions.patchDeliveryStatus, {
+          deliveryId: args.deliveryId,
+          lastError: "Invalid JSON string for card message",
+          status: "failed",
+        });
+      }
+      throw new Error("Invalid JSON string for card message", { cause: error });
+    }
+
     const params: SendCardMessageParams = {
-      card: JSON.parse(args.card) as Record<string, unknown>,
+      card: cardObj,
       chatId: args.chatId,
     };
 
@@ -141,8 +155,15 @@ export const updateCardMessage = internalAction({
     messageId: v.string(),
   },
   handler: async (_ctx, args) => {
+    let cardObj: Record<string, unknown>;
+    try {
+      cardObj = JSON.parse(args.card) as Record<string, unknown>;
+    } catch (error) {
+      throw new Error("Invalid JSON string for card message", { cause: error });
+    }
+
     const params: UpdateCardMessageParams = {
-      card: JSON.parse(args.card) as Record<string, unknown>,
+      card: cardObj,
       messageId: args.messageId,
     };
 
