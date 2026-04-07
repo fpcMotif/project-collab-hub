@@ -1,5 +1,4 @@
-import { httpRouter, anyApi } from "convex/server";
-import type { GenericActionCtx } from "convex/server";
+import { httpRouter, anyApi, type GenericActionCtx } from "convex/server";
 
 import { api, internal } from "./_generated/api";
 import type { DataModel, Id } from "./_generated/dataModel";
