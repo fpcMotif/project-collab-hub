@@ -4,6 +4,7 @@ import {
   computeFeishuSignature,
   readFeishuSignatureHeaders,
   verifyFeishuRequestSignature,
+  timingSafeEqual,
 } from "../convex/lib/feishu-signature";
 
 describe("feishu-signature", () => {
@@ -71,5 +72,24 @@ describe("feishu-signature", () => {
       "encrypt"
     );
     expect(ok).toBe(false);
+  });
+
+  describe("timingSafeEqual", () => {
+    it("returns true for identical strings", () => {
+      expect(timingSafeEqual("hello", "hello")).toBe(true);
+      expect(timingSafeEqual("", "")).toBe(true);
+      expect(timingSafeEqual("a".repeat(64), "a".repeat(64))).toBe(true);
+    });
+
+    it("returns false for different lengths", () => {
+      expect(timingSafeEqual("hello", "hello world")).toBe(false);
+      expect(timingSafeEqual("a", "")).toBe(false);
+    });
+
+    it("returns false for strings of same length but different content", () => {
+      expect(timingSafeEqual("hello", "holla")).toBe(false);
+      expect(timingSafeEqual("12345", "54321")).toBe(false);
+      expect(timingSafeEqual("a".repeat(64), `${"a".repeat(63)}b`)).toBe(false);
+    });
   });
 });

@@ -32,6 +32,23 @@ export const readFeishuSignatureHeaders = (
   timestamp: request.headers.get("X-Lark-Request-Timestamp"),
 });
 
+/**
+ * Compares two strings in constant time to prevent timing attacks.
+ * Avoids early exit during character comparison.
+ */
+// eslint-disable-next-line func-style
+export const timingSafeEqual = (a: string, b: string): boolean => {
+  if (a.length !== b.length) {
+    return false;
+  }
+  let result = 0;
+  for (let i = 0; i < a.length; i += 1) {
+    // eslint-disable-next-line no-bitwise
+    result |= a.codePointAt(i) ^ b.codePointAt(i);
+  }
+  return result === 0;
+};
+
 export const verifyFeishuRequestSignature = async (
   headers: FeishuSignatureHeaders,
   bodyText: string,
@@ -52,5 +69,5 @@ export const verifyFeishuRequestSignature = async (
     bodyText
   );
 
-  return headers.signature === expected;
+  return timingSafeEqual(headers.signature, expected);
 };
