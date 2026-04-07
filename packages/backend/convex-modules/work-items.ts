@@ -144,10 +144,13 @@ export const update = mutation({
     }
 
     const patch: Record<string, unknown> = {};
-    if (args.description !== undefined) {
+    if (
+      args.description !== undefined &&
+      args.description !== item.description
+    ) {
       patch.description = args.description;
     }
-    if (args.title !== undefined) {
+    if (args.title !== undefined && args.title !== item.title) {
       patch.title = args.title;
     }
 
@@ -167,17 +170,23 @@ export const update = mutation({
     });
 
     // Synchronize title/description with Feishu task if it exists
-    const binding = await ctx.db
-      .query("feishuTaskBindings")
-      .withIndex("by_work_item", (q) => q.eq("workItemId", args.id))
-      .first();
+    if ("title" in patch || "description" in patch) {
+      const binding = await ctx.db
+        .query("feishuTaskBindings")
+        .withIndex("by_work_item", (q) => q.eq("workItemId", args.id))
+        .first();
 
-    if (binding) {
-      await ctx.scheduler.runAfter(0, internal.feishuActions.updateFeishuTask, {
-        description: args.description,
-        summary: args.title,
-        taskGuid: binding.feishuTaskGuid,
-      });
+      if (binding) {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.feishuActions.updateFeishuTask,
+          {
+            description: patch.description as string | undefined,
+            summary: patch.title as string | undefined,
+            taskGuid: binding.feishuTaskGuid,
+          }
+        );
+      }
     }
   },
 });
