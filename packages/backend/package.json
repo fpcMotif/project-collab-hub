@@ -15,6 +15,7 @@
     "effect": "^3"
   },
   "devDependencies": {
+    "convex-test": "^0.0.46",
     "typescript": "^5",
     "vitest": "^4.1.0"
   }

@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+  mentions: defineTable({
+    commentId: v.id("comments"),
+    mentionedByUserId: v.string(),
+    mentionedUserId: v.string(),
+    notificationDeliveryId: v.optional(v.id("notificationDeliveries")),
+    notificationSent: v.boolean(),
+    projectId: v.id("projects"),
+  })
+    .index("by_comment", ["commentId"])
+    .index("by_mentioned_user", ["mentionedUserId"]),
+=======
+  mentions: defineTable({
+    commentId: v.id("comments"),
+    mentionedByUserId: v.string(),
+    mentionedUserId: v.string(),
+    notificationDeliveryId: v.optional(v.id("notificationDeliveries")),
+    notificationSent: v.boolean(),
+    projectId: v.id("projects"),
+  })
+    .index("by_comment", ["commentId"])
+    .index("by_mentioned_user", ["mentionedUserId"])
+    .index("by_project", ["projectId"]),
+>>>>>>> REPLACE

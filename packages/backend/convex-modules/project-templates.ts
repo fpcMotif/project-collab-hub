@@ -3,9 +3,7 @@ import { v } from "convex/values";
 import { query, mutation } from "../convex/_generated/server";
 import type { MutationCtx } from "../convex/_generated/server";
 
-const getAuthenticatedUserId = async (
-  ctx: MutationCtx
-): Promise<string> => {
+const getAuthenticatedUserId = async (ctx: MutationCtx): Promise<string> => {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) {
     throw new Error("Authentication required");

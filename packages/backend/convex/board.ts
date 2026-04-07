@@ -256,20 +256,20 @@ export const getProjectDetail = query({
       departmentTracks.map((track) => [track._id, track])
     );
 
+    const allMentions = await ctx.db
+      .query("mentions")
+      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+      .collect();
+
     const commentMentionsByCommentId = new Map<
       Id<"comments">,
       Doc<"mentions">[]
-    >(
-      await Promise.all(
-        comments.map(async (comment) => {
-          const mentions = await ctx.db
-            .query("mentions")
-            .withIndex("by_comment", (q) => q.eq("commentId", comment._id))
-            .collect();
-          return [comment._id, mentions] as const;
-        })
-      )
-    );
+    >();
+    for (const mention of allMentions) {
+      const existing = commentMentionsByCommentId.get(mention.commentId) ?? [];
+      existing.push(mention);
+      commentMentionsByCommentId.set(mention.commentId, existing);
+    }
 
     return {
       approvals: approvalGates.map((gate) => ({
