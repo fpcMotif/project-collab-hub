@@ -3,6 +3,25 @@
  * Kept pure for unit tests; http routes pass env-derived key.
  */
 
+/**
+ * Constant-time string comparison to prevent timing attacks.
+ * Returns false immediately if lengths differ, since the expected HMAC length is public
+ * and fixed based on the algorithm (SHA-256 hex is always 64 characters).
+ */
+export const timingSafeEqual = (a: string, b: string): boolean => {
+  if (a.length !== b.length) {
+    return false;
+  }
+
+  let result = 0;
+  for (let i = 0; i < a.length; i += 1) {
+    // eslint-disable-next-line no-bitwise
+    result |= a.codePointAt(i) ^ b.codePointAt(i);
+  }
+
+  return result === 0;
+};
+
 export const computeFeishuSignature = async (
   timestamp: string,
   nonce: string,
@@ -52,5 +71,5 @@ export const verifyFeishuRequestSignature = async (
     bodyText
   );
 
-  return headers.signature === expected;
+  return timingSafeEqual(headers.signature, expected);
 };

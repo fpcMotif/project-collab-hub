@@ -1,0 +1,5 @@
+🔒 Fix timing attack vulnerability in Feishu signature verification
+
+🎯 **What:** Replaced the vulnerable string comparison (`===`) with a constant-time comparison in `verifyFeishuRequestSignature`.
+⚠️ **Risk:** The previous `===` string comparison could potentially allow an attacker to forge a valid webhook request signature by exploiting timing differences during the comparison.
+🛡️ **Solution:** Implemented `timingSafeEqual`, a constant-time string equality function that compares using `codePointAt` and bitwise XOR operations, mitigating timing leakages. Added comprehensive tests.
