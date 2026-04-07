@@ -7,7 +7,34 @@ import {
   mapApprovalStatus,
   mapTaskStatus,
   sanitizeLogInput,
+  parseJsonRecord,
 } from "./feishu-webhook";
+
+
+describe("parseJsonRecord", () => {
+  it("returns parsed object for valid JSON record", () => {
+    expect(parseJsonRecord('{"foo": "bar", "baz": 123}')).toEqual({ foo: "bar", baz: 123 });
+  });
+
+  it("returns null for invalid JSON string", () => {
+    // This covers the catch block error path
+    expect(parseJsonRecord('{invalid_json}')).toBeNull();
+  });
+
+  it("returns null for valid JSON array", () => {
+    expect(parseJsonRecord('["a", "b"]')).toBeNull();
+  });
+
+  it("returns null for valid JSON primitive", () => {
+    expect(parseJsonRecord('"a string"')).toBeNull();
+    expect(parseJsonRecord('123')).toBeNull();
+    expect(parseJsonRecord('true')).toBeNull();
+  });
+
+  it("returns null for valid JSON null", () => {
+    expect(parseJsonRecord('null')).toBeNull();
+  });
+});
 
 describe("feishuWebhook helpers", () => {
   it("sanitizes log input and trims control characters", () => {
