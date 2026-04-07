@@ -36,6 +36,7 @@ export const create = mutation({
       lastSyncedAt: Date.now(),
       projectId: args.projectId,
       recordId: args.recordId,
+      syncStatus: "pending",
       tableId: args.tableId,
     });
 
@@ -47,6 +48,13 @@ export const create = mutation({
       objectType: "base_binding",
       projectId: args.projectId,
     });
+
+    // Schedule initial sync push
+    await ctx.scheduler.runAfter(
+      0,
+      internal.baseSyncActions.syncProjectToBase,
+      { bindingId }
+    );
 
     return bindingId;
   },
@@ -67,6 +75,7 @@ export const linkAndSync = mutation({
       lastSyncedAt: Date.now(),
       projectId: args.projectId,
       recordId: args.recordId,
+      syncStatus: "pending",
       tableId: args.tableId,
     });
 
