@@ -3,6 +3,7 @@ import {
   FeishuChatService,
   FeishuMessageService,
   FeishuTaskService,
+  FeishuUserService,
 } from "@collab-hub/feishu-integration";
 import type {
   CreateApprovalInstanceParams,
@@ -321,4 +322,18 @@ export const insertTaskBinding = internalMutation({
       workItemId: args.workItemId,
     });
   },
+});
+
+// ── User Actions ─────────────────────────────────────────────────────────
+
+export const getUser = internalAction({
+  args: {
+    userId: v.string(),
+  },
+  handler: async (_ctx, args) =>
+    await runFeishu(
+      FeishuUserService.pipe(
+        Effect.flatMap((svc) => svc.getUser({ userId: args.userId }))
+      )
+    ),
 });
