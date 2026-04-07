@@ -144,10 +144,13 @@ export const update = mutation({
     }
 
     const patch: Record<string, unknown> = {};
-    if (args.description !== undefined) {
+    if (
+      args.description !== undefined &&
+      args.description !== item.description
+    ) {
       patch.description = args.description;
     }
-    if (args.title !== undefined) {
+    if (args.title !== undefined && args.title !== item.title) {
       patch.title = args.title;
     }
 
@@ -174,8 +177,8 @@ export const update = mutation({
 
     if (binding) {
       await ctx.scheduler.runAfter(0, internal.feishuActions.updateFeishuTask, {
-        description: args.description,
-        summary: args.title,
+        description: patch.description as string | undefined,
+        summary: patch.title as string | undefined,
         taskGuid: binding.feishuTaskGuid,
       });
     }
