@@ -7,6 +7,8 @@ import {
   mapApprovalStatus,
   mapTaskStatus,
   sanitizeLogInput,
+  parseJsonRecord,
+  isRecord,
 } from "./feishu-webhook";
 
 describe("feishuWebhook helpers", () => {
@@ -77,5 +79,43 @@ describe("feishuWebhook helpers", () => {
     await expect(
       createFeishuSignature("secret", "1000", "nonce", '{"ok":true}')
     ).resolves.toBe("RiSrhYBpTF6IgGmVxHBeEVFmcOCPKjJ7L1AY0gMwgeM=");
+  });
+
+  describe("isRecord", () => {
+    it("returns true for objects", () => {
+      expect(isRecord({ a: 1 })).toBe(true);
+      expect(isRecord({})).toBe(true);
+    });
+
+    it("returns false for non-objects or null", () => {
+      expect(isRecord(null)).toBe(false);
+      expect(isRecord()).toBe(false);
+      expect(isRecord([])).toBe(false);
+      expect(isRecord([1, 2, 3])).toBe(false);
+      expect(isRecord("string")).toBe(false);
+      expect(isRecord(123)).toBe(false);
+    });
+  });
+
+  describe("parseJsonRecord", () => {
+    it("parses valid JSON records successfully", () => {
+      expect(parseJsonRecord('{"ok":true,"data":123}')).toEqual({
+        data: 123,
+        ok: true,
+      });
+    });
+
+    it("returns null when JSON parsing fails (error path)", () => {
+      expect(parseJsonRecord("invalid json string")).toBeNull();
+      expect(parseJsonRecord("")).toBeNull();
+      expect(parseJsonRecord("{ bad json }")).toBeNull();
+    });
+
+    it("returns null if parsed JSON is not a record", () => {
+      expect(parseJsonRecord("[1, 2, 3]")).toBeNull();
+      expect(parseJsonRecord('"just a string"')).toBeNull();
+      expect(parseJsonRecord("1234")).toBeNull();
+      expect(parseJsonRecord("null")).toBeNull();
+    });
   });
 });
