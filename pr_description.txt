@@ -1,0 +1,5 @@
+Title: 🧪 Test: Add coverage for pinMessageInChat
+
+🎯 What: The `pinMessageInChat` internal action in `packages/backend/convex/feishuActions.ts` was missing test coverage. This poses a regression risk when making future changes to Feishu integrations.
+📊 Coverage: Added unit tests using vitest to cover the happy path (successfully invoking `runFeishu` with the correct `Effect` from `FeishuChatService`) and the error path (`runFeishu` throwing an error and the handler appropriately rejecting).
+✨ Result: Increased test reliability, ensuring `pinMessageInChat` works as intended without regressions and dependencies are mocked cleanly.
