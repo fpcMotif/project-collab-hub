@@ -527,37 +527,11 @@ export const transitionProjectStage = mutation({
         status: "pending",
       });
 
-      await ctx.scheduler.runAfter(0, internal.feishuActions.sendCardMessage, {
-        card: JSON.stringify({
-          elements: [
-            {
-              fields: [
-                {
-                  is_short: true,
-                  text: {
-                    content: `**Project:** ${project.name}`,
-                    tag: "lark_md",
-                  },
-                },
-                {
-                  is_short: true,
-                  text: {
-                    content: `**Stage:** ${fromStatus} → ${args.targetStatus}`,
-                    tag: "lark_md",
-                  },
-                },
-              ],
-              tag: "div",
-            },
-          ],
-          header: {
-            template: "blue",
-            title: { content: "Stage Transition", tag: "plain_text" },
-          },
-        }),
-        chatId: chatBinding.feishuChatId,
-        deliveryId,
-      });
+      await ctx.scheduler.runAfter(
+        0,
+        internal.notificationActions.processDelivery,
+        { deliveryId }
+      );
     }
 
     return {
