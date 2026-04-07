@@ -7,8 +7,8 @@ import { FeishuBaseServiceLive } from "../services/feishu-base-service.js";
 import { FeishuChatServiceLive } from "../services/feishu-chat-service.js";
 import { FeishuMessageServiceLive } from "../services/feishu-message-service.js";
 import { FeishuTaskServiceLive } from "../services/feishu-task-service.js";
-import { FeishuWorkflowServiceLive } from "../services/feishu-workflow-service.js";
 import { FeishuUserServiceLive } from "../services/feishu-user-service.js";
+import { FeishuWorkflowServiceLive } from "../services/feishu-workflow-service.js";
 
 export const FeishuLive = (config: FeishuAuthConfig) => {
   const authLayer = FeishuAuthServiceLive(config);

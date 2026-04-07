@@ -3,6 +3,7 @@ import {
   FeishuChatService,
   FeishuMessageService,
   FeishuTaskService,
+  FeishuUserService,
 } from "@collab-hub/feishu-integration";
 import type {
   CreateApprovalInstanceParams,
@@ -13,7 +14,6 @@ import type {
   UpdateCardMessageParams,
   UpdateFeishuTaskParams,
 } from "@collab-hub/feishu-integration";
-import { FeishuUserService } from "@collab-hub/feishu-integration";
 import { v } from "convex/values";
 import { Effect } from "effect";
 
@@ -330,9 +330,10 @@ export const getUser = internalAction({
   args: {
     userId: v.string(),
   },
-  handler: async (_ctx, args) => {
-    return await runFeishu(
-      FeishuUserService.pipe(Effect.flatMap((svc) => svc.getUser({ userId: args.userId })))
-    );
-  },
+  handler: async (_ctx, args) =>
+    await runFeishu(
+      FeishuUserService.pipe(
+        Effect.flatMap((svc) => svc.getUser({ userId: args.userId }))
+      )
+    ),
 });

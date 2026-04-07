@@ -36,11 +36,11 @@ export const FeishuUserServiceLive = Layer.effect(
           catch: (error) => wrapFeishuError("Failed to get User record", error),
           try: async () => {
             const response = await auth.client.contact.v3.user.get({
-              path: {
-                user_id: params.userId,
-              },
               params: {
                 user_id_type: params.userIdType ?? "user_id",
+              },
+              path: {
+                user_id: params.userId,
               },
             });
 
@@ -62,18 +62,22 @@ export const FeishuUserServiceLive = Layer.effect(
               };
             };
 
-            const user = data.user;
+            const { user } = data;
             if (!user) {
               throw new FeishuError({ message: "No user in response" });
             }
 
             return {
-              userId: user.user_id || user.open_id || params.userId,
-              name: user.name ?? "Unknown",
-              enName: user.en_name,
+              avatarUrl:
+                user.avatar?.avatar_origin ||
+                user.avatar?.avatar_640 ||
+                user.avatar?.avatar_240 ||
+                user.avatar?.avatar_72,
               email: user.email,
+              enName: user.en_name,
               mobile: user.mobile,
-              avatarUrl: user.avatar?.avatar_origin || user.avatar?.avatar_640 || user.avatar?.avatar_240 || user.avatar?.avatar_72,
+              name: user.name ?? "Unknown",
+              userId: user.user_id || user.open_id || params.userId,
             };
           },
         }),
