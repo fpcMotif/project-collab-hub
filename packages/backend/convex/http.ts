@@ -1,3 +1,4 @@
+// oxlint-disable-next-line import/consistent-type-specifier-style
 import { httpRouter, anyApi, type GenericActionCtx } from "convex/server";
 
 import { api, internal } from "./_generated/api";
