@@ -133,6 +133,7 @@ export const updateStatus = mutation({
 export const update = mutation({
   args: {
     actorId: v.string(),
+    assigneeId: v.optional(v.string()),
     description: v.optional(v.string()),
     id: v.id("workItems"),
     title: v.optional(v.string()),
@@ -150,6 +151,9 @@ export const update = mutation({
     if (args.title !== undefined) {
       patch.title = args.title;
     }
+    if (args.assigneeId !== undefined) {
+      patch.assigneeId = args.assigneeId;
+    }
 
     if (Object.keys(patch).length === 0) {
       return;
@@ -166,13 +170,30 @@ export const update = mutation({
       projectId: item.projectId,
     });
 
-    // Synchronize title/description with Feishu task if it exists
     const binding = await ctx.db
       .query("feishuTaskBindings")
       .withIndex("by_work_item", (q) => q.eq("workItemId", args.id))
       .first();
 
-    if (binding) {
+    // Auto-create a linked Feishu task if one doesn't exist and an assignee is newly specified
+    if (!binding && args.assigneeId && args.assigneeId !== item.assigneeId) {
+      const project = await ctx.db.get(item.projectId);
+      const dueTimestamp = item.dueDate
+        ? String(Math.floor(item.dueDate / 1000))
+        : String(Math.floor((Date.now() + 7 * 24 * 60 * 60 * 1000) / 1000));
+
+      await ctx.scheduler.runAfter(0, internal.feishuActions.createFeishuTask, {
+        description: args.description ?? item.description,
+        dueTimestamp,
+        memberIds: [args.assigneeId],
+        originHref: `/projects/${item.projectId}`,
+        originTitle: project?.name ?? "Project",
+        projectId: item.projectId,
+        summary: args.title ?? item.title,
+        workItemId: args.id,
+      });
+    } else if (binding) {
+      // Synchronize title/description with Feishu task if it exists
       await ctx.scheduler.runAfter(0, internal.feishuActions.updateFeishuTask, {
         description: args.description,
         summary: args.title,
