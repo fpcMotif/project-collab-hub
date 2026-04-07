@@ -73,6 +73,17 @@ export const processDelivery = internalAction({
 
     const payload = JSON.parse(delivery.payload) as Record<string, unknown>;
 
+    if (payload.applicantName && typeof payload.applicantName === "string") {
+      try {
+        const userResult = await ctx.runAction(internal.feishuActions.getUser, { userId: payload.applicantName });
+        if (userResult && userResult.name) {
+          payload.applicantName = userResult.name;
+        }
+      } catch (error) {
+        console.error("Failed to get user details for applicantName lookup", error);
+      }
+    }
+
     try {
       const card = buildNotificationCard(delivery.messageType, payload);
 
