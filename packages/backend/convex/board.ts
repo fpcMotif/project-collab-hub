@@ -175,6 +175,188 @@ const buildBoardProjectRecord = async (
   };
 };
 
+
+async function getBindingsForProject(ctx: QueryCtx, projectId: Id<"projects">) {
+  const [chatBindings, docBindings, baseBindings] = await Promise.all([
+    ctx.db
+      .query("chatBindings")
+      .withIndex("by_project", (q) => q.eq("projectId", projectId))
+      .collect(),
+    ctx.db
+      .query("docBindings")
+      .withIndex("by_project", (q) => q.eq("projectId", projectId))
+      .collect(),
+    ctx.db
+      .query("baseBindings")
+      .withIndex("by_project", (q) => q.eq("projectId", projectId))
+      .collect(),
+  ]);
+
+  return {
+    bases: baseBindings.map((binding) => ({
+      fieldOwnership: binding.fieldOwnership,
+      id: binding._id,
+      lastSyncedAt: binding.lastSyncedAt,
+      recordId: binding.recordId,
+      tableId: binding.tableId,
+    })),
+    chats: chatBindings.map((binding) => ({
+      chatType: binding.chatType,
+      feishuChatId: binding.feishuChatId,
+      id: binding._id,
+      pinnedMessageId: binding.pinnedMessageId,
+    })),
+    docs: docBindings.map((binding) => ({
+      docType: binding.docType,
+      id: binding._id,
+      purpose: binding.purpose,
+      title: binding.title,
+    })),
+  };
+}
+
+
+async function getTimelineForProject(ctx: QueryCtx, projectId: Id<"projects">) {
+  const auditEvents = await ctx.db
+    .query("auditEvents")
+    .withIndex("by_project", (q) => q.eq("projectId", projectId))
+    .order("desc")
+    .collect();
+
+  return auditEvents.map((event) => ({
+    action: event.action,
+    actorId: event.actorId,
+    changeSummary: event.changeSummary,
+    createdAt: event._creationTime,
+    id: event._id,
+    objectId: event.objectId,
+    objectType: event.objectType,
+    sourceEntry: event.sourceEntry,
+  }));
+}
+
+
+async function getCommentsForProject(ctx: QueryCtx, projectId: Id<"projects">) {
+  const comments = await ctx.db
+    .query("comments")
+    .withIndex("by_project", (q) => q.eq("projectId", projectId))
+    .collect();
+
+  const commentMentionsByCommentId = new Map<Id<"comments">, Doc<"mentions">[]>(
+    await Promise.all(
+      comments.map(async (comment) => {
+        const mentions = await ctx.db
+          .query("mentions")
+          .withIndex("by_comment", (q) => q.eq("commentId", comment._id))
+          .collect();
+        return [comment._id, mentions] as const;
+      })
+    )
+  );
+
+  return comments.map((comment) => ({
+    authorId: comment.authorId,
+    body: comment.body,
+    createdAt: comment._creationTime,
+    id: comment._id,
+    isDeleted: comment.isDeleted,
+    mentionedUserIds:
+      commentMentionsByCommentId
+        .get(comment._id)
+        ?.map((mention) => mention.mentionedUserId) ?? [],
+    parentCommentId: comment.parentCommentId ?? null,
+    targetScope: comment.targetScope,
+  }));
+}
+
+
+async function getProjectEntities(ctx: QueryCtx, projectId: Id<"projects">) {
+  const [departmentTracks, workItems, approvalGates, feishuTaskBindings] =
+    await Promise.all([
+      ctx.db
+        .query("departmentTracks")
+        .withIndex("by_project", (q) => q.eq("projectId", projectId))
+        .collect(),
+      ctx.db
+        .query("workItems")
+        .withIndex("by_project", (q) => q.eq("projectId", projectId))
+        .collect(),
+      ctx.db
+        .query("approvalGates")
+        .withIndex("by_project", (q) => q.eq("projectId", projectId))
+        .collect(),
+      ctx.db
+        .query("feishuTaskBindings")
+        .withIndex("by_project", (q) => q.eq("projectId", projectId))
+        .collect(),
+    ]);
+
+  const taskBindingByWorkItemId = new Map(
+    feishuTaskBindings.map((binding) => [binding.workItemId, binding])
+  );
+
+  const departmentTrackById = new Map(
+    departmentTracks.map((track) => [track._id, track])
+  );
+
+  return {
+    approvals: approvalGates.map((gate) => ({
+      applicantId: gate.applicantId,
+      approvalCode: gate.approvalCode,
+      departmentName: gate.departmentTrackId
+        ? (departmentTrackById.get(gate.departmentTrackId)?.departmentName ??
+          null)
+        : null,
+      id: gate._id,
+      instanceCode: gate.instanceCode,
+      resolvedAt: gate.resolvedAt,
+      resolvedBy: gate.resolvedBy,
+      status: gate.status,
+      title: gate.title,
+      triggerStage: gate.triggerStage,
+    })),
+    departmentTracks: departmentTracks.map((track) => ({
+      blockReason: track.blockReason,
+      collaboratorIds: track.collaboratorIds ?? [],
+      departmentId: track.departmentId,
+      departmentName: track.departmentName,
+      dueDate: track.dueDate,
+      id: track._id,
+      isRequired: track.isRequired,
+      ownerId: track.ownerId,
+      pendingApprovalCount: approvalGates.filter(
+        (gate) =>
+          gate.departmentTrackId === track._id && gate.status === "pending"
+      ).length,
+      relatedWorkItemCount: workItems.filter(
+        (item) => item.departmentTrackId === track._id
+      ).length,
+      status: track.status,
+    })),
+    workItems: workItems.map((item) => {
+      const binding = taskBindingByWorkItemId.get(item._id);
+      return {
+        assigneeId: item.assigneeId,
+        collaboratorIds: item.collaboratorIds ?? [],
+        completedAt: item.completedAt,
+        departmentName: item.departmentTrackId
+          ? (departmentTrackById.get(item.departmentTrackId)?.departmentName ??
+            null)
+          : null,
+        departmentTrackId: item.departmentTrackId,
+        description: item.description,
+        dueDate: item.dueDate,
+        feishuTaskGuid: binding?.feishuTaskGuid ?? null,
+        feishuTaskStatus: binding?.feishuTaskStatus ?? null,
+        id: item._id,
+        priority: item.priority,
+        status: item.status,
+        title: item.title,
+      };
+    }),
+  };
+}
+
 export const listBoardProjects = query({
   args: {},
   handler: async (ctx) => {
@@ -198,147 +380,23 @@ export const getProjectDetail = query({
 
     const [
       boardProject,
-      departmentTracks,
-      workItems,
-      approvalGates,
+      bindings,
+      timeline,
       comments,
-      auditEvents,
-      chatBindings,
-      docBindings,
-      baseBindings,
-      feishuTaskBindings,
+      entities,
     ] = await Promise.all([
       buildBoardProjectRecord(ctx, project),
-      ctx.db
-        .query("departmentTracks")
-        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-        .collect(),
-      ctx.db
-        .query("workItems")
-        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-        .collect(),
-      ctx.db
-        .query("approvalGates")
-        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-        .collect(),
-      ctx.db
-        .query("comments")
-        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-        .collect(),
-      ctx.db
-        .query("auditEvents")
-        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-        .order("desc")
-        .collect(),
-      ctx.db
-        .query("chatBindings")
-        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-        .collect(),
-      ctx.db
-        .query("docBindings")
-        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-        .collect(),
-      ctx.db
-        .query("baseBindings")
-        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-        .collect(),
-      ctx.db
-        .query("feishuTaskBindings")
-        .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-        .collect(),
+      getBindingsForProject(ctx, args.projectId),
+      getTimelineForProject(ctx, args.projectId),
+      getCommentsForProject(ctx, args.projectId),
+      getProjectEntities(ctx, args.projectId),
     ]);
 
-    const taskBindingByWorkItemId = new Map(
-      feishuTaskBindings.map((binding) => [binding.workItemId, binding])
-    );
-
-    const departmentTrackById = new Map(
-      departmentTracks.map((track) => [track._id, track])
-    );
-
-    const commentMentionsByCommentId = new Map<
-      Id<"comments">,
-      Doc<"mentions">[]
-    >(
-      await Promise.all(
-        comments.map(async (comment) => {
-          const mentions = await ctx.db
-            .query("mentions")
-            .withIndex("by_comment", (q) => q.eq("commentId", comment._id))
-            .collect();
-          return [comment._id, mentions] as const;
-        })
-      )
-    );
-
     return {
-      approvals: approvalGates.map((gate) => ({
-        applicantId: gate.applicantId,
-        approvalCode: gate.approvalCode,
-        departmentName: gate.departmentTrackId
-          ? (departmentTrackById.get(gate.departmentTrackId)?.departmentName ??
-            null)
-          : null,
-        id: gate._id,
-        instanceCode: gate.instanceCode,
-        resolvedAt: gate.resolvedAt,
-        resolvedBy: gate.resolvedBy,
-        status: gate.status,
-        title: gate.title,
-        triggerStage: gate.triggerStage,
-      })),
-      bindings: {
-        bases: baseBindings.map((binding) => ({
-          fieldOwnership: binding.fieldOwnership,
-          id: binding._id,
-          lastSyncedAt: binding.lastSyncedAt,
-          recordId: binding.recordId,
-          tableId: binding.tableId,
-        })),
-        chats: chatBindings.map((binding) => ({
-          chatType: binding.chatType,
-          feishuChatId: binding.feishuChatId,
-          id: binding._id,
-          pinnedMessageId: binding.pinnedMessageId,
-        })),
-        docs: docBindings.map((binding) => ({
-          docType: binding.docType,
-          id: binding._id,
-          purpose: binding.purpose,
-          title: binding.title,
-        })),
-      },
-      comments: comments.map((comment) => ({
-        authorId: comment.authorId,
-        body: comment.body,
-        createdAt: comment._creationTime,
-        id: comment._id,
-        isDeleted: comment.isDeleted,
-        mentionedUserIds:
-          commentMentionsByCommentId
-            .get(comment._id)
-            ?.map((mention) => mention.mentionedUserId) ?? [],
-        parentCommentId: comment.parentCommentId ?? null,
-        targetScope: comment.targetScope,
-      })),
-      departmentTracks: departmentTracks.map((track) => ({
-        blockReason: track.blockReason,
-        collaboratorIds: track.collaboratorIds ?? [],
-        departmentId: track.departmentId,
-        departmentName: track.departmentName,
-        dueDate: track.dueDate,
-        id: track._id,
-        isRequired: track.isRequired,
-        ownerId: track.ownerId,
-        pendingApprovalCount: approvalGates.filter(
-          (gate) =>
-            gate.departmentTrackId === track._id && gate.status === "pending"
-        ).length,
-        relatedWorkItemCount: workItems.filter(
-          (item) => item.departmentTrackId === track._id
-        ).length,
-        status: track.status,
-      })),
+      approvals: entities.approvals,
+      bindings,
+      comments,
+      departmentTracks: entities.departmentTracks,
       project: {
         ...boardProject,
         createdBy: project.createdBy,
@@ -348,37 +406,8 @@ export const getProjectDetail = query({
         sourceEntry: project.sourceEntry,
         startDate: project.startDate,
       },
-      timeline: auditEvents.map((event) => ({
-        action: event.action,
-        actorId: event.actorId,
-        changeSummary: event.changeSummary,
-        createdAt: event._creationTime,
-        id: event._id,
-        objectId: event.objectId,
-        objectType: event.objectType,
-        sourceEntry: event.sourceEntry,
-      })),
-      workItems: workItems.map((item) => {
-        const binding = taskBindingByWorkItemId.get(item._id);
-        return {
-          assigneeId: item.assigneeId,
-          collaboratorIds: item.collaboratorIds ?? [],
-          completedAt: item.completedAt,
-          departmentName: item.departmentTrackId
-            ? (departmentTrackById.get(item.departmentTrackId)
-                ?.departmentName ?? null)
-            : null,
-          departmentTrackId: item.departmentTrackId,
-          description: item.description,
-          dueDate: item.dueDate,
-          feishuTaskGuid: binding?.feishuTaskGuid ?? null,
-          feishuTaskStatus: binding?.feishuTaskStatus ?? null,
-          id: item._id,
-          priority: item.priority,
-          status: item.status,
-          title: item.title,
-        };
-      }),
+      timeline,
+      workItems: entities.workItems,
     };
   },
 });
