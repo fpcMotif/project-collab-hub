@@ -243,6 +243,17 @@ export const completeFeishuTask = internalAction({
   },
 });
 
+export const uncompleteFeishuTask = internalAction({
+  args: { taskGuid: v.string() },
+  handler: async (_ctx, args) => {
+    await runFeishu(
+      FeishuTaskService.pipe(
+        Effect.flatMap((svc) => svc.uncompleteTask(args.taskGuid))
+      )
+    );
+  },
+});
+
 export const updateFeishuTask = internalAction({
   args: {
     description: v.optional(v.string()),

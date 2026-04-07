@@ -40,6 +40,9 @@ export class FeishuTaskService extends Context.Tag("FeishuTaskService")<
     readonly completeTask: (
       taskGuid: string
     ) => Effect.Effect<void, FeishuError>;
+    readonly uncompleteTask: (
+      taskGuid: string
+    ) => Effect.Effect<void, FeishuError>;
     readonly getTask: (
       taskGuid: string
     ) => Effect.Effect<Record<string, unknown>, FeishuError>;
@@ -113,6 +116,23 @@ export const FeishuTaskServiceLive = Layer.effect(
             });
 
             return getFeishuObjectData(response);
+          },
+        }),
+
+      uncompleteTask: (taskGuid: string) =>
+        Effect.tryPromise({
+          catch: (error) =>
+            wrapFeishuError("Failed to uncomplete Feishu task", error),
+          try: async () => {
+            const response = await auth.client.task.v2.task.patch({
+              data: {
+                task: { completed_at: "0" },
+                update_fields: ["completed_at"],
+              },
+              path: { task_guid: taskGuid },
+            });
+
+            assertFeishuSuccess(response);
           },
         }),
 

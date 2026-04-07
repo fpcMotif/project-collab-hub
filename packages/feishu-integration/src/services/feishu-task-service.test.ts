@@ -80,6 +80,14 @@ const runCompleteTask = (testLayer: ReturnType<typeof createTestLayer>) =>
     )
   );
 
+const runUncompleteTask = (testLayer: ReturnType<typeof createTestLayer>) =>
+  Effect.runPromise(
+    FeishuTaskService.pipe(
+      Effect.andThen((service) => service.uncompleteTask("mock-task-guid-123")),
+      Effect.provide(testLayer)
+    )
+  );
+
 const runGetTask = (testLayer: ReturnType<typeof createTestLayer>) =>
   Effect.runPromise(
     FeishuTaskService.pipe(
@@ -184,6 +192,34 @@ describe("FeishuTaskService", () => {
 
       await expect(runCompleteTask(testLayer)).rejects.toThrow(
         "Failed to complete Feishu task: Feishu API failed with code 403: forbidden"
+      );
+    });
+  });
+
+  describe("uncompleteTask", () => {
+    it("uncompletes a task with the expected payload", async () => {
+      const patchRequest = mock().mockResolvedValue({ code: 0, data: {} });
+      const testLayer = createTestLayer({ patchRequest });
+
+      await expect(runUncompleteTask(testLayer)).resolves.toBeUndefined();
+      expect(patchRequest).toHaveBeenCalledWith({
+        data: {
+          task: { completed_at: "0" },
+          update_fields: ["completed_at"],
+        },
+        path: { task_guid: "mock-task-guid-123" },
+      });
+    });
+
+    it("fails when Feishu rejects task uncompletion", async () => {
+      const patchRequest = mock().mockResolvedValue({
+        code: 403,
+        msg: "forbidden",
+      });
+      const testLayer = createTestLayer({ patchRequest });
+
+      await expect(runUncompleteTask(testLayer)).rejects.toThrow(
+        "Failed to uncomplete Feishu task: Feishu API failed with code 403: forbidden"
       );
     });
   });

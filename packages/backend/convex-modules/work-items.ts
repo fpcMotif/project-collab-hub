@@ -111,7 +111,10 @@ export const updateStatus = mutation({
     });
 
     // Synchronize completion status with Feishu task if it exists
-    if (args.status === "done") {
+    if (
+      item.status !== args.status &&
+      (args.status === "done" || item.status === "done")
+    ) {
       const binding = await ctx.db
         .query("feishuTaskBindings")
         .withIndex("by_work_item", (q) => q.eq("workItemId", args.id))
@@ -120,7 +123,9 @@ export const updateStatus = mutation({
       if (binding) {
         await ctx.scheduler.runAfter(
           0,
-          internal.feishuActions.completeFeishuTask,
+          args.status === "done"
+            ? internal.feishuActions.completeFeishuTask
+            : internal.feishuActions.uncompleteFeishuTask,
           {
             taskGuid: binding.feishuTaskGuid,
           }
