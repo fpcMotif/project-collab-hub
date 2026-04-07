@@ -23,6 +23,9 @@ type CallableCtx = GenericActionCtx<DataModel>;
 const isValidId = (value: string): value is Id<"workItems"> =>
   isValidConvexWorkItemId(value);
 
+const isValidProjectId = (value: string): value is Id<"projects"> =>
+  /^[a-z0-9]{32}$/.test(value);
+
 const http = httpRouter();
 
 const verifySignature = (
@@ -326,8 +329,12 @@ http.route({
       }
 
       const [, projectId] = projectIdMatch;
+      if (!isValidProjectId(projectId)) {
+        return Response.json({}, { status: 200 });
+      }
+
       const project = await ctx
-        .runQuery(anyApi.projects.getById, { id: projectId as never })
+        .runQuery(anyApi.projects.getById, { id: projectId })
         .catch(() => null);
 
       if (!project) {
