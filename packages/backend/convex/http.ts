@@ -17,6 +17,7 @@ import {
   readFeishuSignatureHeaders,
   verifyFeishuRequestSignature,
 } from "./lib/feishu-signature";
+import { logger } from "./lib/logger";
 
 type CallableCtx = GenericActionCtx<DataModel>;
 
@@ -215,9 +216,9 @@ http.route({
         default:
       }
     } catch (error) {
-      console.error(
+      logger.error(
         `[feishu/events] Error handling ${eventType} (${eventId}):`,
-        error instanceof Error ? error.message : error
+        error
       );
     }
 
@@ -288,10 +289,7 @@ http.route({
         default:
       }
     } catch (error) {
-      console.error(
-        "[feishu/card-callback] Error:",
-        error instanceof Error ? error.message : error
-      );
+      logger.error("[feishu/card-callback] Error:", error);
     }
 
     return Response.json({}, { status: 200 });
@@ -349,10 +347,7 @@ http.route({
 
       return Response.json(previewCard, { status: 200 });
     } catch (error) {
-      console.error(
-        "[feishu/link-preview] Error:",
-        error instanceof Error ? error.message : error
-      );
+      logger.error("[feishu/link-preview] Error:", error);
       return Response.json({}, { status: 200 });
     }
   }),
@@ -413,10 +408,7 @@ http.route({
         });
       }
     } catch (error) {
-      console.error(
-        "[feishu/workflow-callback] Error:",
-        error instanceof Error ? error.message : error
-      );
+      logger.error("[feishu/workflow-callback] Error:", error);
     }
 
     return Response.json({ ok: true }, { status: 200 });
