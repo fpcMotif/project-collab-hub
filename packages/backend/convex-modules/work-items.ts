@@ -144,7 +144,10 @@ export const update = mutation({
     }
 
     const patch: Record<string, unknown> = {};
-    if (args.description !== undefined && args.description !== item.description) {
+    if (
+      args.description !== undefined &&
+      args.description !== item.description
+    ) {
       patch.description = args.description;
     }
     if (args.title !== undefined && args.title !== item.title) {
@@ -172,7 +175,7 @@ export const update = mutation({
       .withIndex("by_work_item", (q) => q.eq("workItemId", args.id))
       .first();
 
-    if (binding && (patch.description !== undefined || patch.title !== undefined)) {
+    if (binding) {
       await ctx.scheduler.runAfter(0, internal.feishuActions.updateFeishuTask, {
         description: patch.description as string | undefined,
         summary: patch.title as string | undefined,
