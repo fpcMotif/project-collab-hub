@@ -1,5 +1,5 @@
-import { Cause, Effect, Logger, LogLevel } from "effect";
-import type { Layer } from "effect";
+// oxlint-disable-next-line import/consistent-type-specifier-style
+import { Cause, Effect, type Layer, Logger, LogLevel } from "effect";
 
 /**
  * Run an Effect to a Promise, providing a Layer.
