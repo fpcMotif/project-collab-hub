@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
 
 :root {
   --background: #ffffff;
@@ -12,8 +14,8 @@
   --color-foreground: var(--foreground);
   --color-board-bg: var(--board-bg);
   --color-column-bg: var(--column-bg);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: "Geist Variable", system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -28,5 +30,5 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Geist Variable", system-ui, sans-serif;
 }

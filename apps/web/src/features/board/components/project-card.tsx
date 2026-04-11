@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 
 import { cn } from "@/lib/cn";
 
@@ -53,9 +53,10 @@ export const ProjectCard = ({
         {card.name}
       </h3>
       <Link
-        href={`/projects/${card.id}`}
+        to="/projects/$projectId"
+        params={{ projectId: card.id }}
         className="shrink-0 rounded-md border border-gray-200 px-2 py-1 text-[11px] font-medium text-gray-600 hover:border-blue-300 hover:text-blue-700"
-        onDragStart={(event) => event.preventDefault()}
+        onDragStart={(event: React.DragEvent) => event.preventDefault()}
       >
         详情
       </Link>
