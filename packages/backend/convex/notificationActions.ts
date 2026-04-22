@@ -71,7 +71,18 @@ export const processDelivery = internalAction({
       deliveryId: args.deliveryId,
     });
 
-    const payload = JSON.parse(delivery.payload) as Record<string, unknown>;
+    let payload: Record<string, unknown>;
+    try {
+      payload = JSON.parse(delivery.payload) as Record<string, unknown>;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      await ctx.runMutation(internal.notificationActions.markFailed, {
+        deliveryId: args.deliveryId,
+        lastError: `Invalid JSON payload: ${errorMessage}`,
+      });
+      return;
+    }
 
     if (payload.applicantName && typeof payload.applicantName === "string") {
       try {
