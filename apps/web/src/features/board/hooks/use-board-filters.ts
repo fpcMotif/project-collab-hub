@@ -1,4 +1,4 @@
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 
 import type {
@@ -86,9 +86,13 @@ const buildUrl = (pathname: string, params: URLSearchParams): string => {
 };
 
 export const useBoardFilters = () => {
-  const pathname = usePathname();
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { pathname } = location;
+  const searchParams = useMemo(
+    () => new URLSearchParams(location.searchStr),
+    [location.searchStr]
+  );
 
   const filters = useMemo(() => parseFilters(searchParams), [searchParams]);
 
@@ -103,9 +107,9 @@ export const useBoardFilters = () => {
         }
       }
 
-      router.replace(buildUrl(pathname, params), { scroll: false });
+      navigate({ replace: true, to: buildUrl(pathname, params) });
     },
-    [pathname, router]
+    [pathname, navigate]
   );
 
   const setFilter = useCallback(
@@ -116,18 +120,18 @@ export const useBoardFilters = () => {
       } else {
         params.set(key, value);
       }
-      router.replace(buildUrl(pathname, params), { scroll: false });
+      navigate({ replace: true, to: buildUrl(pathname, params) });
     },
-    [pathname, router, searchParams]
+    [pathname, navigate, searchParams]
   );
 
   const clearFilter = useCallback(
     (key: keyof BoardFilterState) => {
       const params = new URLSearchParams(searchParams.toString());
       params.delete(key);
-      router.replace(buildUrl(pathname, params), { scroll: false });
+      navigate({ replace: true, to: buildUrl(pathname, params) });
     },
-    [pathname, router, searchParams]
+    [pathname, navigate, searchParams]
   );
 
   const clearAll = useCallback(() => {
@@ -135,8 +139,8 @@ export const useBoardFilters = () => {
     for (const key of FILTER_KEYS) {
       params.delete(key);
     }
-    router.replace(buildUrl(pathname, params), { scroll: false });
-  }, [pathname, router, searchParams]);
+    navigate({ replace: true, to: buildUrl(pathname, params) });
+  }, [pathname, navigate, searchParams]);
 
   return { clearAll, clearFilter, filters, replaceFilters, setFilter } as const;
 };

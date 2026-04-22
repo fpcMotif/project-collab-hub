@@ -16,6 +16,7 @@
     "check": "ultracite check",
     "fix": "ultracite fix",
     "test": "turbo run test",
+    "deploy:web": "turbo run deploy --filter=@collab-hub/web",
     "validate": "bun run lint && bun run check-types && bun run test && bun run build",
     "prepare": "lefthook install"
   },

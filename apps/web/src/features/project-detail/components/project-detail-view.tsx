@@ -1,6 +1,5 @@
-"use client";
-
-import Link from "next/link";
+import type { ProjectStatus } from "@collab-hub/shared";
+import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 
 import { CardMetaRow } from "@/features/board/components/card-meta-row";
@@ -19,15 +18,16 @@ import { cn } from "@/lib/cn";
 
 import { formatDate, formatDateTime } from "../formatters";
 import type {
-  ApprovalStatus,
-  ProjectDetailApproval,
+  ProjectDetailBaseBinding,
   ProjectDetailComment,
   ProjectDetailData,
   ProjectDetailDepartmentTrack,
   ProjectDetailTimelineEvent,
   ProjectDetailWorkItem,
+  SyncStatus,
   WorkItemStatus,
 } from "../types";
+import { ApprovalGate } from "./approval-gate";
 import { CommentComposer } from "./comment-composer";
 
 const WORK_ITEM_STATUS_STYLES: Record<WorkItemStatus, string> = {
@@ -42,20 +42,6 @@ const WORK_ITEM_STATUS_LABELS: Record<WorkItemStatus, string> = {
   in_progress: "进行中",
   in_review: "评审中",
   todo: "待开始",
-};
-
-const APPROVAL_STATUS_STYLES: Record<ApprovalStatus, string> = {
-  approved: "bg-green-100 text-green-700",
-  cancelled: "bg-gray-100 text-gray-600",
-  pending: "bg-amber-100 text-amber-700",
-  rejected: "bg-red-100 text-red-700",
-};
-
-const APPROVAL_STATUS_LABELS: Record<ApprovalStatus, string> = {
-  approved: "已通过",
-  cancelled: "已取消",
-  pending: "待审批",
-  rejected: "已拒绝",
 };
 
 interface ProjectDetailViewProps {
@@ -75,6 +61,12 @@ interface ProjectDetailViewProps {
     approvalId: string,
     status: "approved" | "rejected"
   ) => Promise<{ ok: boolean; message?: string }>;
+  onRequestApproval: (
+    title: string,
+    approvalCode: string,
+    triggerStage: ProjectStatus
+  ) => Promise<{ ok: boolean; message?: string }>;
+  onTriggerBaseSync?: (bindingId: string) => void;
 }
 
 const getProjectMemberOptions = (detail: ProjectDetailData) =>
@@ -217,66 +209,6 @@ const WorkItemRow = ({
   </div>
 );
 
-const ApprovalRow = ({
-  approval,
-  onResolve,
-}: {
-  approval: ProjectDetailApproval;
-  onResolve: (
-    approvalId: string,
-    status: "approved" | "rejected"
-  ) => Promise<{ ok: boolean; message?: string }>;
-}) => (
-  <div className="rounded-lg border border-gray-200 p-3">
-    <div className="flex items-start justify-between gap-2">
-      <div>
-        <p className="text-sm font-semibold text-gray-900">{approval.title}</p>
-        <p className="mt-1 text-xs text-gray-500">
-          阶段：
-          {getColumnNameByStatus(approval.triggerStage) ??
-            approval.triggerStage}
-          {approval.departmentName ? ` · ${approval.departmentName}` : ""}
-        </p>
-      </div>
-      <span
-        className={cn(
-          "rounded-full px-2 py-1 text-xs font-medium",
-          APPROVAL_STATUS_STYLES[approval.status]
-        )}
-      >
-        {APPROVAL_STATUS_LABELS[approval.status]}
-      </span>
-    </div>
-    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-      <span>申请人：{approval.applicantId}</span>
-      <span>实例：{approval.instanceCode ?? "未生成"}</span>
-      <span>处理时间：{formatDateTime(approval.resolvedAt)}</span>
-    </div>
-    {approval.status === "pending" && (
-      <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => {
-            onResolve(approval.id, "approved");
-          }}
-          className="rounded-md border border-green-200 px-2.5 py-1 text-xs font-medium text-green-700 hover:bg-green-50"
-        >
-          通过
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            onResolve(approval.id, "rejected");
-          }}
-          className="rounded-md border border-red-200 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
-        >
-          驳回
-        </button>
-      </div>
-    )}
-  </div>
-);
-
 const CommentRow = ({
   comment,
   onDelete,
@@ -349,6 +281,66 @@ const BindingGroup = ({ title, items }: { title: string; items: string[] }) => (
   </div>
 );
 
+const SYNC_STATUS_STYLES: Record<SyncStatus, string> = {
+  error: "bg-red-500",
+  ok: "bg-green-500",
+  pending: "bg-amber-400 animate-pulse",
+};
+
+const SYNC_STATUS_LABELS: Record<SyncStatus, string> = {
+  error: "同步失败",
+  ok: "已同步",
+  pending: "同步中",
+};
+
+const BaseBindingRow = ({
+  binding,
+  onTriggerSync,
+}: {
+  binding: ProjectDetailBaseBinding;
+  onTriggerSync?: (bindingId: string) => void;
+}) => (
+  <li className="rounded-lg bg-gray-50 px-3 py-2">
+    <div className="flex items-center justify-between gap-2">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm text-gray-700">
+          {binding.tableId} · {binding.recordId}
+        </p>
+        <div className="mt-1 flex items-center gap-2 text-xs text-gray-400">
+          <span
+            className={cn(
+              "inline-block h-2 w-2 rounded-full",
+              SYNC_STATUS_STYLES[binding.syncStatus]
+            )}
+          />
+          <span>{SYNC_STATUS_LABELS[binding.syncStatus]}</span>
+          <span>· {formatDateTime(binding.lastSyncedAt)}</span>
+        </div>
+        {binding.syncStatus === "error" && binding.lastSyncError && (
+          <p className="mt-1 truncate text-xs text-red-500">
+            {binding.lastSyncError}
+          </p>
+        )}
+      </div>
+      {onTriggerSync && (
+        <button
+          type="button"
+          onClick={() => onTriggerSync(binding.id)}
+          disabled={binding.syncStatus === "pending"}
+          className={cn(
+            "shrink-0 rounded-md px-2 py-1 text-xs font-medium transition-colors",
+            binding.syncStatus === "pending"
+              ? "cursor-not-allowed bg-gray-100 text-gray-400"
+              : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+          )}
+        >
+          同步
+        </button>
+      )}
+    </div>
+  </li>
+);
+
 const EmptyHint = ({ text }: { text: string }) => (
   <p className="rounded-lg bg-gray-50 px-3 py-6 text-center text-sm text-gray-400">
     {text}
@@ -361,6 +353,8 @@ export const ProjectDetailView = ({
   onDeleteComment,
   onUpdateWorkItemStatus,
   onResolveApproval,
+  onRequestApproval,
+  onTriggerBaseSync,
 }: ProjectDetailViewProps) => {
   const stageAdvance = buildStageAdvanceState(detail.project);
   const currentStageName =
@@ -373,7 +367,7 @@ export const ProjectDetailView = ({
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
           <div>
             <Link
-              href="/board"
+              to="/board"
               className="text-sm text-blue-600 hover:text-blue-700"
             >
               ← 返回项目看板
@@ -465,10 +459,11 @@ export const ProjectDetailView = ({
           <SectionCard title="审批门禁">
             <div className="space-y-3">
               {detail.approvals.map((approval) => (
-                <ApprovalRow
+                <ApprovalGate
                   key={approval.id}
                   approval={approval}
                   onResolve={onResolveApproval}
+                  onRequestResubmit={onRequestApproval}
                 />
               ))}
               {detail.approvals.length === 0 && (
@@ -492,12 +487,22 @@ export const ProjectDetailView = ({
                 (binding) => `${binding.docType} · ${binding.title}`
               )}
             />
-            <BindingGroup
-              title="Base"
-              items={detail.bindings.bases.map(
-                (binding) => `${binding.tableId} · ${binding.recordId}`
+            <div className="mt-3">
+              <h3 className="text-sm font-medium text-gray-800">Base</h3>
+              {detail.bindings.bases.length === 0 ? (
+                <p className="mt-1 text-sm text-gray-400">暂无绑定</p>
+              ) : (
+                <ul className="mt-2 space-y-2">
+                  {detail.bindings.bases.map((binding) => (
+                    <BaseBindingRow
+                      key={binding.id}
+                      binding={binding}
+                      onTriggerSync={onTriggerBaseSync}
+                    />
+                  ))}
+                </ul>
               )}
-            />
+            </div>
           </SectionCard>
 
           <SectionCard title="评论线程">
@@ -560,7 +565,7 @@ export const ProjectDetailNotFound = ({ projectId }: { projectId: string }) => (
       <h1 className="text-xl font-semibold text-gray-900">未找到项目</h1>
       <p className="mt-2 text-sm text-gray-500">项目 ID：{projectId}</p>
       <Link
-        href="/board"
+        to="/board"
         className="mt-4 inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
       >
         返回看板

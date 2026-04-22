@@ -8,8 +8,7 @@
     "import",
     "jsdoc",
     "node",
-    "promise",
-    "nextjs"
+    "promise"
   ],
   "env": {
     "browser": true
@@ -102,11 +101,11 @@
       }
     },
     {
-      "files": ["**/next-env.d.ts"],
+      "files": ["src/routes/**/*.{ts,tsx}"],
       "rules": {
-        "import/no-unassigned-import": "off"
+        "no-use-before-define": "off"
       }
     }
   ],
-  "ignorePatterns": [".next", "out", "build", "node_modules"]
+  "ignorePatterns": ["dist", "node_modules", "routeTree.gen.ts"]
 }

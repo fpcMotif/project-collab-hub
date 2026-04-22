@@ -1,5 +1,4 @@
-"use client";
-
+import type { ProjectStatus } from "@collab-hub/shared";
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 
 import { useMockProjectStore } from "@/features/board/hooks/use-mock-project-store";
@@ -463,7 +462,7 @@ export const useMockProjectDetailState = (projectId: string) => {
   );
 
   const requestApproval = useCallback(
-    (title: string, approvalCode: string, triggerStage: string) => {
+    (title: string, approvalCode: string, triggerStage: ProjectStatus) => {
       if (!detail) {
         return Promise.resolve({ message: "未找到项目详情", ok: false });
       }
@@ -497,6 +496,13 @@ export const useMockProjectDetailState = (projectId: string) => {
     [detail, projectId, updateOverlay]
   );
 
+  const triggerBaseSync = useCallback(
+    // eslint-disable-next-line require-await -- mock stub
+    async (_bindingId: string) =>
+      ({ message: "同步已触发（模拟）", ok: true }) as const,
+    []
+  );
+
   return {
     createComment,
     deleteComment,
@@ -504,6 +510,7 @@ export const useMockProjectDetailState = (projectId: string) => {
     isLoading: false,
     requestApproval,
     resolveApproval,
+    triggerBaseSync,
     updateWorkItemStatus,
   } as const;
 };

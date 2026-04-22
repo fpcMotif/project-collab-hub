@@ -1,6 +1,4 @@
-"use client";
-
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 
@@ -92,7 +90,7 @@ export const ProjectCreateForm = ({
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
           <div>
             <Link
-              href="/board"
+              to="/board"
               className="text-sm text-blue-600 hover:text-blue-700"
             >
               ← 返回项目看板
@@ -224,7 +222,7 @@ export const ProjectCreateForm = ({
 
           <div className="mt-5 flex items-center justify-end gap-3">
             <Link
-              href="/board"
+              to="/board"
               className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:border-gray-400"
             >
               取消

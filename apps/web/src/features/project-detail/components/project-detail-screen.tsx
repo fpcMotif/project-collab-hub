@@ -1,5 +1,3 @@
-"use client";
-
 import { useConvexEnabled } from "@/providers/convex-client-provider";
 
 import { useConvexProjectDetail } from "../hooks/use-convex-project-detail";
@@ -28,6 +26,8 @@ const ConnectedProjectDetailScreen = ({ projectId }: { projectId: string }) => {
       onDeleteComment={detailState.deleteComment}
       onUpdateWorkItemStatus={detailState.updateWorkItemStatus}
       onResolveApproval={detailState.resolveApproval}
+      onRequestApproval={detailState.requestApproval}
+      onTriggerBaseSync={detailState.triggerBaseSync}
     />
   );
 };
@@ -46,6 +46,8 @@ const MockProjectDetailScreen = ({ projectId }: { projectId: string }) => {
       onDeleteComment={detailState.deleteComment}
       onUpdateWorkItemStatus={detailState.updateWorkItemStatus}
       onResolveApproval={detailState.resolveApproval}
+      onRequestApproval={detailState.requestApproval}
+      onTriggerBaseSync={detailState.triggerBaseSync}
     />
   );
 };
