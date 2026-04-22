@@ -1,4 +1,3 @@
-/* eslint-disable max-classes-per-file */
 import { Schema } from "effect";
 
 export const CommentTargetScope = Schema.Literal(

@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 
 import type { BoardFilterState, BoardSavedView } from "../../types";

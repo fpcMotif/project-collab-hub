@@ -1,7 +1,5 @@
-"use client";
-
+import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
-import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { useMockProjectStore } from "@/features/board/hooks/use-mock-project-store";
@@ -78,7 +76,7 @@ const ProjectCreateLoading = () => (
 );
 
 const ConnectedProjectCreateScreen = () => {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const templatesQuery = useQuery(convexFunctionRefs.listProjectTemplates, {
     activeOnly: true,
@@ -118,7 +116,10 @@ const ConnectedProjectCreateScreen = () => {
             templateId: values.templateId,
           });
 
-          router.push(`/projects/${result.projectId}`);
+          navigate({
+            params: { projectId: result.projectId },
+            to: "/projects/$projectId",
+          });
           return { ok: true, projectId: result.projectId };
         } catch (error) {
           return {
@@ -134,7 +135,7 @@ const ConnectedProjectCreateScreen = () => {
 };
 
 const MockProjectCreateScreen = () => {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { addProject } = useMockProjectStore();
 
@@ -154,7 +155,10 @@ const MockProjectCreateScreen = () => {
         try {
           const project = createMockProjectRecord(values, template);
           addProject(project);
-          router.push(`/projects/${project.id}`);
+          navigate({
+            params: { projectId: project.id },
+            to: "/projects/$projectId",
+          });
           return Promise.resolve({ ok: true, projectId: project.id });
         } finally {
           setIsSubmitting(false);

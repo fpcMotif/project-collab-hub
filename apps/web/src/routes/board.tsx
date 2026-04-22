@@ -1,7 +1,10 @@
-"use client";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Suspense, lazy } from "react";
 
-import dynamic from "next/dynamic";
-import Link from "next/link";
+const Board = lazy(async () => {
+  const m = await import("@/features/board/components/board");
+  return { default: m.Board };
+});
 
 const BoardSkeleton = () => (
   <div className="flex h-full gap-3 overflow-x-auto">
@@ -20,29 +23,28 @@ const BoardSkeleton = () => (
   </div>
 );
 
-const Board = dynamic(
-  async () => {
-    const m = await import("@/features/board/components/board");
-    return { default: m.Board };
-  },
-  { loading: BoardSkeleton, ssr: false }
-);
-
 const BoardPage = () => (
   <div className="flex h-screen flex-col bg-gray-100">
     <header className="flex shrink-0 items-center justify-between border-b border-gray-200 bg-white px-6 py-3">
       <h1 className="text-lg font-bold text-gray-900">项目看板</h1>
       <Link
-        href="/projects/new"
+        to="/projects/new"
         className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
       >
         新建项目
       </Link>
     </header>
     <main className="flex-1 overflow-hidden p-4">
-      <Board />
+      <Suspense fallback={<BoardSkeleton />}>
+        <Board />
+      </Suspense>
     </main>
   </div>
 );
 
-export default BoardPage;
+export const Route = createFileRoute("/board")({
+  component: BoardPage,
+  head: () => ({
+    meta: [{ title: "项目看板 - Project Collab Hub" }],
+  }),
+});

@@ -4,7 +4,11 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+      "outputs": ["dist/**"]
+    },
+    "deploy": {
+      "dependsOn": ["^build"],
+      "cache": false
     },
     "dev": {
       "persistent": true,
@@ -46,10 +50,6 @@
         "tests/**/*.tsx",
         "vitest.config.ts"
       ]
-    },
-    "test:e2e": {
-      "cache": false,
-      "dependsOn": ["^build"]
     }
   }
 }

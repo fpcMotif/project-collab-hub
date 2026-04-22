@@ -8,6 +8,7 @@ export {
   FeishuMessageServiceLive,
   type SendTextMessageParams,
   type SendCardMessageParams,
+  type UpdateCardMessageParams,
 } from "./services/feishu-message-service.js";
 export {
   FeishuApprovalService,
@@ -20,6 +21,7 @@ export {
   FeishuTaskServiceLive,
   type CreateFeishuTaskParams,
   type FeishuTaskResult,
+  type UpdateFeishuTaskParams,
 } from "./services/feishu-task-service.js";
 export {
   FeishuChatService,

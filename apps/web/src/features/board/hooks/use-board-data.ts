@@ -1,5 +1,3 @@
-"use client";
-
 import type { BoardFilterState } from "../types";
 import { useMockBoardData } from "./use-mock-board-data";
 

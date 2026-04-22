@@ -12,11 +12,6 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "isolatedModules": true,
-    "resolveJsonModule": true,
-    "plugins": [
-      {
-        "name": "@effect/language-service"
-      }
-    ]
+    "resolveJsonModule": true
   }
 }

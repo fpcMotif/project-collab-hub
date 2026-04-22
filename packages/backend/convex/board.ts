@@ -179,11 +179,92 @@ export const listBoardProjects = query({
   args: {},
   handler: async (ctx) => {
     await requireAuthenticatedIdentity(ctx);
-    const projects = await ctx.db.query("projects").collect();
 
-    return Promise.all(
-      projects.map((project) => buildBoardProjectRecord(ctx, project))
-    );
+    // 1. Fetch all projects
+    const projects = await ctx.db.query("projects").collect();
+    if (projects.length === 0) {
+      return [];
+    }
+
+    // 2. Fetch all related entities unconditionally
+    const [departmentTracks, workItems, approvalGates, projectTemplates] =
+      await Promise.all([
+        ctx.db.query("departmentTracks").collect(),
+        ctx.db.query("workItems").collect(),
+        ctx.db.query("approvalGates").collect(),
+        ctx.db.query("projectTemplates").collect(),
+      ]);
+
+    // 3. Group by project ID
+    const tracksByProject = new Map<Id<"projects">, typeof departmentTracks>();
+    const workItemsByProject = new Map<Id<"projects">, typeof workItems>();
+    const approvalsByProject = new Map<Id<"projects">, typeof approvalGates>();
+    const templateById = new Map<
+      Id<"projectTemplates">,
+      (typeof projectTemplates)[0]
+    >();
+
+    for (const track of departmentTracks) {
+      const existing = tracksByProject.get(track.projectId) ?? [];
+      existing.push(track);
+      tracksByProject.set(track.projectId, existing);
+    }
+
+    for (const item of workItems) {
+      const existing = workItemsByProject.get(item.projectId) ?? [];
+      existing.push(item);
+      workItemsByProject.set(item.projectId, existing);
+    }
+
+    for (const gate of approvalGates) {
+      const existing = approvalsByProject.get(gate.projectId) ?? [];
+      existing.push(gate);
+      approvalsByProject.set(gate.projectId, existing);
+    }
+
+    for (const template of projectTemplates) {
+      templateById.set(template._id, template);
+    }
+
+    // 4. Map locally
+    const now = Date.now();
+    return projects.map((project) => {
+      const pTracks = tracksByProject.get(project._id) ?? [];
+      const pItems = workItemsByProject.get(project._id) ?? [];
+      const pApprovals = approvalsByProject.get(project._id) ?? [];
+      const template = project.templateId
+        ? templateById.get(
+            project.templateId as unknown as Id<"projectTemplates">
+          )
+        : null;
+
+      const overdueTaskCount = pItems.filter(
+        (item) =>
+          item.status !== "done" &&
+          item.dueDate !== undefined &&
+          item.dueDate < now
+      ).length;
+
+      return {
+        customerName: project.customerName ?? "未填写客户",
+        departmentTracks: pTracks.map((track) => ({
+          blockReason: track.blockReason,
+          departmentName: track.departmentName,
+          status: track.isRequired ? track.status : "not_required",
+        })),
+        id: project._id,
+        name: project.name,
+        overdueTaskCount,
+        ownerName: project.ownerId,
+        pendingApprovalCount: pApprovals.filter(
+          (gate) => gate.status === "pending"
+        ).length,
+        priority: project.priority ?? "medium",
+        slaRisk: deriveSlaRisk(project.slaDeadline, overdueTaskCount),
+        status: project.status,
+        templateType: template?.name ?? "默认模板",
+      };
+    });
   },
 });
 
@@ -457,52 +538,54 @@ export const transitionProjectStage = mutation({
           (gate) => gate.triggerStage === args.targetStatus
         );
 
-        for (const gateConfig of stageGates) {
-          const gateId = await ctx.db.insert("approvalGates", {
-            applicantId: args.actorId,
-            approvalCode: gateConfig.approvalCode,
-            projectId: args.projectId,
-            snapshotData: JSON.stringify({
-              fromStage: fromStatus,
-              projectName: project.name,
-              targetStage: args.targetStatus,
-            }),
-            status: "pending",
-            templateVersion: project.templateVersion,
-            title: gateConfig.title,
-            triggerStage: args.targetStatus as
-              | "new"
-              | "assessment"
-              | "solution"
-              | "ready"
-              | "executing"
-              | "delivering"
-              | "done"
-              | "cancelled",
-          });
-
-          await ctx.scheduler.runAfter(
-            0,
-            internal.feishuActions.submitApproval,
-            {
-              applicantId: args.actorId,
+        await Promise.all(
+          stageGates.map(async (gateConfig) => {
+            const gateId = await ctx.db.insert("approvalGates", {
+              applicantId: identity.subject,
               approvalCode: gateConfig.approvalCode,
-              formData: JSON.stringify([
-                {
-                  id: "project_name",
-                  type: "input",
-                  value: project.name,
-                },
-                {
-                  id: "stage_transition",
-                  type: "input",
-                  value: `${fromStatus} → ${args.targetStatus}`,
-                },
-              ]),
-              gateId,
-            }
-          );
-        }
+              projectId: args.projectId,
+              snapshotData: JSON.stringify({
+                fromStage: fromStatus,
+                projectName: project.name,
+                targetStage: args.targetStatus,
+              }),
+              status: "pending",
+              templateVersion: project.templateVersion,
+              title: gateConfig.title,
+              triggerStage: args.targetStatus as
+                | "new"
+                | "assessment"
+                | "solution"
+                | "ready"
+                | "executing"
+                | "delivering"
+                | "done"
+                | "cancelled",
+            });
+
+            await ctx.scheduler.runAfter(
+              0,
+              internal.feishuActions.submitApproval,
+              {
+                applicantId: identity.subject,
+                approvalCode: gateConfig.approvalCode,
+                formData: JSON.stringify([
+                  {
+                    id: "project_name",
+                    type: "input",
+                    value: project.name,
+                  },
+                  {
+                    id: "stage_transition",
+                    type: "input",
+                    value: `${fromStatus} → ${args.targetStatus}`,
+                  },
+                ]),
+                gateId,
+              }
+            );
+          })
+        );
       }
     }
 

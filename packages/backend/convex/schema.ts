@@ -83,9 +83,14 @@ export default defineSchema({
   baseBindings: defineTable({
     baseAppToken: v.string(),
     fieldOwnership: v.optional(v.string()),
+    lastSyncError: v.optional(v.string()),
     lastSyncedAt: v.number(),
     projectId: v.id("projects"),
     recordId: v.string(),
+    syncAttempts: v.optional(v.number()),
+    syncStatus: v.optional(
+      v.union(v.literal("ok"), v.literal("error"), v.literal("pending"))
+    ),
     tableId: v.string(),
   })
     .index("by_project", ["projectId"])

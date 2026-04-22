@@ -1,5 +1,4 @@
-"use client";
-
+import type { ProjectStatus } from "@collab-hub/shared";
 import { useMutation, useQuery } from "convex/react";
 import { useCallback } from "react";
 
@@ -18,6 +17,12 @@ export const useConvexProjectDetail = (projectId: string) => {
   );
   const resolveApprovalGateMutation = useMutation(
     convexFunctionRefs.resolveApprovalGate
+  );
+  const createApprovalGateMutation = useMutation(
+    convexFunctionRefs.createApprovalGate
+  );
+  const triggerBaseSyncMutation = useMutation(
+    convexFunctionRefs.triggerBaseSync
   );
 
   const createComment = useCallback(
@@ -73,7 +78,7 @@ export const useConvexProjectDetail = (projectId: string) => {
 
       await resolveApprovalGateMutation({
         id: approvalId,
-        idempotencyKey: `${approvalId}-${status}-${Date.now()}`,
+        idempotencyKey: `${approvalId}-${status}`,
         instanceCode: approval.instanceCode ?? `MANUAL-${approvalId}`,
         resolvedBy: ACTOR_ID,
         status,
@@ -87,12 +92,41 @@ export const useConvexProjectDetail = (projectId: string) => {
     [detail?.approvals, resolveApprovalGateMutation]
   );
 
+  const requestApproval = useCallback(
+    async (
+      title: string,
+      approvalCode: string,
+      triggerStage: ProjectStatus
+    ) => {
+      await createApprovalGateMutation({
+        applicantId: ACTOR_ID,
+        approvalCode,
+        projectId,
+        title,
+        triggerStage,
+      });
+
+      return { message: "审批申请已提交", ok: true } as const;
+    },
+    [createApprovalGateMutation, projectId]
+  );
+
+  const triggerBaseSync = useCallback(
+    async (bindingId: string) => {
+      await triggerBaseSyncMutation({ bindingId });
+      return { message: "同步已触发", ok: true } as const;
+    },
+    [triggerBaseSyncMutation]
+  );
+
   return {
     createComment,
     deleteComment,
     detail: detail ?? null,
     isLoading: detail === undefined,
+    requestApproval,
     resolveApproval,
+    triggerBaseSync,
     updateWorkItemStatus,
   } as const;
 };
