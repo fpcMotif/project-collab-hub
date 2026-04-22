@@ -10,6 +10,10 @@ interface SlaRiskIndicatorProps {
 export const SlaRiskIndicator = ({ risk }: SlaRiskIndicatorProps) => {
   const style = SLA_RISK_STYLES[risk];
 
+  if (!style) {
+    return null;
+  }
+
   return (
     <span
       className={cn(
