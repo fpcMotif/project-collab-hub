@@ -90,16 +90,18 @@ export const create = mutation({
       .first();
 
     if (chatBinding) {
+      const project = await ctx.db.get(args.projectId);
+      const projectName = project?.name || "Project";
+
       await ctx.scheduler.runAfter(0, internal.notificationActions.enqueue, {
         channel: "group_chat",
         messageType: "workflow_approval",
         payload: JSON.stringify({
-          // Ideally look up the name
+          // Applicant name is resolved async during delivery if needed
           applicantName: args.applicantId,
           approvalTitle: args.title,
           gateId,
-          // Ideally look up the project name
-          projectName: "Project",
+          projectName,
           submissionTime: new Date().toISOString().split("T")[0],
         }),
         projectId: args.projectId,

@@ -50,5 +50,11 @@ export {
   type WorkflowInstanceResult,
   type WorkflowInstanceDetail,
 } from "./services/feishu-workflow-service.js";
+export {
+  FeishuUserService,
+  FeishuUserServiceLive,
+  type GetUserParams,
+  type UserResult,
+} from "./services/feishu-user-service.js";
 export { FeishuLive } from "./layers/feishu-layer.js";
 export { FeishuError } from "./errors/feishu-error.js";
