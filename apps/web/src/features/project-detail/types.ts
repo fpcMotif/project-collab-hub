@@ -104,6 +104,8 @@ export interface ProjectDetailBaseBinding {
   recordId: string;
   fieldOwnership?: string;
   lastSyncedAt: number;
+  syncStatus: SyncStatus;
+  lastSyncError?: string;
 }
 
 export interface ProjectDetailData {
@@ -119,3 +121,5 @@ export interface ProjectDetailData {
     bases: ProjectDetailBaseBinding[];
   };
 }
+
+export type SyncStatus = "ok" | "error" | "pending";

@@ -17,6 +17,7 @@ import {
   readFeishuSignatureHeaders,
   verifyFeishuRequestSignature,
 } from "./lib/feishu-signature";
+import { parseJsonRecord } from "./lib/feishu-webhook";
 
 type CallableCtx = GenericActionCtx<DataModel>;
 
@@ -176,7 +177,11 @@ const handleBaseRecordChange = async (
 http.route({
   handler: httpAction(async (ctx, request) => {
     const bodyText = await request.text();
-    const body = JSON.parse(bodyText) as Record<string, unknown>;
+    const body = parseJsonRecord(bodyText);
+
+    if (!body) {
+      return new Response("Invalid JSON", { status: 400 });
+    }
 
     if (body.type === "url_verification") {
       return Response.json({ challenge: body.challenge }, { status: 200 });
@@ -232,7 +237,11 @@ http.route({
 http.route({
   handler: httpAction(async (ctx, request) => {
     const bodyText = await request.text();
-    const body = JSON.parse(bodyText) as Record<string, unknown>;
+    const body = parseJsonRecord(bodyText);
+
+    if (!body) {
+      return new Response("Invalid JSON", { status: 400 });
+    }
 
     if (body.type === "url_verification") {
       return Response.json({ challenge: body.challenge }, { status: 200 });
@@ -305,7 +314,11 @@ http.route({
 http.route({
   handler: httpAction(async (ctx, request) => {
     const bodyText = await request.text();
-    const body = JSON.parse(bodyText) as Record<string, unknown>;
+    const body = parseJsonRecord(bodyText);
+
+    if (!body) {
+      return new Response("Invalid JSON", { status: 400 });
+    }
 
     if (body.type === "url_verification") {
       return Response.json({ challenge: body.challenge }, { status: 200 });
@@ -365,7 +378,11 @@ http.route({
 http.route({
   handler: httpAction(async (ctx, request) => {
     const bodyText = await request.text();
-    const body = JSON.parse(bodyText) as Record<string, unknown>;
+    const body = parseJsonRecord(bodyText);
+
+    if (!body) {
+      return new Response("Invalid JSON", { status: 400 });
+    }
 
     if (body.type === "url_verification") {
       return Response.json({ challenge: body.challenge }, { status: 200 });

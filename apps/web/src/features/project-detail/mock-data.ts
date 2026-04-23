@@ -162,6 +162,7 @@ export const createInitialMockProjectDetail = (
           id: `${project.id}-base-1`,
           lastSyncedAt: Date.now() - 1000 * 60 * 30,
           recordId: `rec_${project.id.toLowerCase()}`,
+          syncStatus: "ok",
           tableId: "tblProjects",
         },
       ],
