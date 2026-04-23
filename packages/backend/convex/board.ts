@@ -538,52 +538,54 @@ export const transitionProjectStage = mutation({
           (gate) => gate.triggerStage === args.targetStatus
         );
 
-        for (const gateConfig of stageGates) {
-          const gateId = await ctx.db.insert("approvalGates", {
-            applicantId: identity.subject,
-            approvalCode: gateConfig.approvalCode,
-            projectId: args.projectId,
-            snapshotData: JSON.stringify({
-              fromStage: fromStatus,
-              projectName: project.name,
-              targetStage: args.targetStatus,
-            }),
-            status: "pending",
-            templateVersion: project.templateVersion,
-            title: gateConfig.title,
-            triggerStage: args.targetStatus as
-              | "new"
-              | "assessment"
-              | "solution"
-              | "ready"
-              | "executing"
-              | "delivering"
-              | "done"
-              | "cancelled",
-          });
-
-          await ctx.scheduler.runAfter(
-            0,
-            internal.feishuActions.submitApproval,
-            {
+        await Promise.all(
+          stageGates.map(async (gateConfig) => {
+            const gateId = await ctx.db.insert("approvalGates", {
               applicantId: identity.subject,
               approvalCode: gateConfig.approvalCode,
-              formData: JSON.stringify([
-                {
-                  id: "project_name",
-                  type: "input",
-                  value: project.name,
-                },
-                {
-                  id: "stage_transition",
-                  type: "input",
-                  value: `${fromStatus} → ${args.targetStatus}`,
-                },
-              ]),
-              gateId,
-            }
-          );
-        }
+              projectId: args.projectId,
+              snapshotData: JSON.stringify({
+                fromStage: fromStatus,
+                projectName: project.name,
+                targetStage: args.targetStatus,
+              }),
+              status: "pending",
+              templateVersion: project.templateVersion,
+              title: gateConfig.title,
+              triggerStage: args.targetStatus as
+                | "new"
+                | "assessment"
+                | "solution"
+                | "ready"
+                | "executing"
+                | "delivering"
+                | "done"
+                | "cancelled",
+            });
+
+            await ctx.scheduler.runAfter(
+              0,
+              internal.feishuActions.submitApproval,
+              {
+                applicantId: identity.subject,
+                approvalCode: gateConfig.approvalCode,
+                formData: JSON.stringify([
+                  {
+                    id: "project_name",
+                    type: "input",
+                    value: project.name,
+                  },
+                  {
+                    id: "stage_transition",
+                    type: "input",
+                    value: `${fromStatus} → ${args.targetStatus}`,
+                  },
+                ]),
+                gateId,
+              }
+            );
+          })
+        );
       }
     }
 
