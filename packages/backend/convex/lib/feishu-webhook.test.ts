@@ -7,9 +7,22 @@ import {
   mapApprovalStatus,
   mapTaskStatus,
   sanitizeLogInput,
+  parseJsonRecord,
 } from "./feishu-webhook";
 
 describe("feishuWebhook helpers", () => {
+  it("parses valid JSON record", () => {
+    expect(parseJsonRecord('{"a":1}')).toEqual({ a: 1 });
+  });
+
+  it("returns null for invalid JSON", () => {
+    expect(parseJsonRecord('invalid')).toBeNull();
+  });
+
+  it("returns null for non-record JSON", () => {
+    expect(parseJsonRecord('123')).toBeNull();
+    expect(parseJsonRecord('[1,2]')).toBeNull();
+  });
   it("sanitizes log input and trims control characters", () => {
     expect(sanitizeLogInput("task.updated\r\nmalicious\tentry")).toBe(
       "task.updated malicious entry"
